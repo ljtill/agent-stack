@@ -11,7 +11,6 @@
   - [Editorial Dashboard](#3-editorial-dashboard-private)
   - [Public Newsletter Site](#4-public-newsletter-site)
 - [Data Model](#data-model)
-- [Design Decisions](#design-decisions)
 - [Future Scope](#future-scope)
 
 ---
@@ -158,23 +157,6 @@ Execution logs, decisions, and state per pipeline stage.
 | `output`           | Agent output/decisions                                   |
 | `started_at`       | Start timestamp                                          |
 | `completed_at`     | Completion timestamp                                     |
-
----
-
-## Design Decisions
-
-Resolved decisions that shape the implementation:
-
-| Decision                        | Resolution                                                                                         |
-|---------------------------------|----------------------------------------------------------------------------------------------------|
-| **Change feed consumer**        | Dedicated change feed processor within the Container App (fewer services, simpler deployment).      |
-| **Agent flow control**          | Explicit orchestration layer handles stage transitions, routing, and error/retry logic.              |
-| **Cosmos DB container layout**  | Multiple containers (one per document type) for clean separation.                                    |
-| **Cosmos DB partitioning**      | `links` and `feedback` by `edition_id`, `editions` by `id`, `agent_runs` by `trigger_id`.           |
-| **LLM provider**                | Microsoft Foundry.                                                                                   |
-| **Feedback granularity**        | Per-section — matches the natural editorial workflow.                                               |
-| **HTML template management**    | Version controlled in the repository — simpler and auditable.                                       |
-| **Static site deployment**      | Publish agent uploads to Azure Storage Account; Azure Static Web Apps pulls from storage (decoupled). |
 
 ---
 
