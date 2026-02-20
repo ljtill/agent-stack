@@ -6,6 +6,7 @@
 
 - [Constraints \& Tech Stack](#constraints--tech-stack)
 - [Architecture Decisions](#architecture-decisions)
+- [Agent Framework](#agent-framework)
 - [System Components](#system-components)
   - [Link Ingestion](#1-link-ingestion)
   - [Agent Pipeline](#2-agent-pipeline)
@@ -20,7 +21,7 @@
 ## Constraints & Tech Stack
 
 - **Language**: Python (primary), other languages as needed
-- **Orchestration**: [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
+- **Orchestration**: [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) `1.0.0rc1` ([PyPI](https://pypi.org/project/agent-framework/))
 - **LLM Provider**: [Microsoft Foundry](https://foundry.microsoft.com/)
 - **Hosting**: Microsoft Azure
   - **Azure Container Apps** — editorial service (FastAPI)
@@ -37,6 +38,33 @@
 - **Package layout**: `src/agent_stack/` — standard `src/` layout for an application package.
 - **Process model**: Single process — the FastAPI application runs the Cosmos DB change feed processor as a background task within the same process via FastAPI's lifespan events.
 - **Local development**: Azure Cosmos DB emulator via Docker for offline development.
+
+---
+
+## Agent Framework
+
+The [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) (`1.0.0rc1`) is the core agentic and workflow engine for this project. It provides the primitives for building, orchestrating, and running the multi-stage editorial pipeline.
+
+**Package & installation:** The project uses the selective install `agent-framework-core` (includes Azure OpenAI support and workflows without unnecessary extras). The `--pre` flag is required while the framework is in release candidate:
+
+```
+uv add agent-framework-core --prerelease=allow
+```
+
+**Key abstractions used:**
+
+| Abstraction              | Usage in this project                                                                                          |
+|--------------------------|----------------------------------------------------------------------------------------------------------------|
+| `Agent`                  | Each pipeline stage (Fetch, Review, Draft, Edit, Publish) is an `Agent` instance with stage-specific instructions and tools |
+| `AzureOpenAIChatClient`  | LLM provider integration with Azure OpenAI / Microsoft Foundry, authenticated via managed identity             |
+| Tools / Functions        | Typed Python functions registered on agents for structured operations (Cosmos DB reads/writes, HTTP fetches, HTML rendering) |
+| Workflows                | Graph-based orchestration for the multi-stage pipeline, managing agent-to-agent data flow and stage transitions |
+
+**References:**
+
+- [GitHub repository](https://github.com/microsoft/agent-framework)
+- [PyPI package](https://pypi.org/project/agent-framework/)
+- [MS Learn documentation](https://learn.microsoft.com/en-us/agent-framework/)
 
 ---
 
