@@ -33,6 +33,15 @@ The agent pipeline uses an explicit orchestrator for agent-to-agent flow control
 
 Single active edition model — all submitted links feed into the current draft.
 
+## Development Tooling
+
+- **Package & project management**: Use `uv` for all dependency management, virtual environments, and running scripts (e.g., `uv run`, `uv add`, `uv sync`)
+- **Type checking**: Use `ty` for static type analysis
+- **Linting & formatting**: Use `ruff` for linting and code formatting
+- **Dependencies**: Only use well-known, widely-adopted packages. When in doubt, ask before adding a dependency.
+- **Bicep**: Always use the latest available API versions for all Azure resource definitions
+- **Source control**: Commit at the end of major changes using imperative mood subject lines (e.g., "Add …", "Update …", "Remove …") with an optional prose paragraph body describing the why or key details
+
 ## Key Conventions
 
 - The full project spec lives in `docs/SPEC.md` — consult it for data model details, design decisions, and component specifications
