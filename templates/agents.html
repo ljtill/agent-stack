@@ -4,40 +4,47 @@
 <h1>Agents</h1>
 <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Pipeline topology and agent configuration. Read-only view of the orchestrator workflow.</p>
 
-<!-- Pipeline Flow Diagram -->
+<!-- Pipeline Flow Diagram — Hub-and-spoke layout -->
 <div class="card" style="overflow-x: auto;">
     <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Pipeline Workflow</h2>
-    <div class="pipeline-flow">
-        <div class="pipeline-node pipeline-node-orchestrator">
-            <div class="pipeline-node-icon">⚡</div>
-            <div class="pipeline-node-label">Orchestrator</div>
-            <div class="pipeline-node-sub">Pipeline Agent</div>
-        </div>
-        {% for agent in agents %}
-        <div class="pipeline-connector">
-            <div class="pipeline-connector-line"></div>
-            <div class="pipeline-connector-arrow">›</div>
-        </div>
-        <div class="pipeline-node {% if agent.is_running %}pipeline-node-active{% endif %}" id="pipeline-node-{{ agent.name }}"
-             onclick="toggleAgentCard('{{ agent.name }}')" style="cursor: pointer;" title="Click to view details">
-            <div class="pipeline-node-status">
-                {% if agent.is_running %}
-                <span class="agent-indicator-dot agent-indicator-dot-running" title="Running"></span>
-                {% elif agent.last_run and agent.last_run.status == 'completed' %}
-                <span class="agent-indicator-dot agent-indicator-dot-completed" title="Last run completed"></span>
-                {% elif agent.last_run and agent.last_run.status == 'failed' %}
-                <span class="agent-indicator-dot agent-indicator-dot-failed" title="Last run failed"></span>
-                {% else %}
-                <span class="agent-indicator-dot" style="background: var(--border);" title="Idle"></span>
-                {% endif %}
+    <div class="pipeline-hub">
+        <!-- Orchestrator hub node -->
+        <div class="pipeline-hub-center" onclick="toggleAgentCard('orchestrator')" style="cursor: pointer;" title="Click to view details">
+            <div class="pipeline-node pipeline-node-orchestrator">
+                <div class="pipeline-node-icon">⚡</div>
+                <div class="pipeline-node-label">Orchestrator</div>
+                <div class="pipeline-node-sub">Pipeline Agent</div>
             </div>
-            <div class="pipeline-node-icon stage-{{ agent.name }}">
-                {% if agent.name == 'orchestrator' %}⚡{% elif agent.name == 'fetch' %}↓{% elif agent.name == 'review' %}◉{% elif agent.name == 'draft' %}✎{% elif agent.name == 'edit' %}✂{% elif agent.name == 'publish' %}▲{% endif %}
-            </div>
-            <div class="pipeline-node-label">{{ agent.name | capitalize }}</div>
-            <div class="pipeline-node-sub">{{ agent.tools | length }} tool{{ 's' if agent.tools | length != 1 else '' }}</div>
         </div>
-        {% endfor %}
+        <!-- Spokes connecting to sub-agents -->
+        <div class="pipeline-spokes">
+            {% for agent in agents %}
+            {% if agent.name != 'orchestrator' %}
+            <div class="pipeline-spoke">
+                <div class="pipeline-spoke-line"></div>
+                <div class="pipeline-node {% if agent.is_running %}pipeline-node-active{% endif %}" id="pipeline-node-{{ agent.name }}"
+                     onclick="toggleAgentCard('{{ agent.name }}')" style="cursor: pointer;" title="Click to view details">
+                    <div class="pipeline-node-status">
+                        {% if agent.is_running %}
+                        <span class="agent-indicator-dot agent-indicator-dot-running" title="Running"></span>
+                        {% elif agent.last_run and agent.last_run.status == 'completed' %}
+                        <span class="agent-indicator-dot agent-indicator-dot-completed" title="Last run completed"></span>
+                        {% elif agent.last_run and agent.last_run.status == 'failed' %}
+                        <span class="agent-indicator-dot agent-indicator-dot-failed" title="Last run failed"></span>
+                        {% else %}
+                        <span class="agent-indicator-dot" style="background: var(--border);" title="Idle"></span>
+                        {% endif %}
+                    </div>
+                    <div class="pipeline-node-icon stage-{{ agent.name }}">
+                        {% if agent.name == 'fetch' %}↓{% elif agent.name == 'review' %}◉{% elif agent.name == 'draft' %}✎{% elif agent.name == 'edit' %}✂{% elif agent.name == 'publish' %}▲{% endif %}
+                    </div>
+                    <div class="pipeline-node-label">{{ agent.name | capitalize }}</div>
+                    <div class="pipeline-node-sub">{{ agent.tools | length }} tool{{ 's' if agent.tools | length != 1 else '' }}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
     </div>
 </div>
 
@@ -217,13 +224,31 @@
 {% endfor %}
 
 <style>
-    .pipeline-flow {
+    /* Hub-and-spoke pipeline layout */
+    .pipeline-hub {
         display: flex;
+        flex-direction: column;
         align-items: center;
-        justify-content: center;
-        gap: 0;
         padding: 1rem 0;
-        min-width: fit-content;
+    }
+    .pipeline-hub-center {
+        margin-bottom: 0;
+    }
+    .pipeline-spokes {
+        display: flex;
+        justify-content: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .pipeline-spoke {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .pipeline-spoke-line {
+        width: 2px;
+        height: 24px;
+        background: var(--border);
     }
     .pipeline-node {
         display: flex;
@@ -261,22 +286,6 @@
         position: absolute;
         top: 0.4rem;
         right: 0.4rem;
-    }
-    .pipeline-connector {
-        display: flex;
-        align-items: center;
-        gap: 0;
-    }
-    .pipeline-connector-line {
-        width: 24px;
-        height: 2px;
-        background: var(--border);
-    }
-    .pipeline-connector-arrow {
-        color: var(--text-muted);
-        font-size: 1rem;
-        line-height: 1;
-        margin-left: -4px;
     }
     .agent-card-header {
         display: flex;
