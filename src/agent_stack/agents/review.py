@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import Annotated
 
 from agent_framework import Agent, ChatOptions, tool
@@ -93,10 +94,18 @@ class ReviewAgent:
 
     async def run(self, link: Link) -> dict:
         """Execute the review agent for a fetched link."""
-        logger.info("Review agent processing link %s", link.id)
+        logger.info("Review agent started — link=%s", link.id)
+        t0 = time.monotonic()
         self._save_failures = 0
         message = f"Review the fetched content for this link.\nLink ID: {link.id}\nEdition ID: {link.edition_id}"
-        response = await self._agent.run(message)
+        try:
+            response = await self._agent.run(message)
+        except Exception:
+            elapsed_ms = (time.monotonic() - t0) * 1000
+            logger.exception("Review agent failed — link=%s duration_ms=%.0f", link.id, elapsed_ms)
+            raise
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        logger.info("Review agent completed — link=%s duration_ms=%.0f", link.id, elapsed_ms)
         return {
             "usage": dict(response.usage_details) if response and response.usage_details else None,
             "message": message,

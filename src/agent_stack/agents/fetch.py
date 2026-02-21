@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import Annotated
 
 import httpx
@@ -96,12 +97,20 @@ class FetchAgent:
 
     async def run(self, link: Link) -> dict:
         """Execute the fetch agent for a given link."""
-        logger.info("Fetch agent processing link %s (%s)", link.id, link.url)
+        logger.info("Fetch agent started — link=%s url=%s", link.id, link.url)
+        t0 = time.monotonic()
         message = (
             f"Fetch and extract the content from this URL: {link.url}\n"
             f"Link ID: {link.id}\nEdition ID: {link.edition_id}"
         )
-        response = await self._agent.run(message)
+        try:
+            response = await self._agent.run(message)
+        except Exception:
+            elapsed_ms = (time.monotonic() - t0) * 1000
+            logger.exception("Fetch agent failed — link=%s duration_ms=%.0f", link.id, elapsed_ms)
+            raise
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        logger.info("Fetch agent completed — link=%s duration_ms=%.0f", link.id, elapsed_ms)
         return {
             "usage": dict(response.usage_details) if response and response.usage_details else None,
             "message": message,

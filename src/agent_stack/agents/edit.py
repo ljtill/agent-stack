@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import Annotated
 
 from agent_framework import Agent, ChatOptions, tool
@@ -90,9 +91,17 @@ class EditAgent:
 
     async def run(self, edition_id: str) -> dict:
         """Execute the edit agent for an edition."""
-        logger.info("Edit agent processing edition %s", edition_id)
+        logger.info("Edit agent started — edition=%s", edition_id)
+        t0 = time.monotonic()
         message = f"Edit and refine the current edition. Address any unresolved feedback.\nEdition ID: {edition_id}"
-        response = await self._agent.run(message)
+        try:
+            response = await self._agent.run(message)
+        except Exception:
+            elapsed_ms = (time.monotonic() - t0) * 1000
+            logger.exception("Edit agent failed — edition=%s duration_ms=%.0f", edition_id, elapsed_ms)
+            raise
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        logger.info("Edit agent completed — edition=%s duration_ms=%.0f", edition_id, elapsed_ms)
         return {
             "usage": dict(response.usage_details) if response and response.usage_details else None,
             "message": message,

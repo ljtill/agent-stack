@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from datetime import UTC, datetime
 from html import escape
 from typing import Any
@@ -122,6 +123,8 @@ class PipelineOrchestrator:
             return
 
         run = await self._create_run(stage, link_id, {"status": status})
+        t0 = time.monotonic()
+        logger.info("Pipeline dispatching stage=%s trigger=%s", stage, link_id)
         try:
             result = await self._execute_link_stage(stage, link)
             run.status = AgentRunStatus.COMPLETED
@@ -137,6 +140,14 @@ class PipelineOrchestrator:
             run.completed_at = datetime.now(UTC)
             await self._agent_runs_repo.update(run, link_id)
             await self._publish_run_complete(run)
+            elapsed_ms = (time.monotonic() - t0) * 1000
+            logger.info(
+                "Pipeline stage=%s trigger=%s completed status=%s duration_ms=%.0f",
+                stage,
+                link_id,
+                run.status,
+                elapsed_ms,
+            )
 
         # Mark link as failed if the fetch stage didn't advance it
         if stage == AgentStage.FETCH:
@@ -163,6 +174,8 @@ class PipelineOrchestrator:
             return
 
         run = await self._create_run(AgentStage.EDIT, feedback_id, {"edition_id": edition_id})
+        t0 = time.monotonic()
+        logger.info("Pipeline dispatching stage=%s trigger=%s", AgentStage.EDIT, feedback_id)
         try:
             result = await self._edit.run(edition_id)
             run.status = AgentRunStatus.COMPLETED
@@ -178,6 +191,14 @@ class PipelineOrchestrator:
             run.completed_at = datetime.now(UTC)
             await self._agent_runs_repo.update(run, feedback_id)
             await self._publish_run_complete(run)
+            elapsed_ms = (time.monotonic() - t0) * 1000
+            logger.info(
+                "Pipeline stage=%s trigger=%s completed status=%s duration_ms=%.0f",
+                AgentStage.EDIT,
+                feedback_id,
+                run.status,
+                elapsed_ms,
+            )
 
     def _determine_stage_for_link(self, status: str) -> AgentStage | None:
         """Map link status to the next agent stage."""

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import Annotated
 
 from agent_framework import Agent, ChatOptions, tool
@@ -97,9 +98,22 @@ class DraftAgent:
 
     async def run(self, link: Link) -> dict:
         """Execute the draft agent for a reviewed link."""
-        logger.info("Draft agent processing link %s for edition %s", link.id, link.edition_id)
+        logger.info("Draft agent started — link=%s edition=%s", link.id, link.edition_id)
+        t0 = time.monotonic()
         message = f"Draft newsletter content for this reviewed link.\nLink ID: {link.id}\nEdition ID: {link.edition_id}"
-        response = await self._agent.run(message)
+        try:
+            response = await self._agent.run(message)
+        except Exception:
+            elapsed_ms = (time.monotonic() - t0) * 1000
+            logger.exception(
+                "Draft agent failed — link=%s edition=%s duration_ms=%.0f",
+                link.id,
+                link.edition_id,
+                elapsed_ms,
+            )
+            raise
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        logger.info("Draft agent completed — link=%s edition=%s duration_ms=%.0f", link.id, link.edition_id, elapsed_ms)
         return {
             "usage": dict(response.usage_details) if response and response.usage_details else None,
             "message": message,

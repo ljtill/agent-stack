@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -76,9 +77,17 @@ class PublishAgent:
 
     async def run(self, edition_id: str) -> dict:
         """Execute the publish agent for an edition."""
-        logger.info("Publish agent processing edition %s", edition_id)
+        logger.info("Publish agent started — edition=%s", edition_id)
+        t0 = time.monotonic()
         message = f"Render and publish the edition.\nEdition ID: {edition_id}"
-        response = await self._agent.run(message)
+        try:
+            response = await self._agent.run(message)
+        except Exception:
+            elapsed_ms = (time.monotonic() - t0) * 1000
+            logger.exception("Publish agent failed — edition=%s duration_ms=%.0f", edition_id, elapsed_ms)
+            raise
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        logger.info("Publish agent completed — edition=%s duration_ms=%.0f", edition_id, elapsed_ms)
         return {
             "usage": dict(response.usage_details) if response and response.usage_details else None,
             "message": message,
