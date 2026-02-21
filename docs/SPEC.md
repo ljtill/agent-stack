@@ -25,11 +25,13 @@
 - **LLM Provider**: [Microsoft Foundry](https://foundry.microsoft.com/)
 - **Hosting**: Microsoft Azure
   - **Azure Container Apps** — editorial service (FastAPI)
+  - **Azure Container Registry** — container image storage
   - **Azure Cosmos DB** (NoSQL API) — data persistence, change feed as event source
   - **Azure Storage Account** — generated newsletter static assets
   - **Azure Static Web Apps** — public newsletter site
   - **Azure App Configuration** — runtime configuration
   - **Azure Application Insights** — application monitoring and telemetry (backed by Log Analytics workspace)
+  - **Azure Managed Identity** — passwordless authentication between Azure services
 - **Auth**: Microsoft Entra ID for the editorial dashboard
 
 ---
@@ -109,6 +111,7 @@ FastAPI + Jinja2 + HTMX server-rendered admin UI, authenticated via Microsoft En
 - **Links** — submit new links, view agent processing status per link (`submitted` → `fetching` → `reviewed` → `drafted`). HTMX updates status in-place.
 - **Editions** — list of all editions with status (`created` → `drafting` → `in_review` → `published`).
 - **Edition Detail** — review agent-generated content, per-section structured feedback interface for comments back to agents (bidirectional), publish action when ready.
+- **Status** — dependency health checks (Cosmos DB, Azure OpenAI, Change Feed Processor) with latency metrics, probed on page load.
 
 **Edition model:** Single active edition — all submitted links feed into the current draft. The editor creates a new edition when ready to start the next one.
 
@@ -222,7 +225,7 @@ Execution logs, decisions, and state per pipeline stage.
 
 ## Infrastructure & DevOps
 
-- **Infrastructure as Code**: Bicep templates stored in the repository under `infra/`, with parameterized modules for each Azure resource (Cosmos DB, Container Apps, Storage Account, Static Web Apps, App Configuration, Application Insights, Log Analytics). Separate parameter files for dev and prod environments.
+- **Infrastructure as Code**: Bicep templates stored in the repository under `infra/`, with parameterized modules for each Azure resource (Container Apps, Container Registry, Cosmos DB, Storage Account, Static Web Apps, App Configuration, Application Insights, Log Analytics, Managed Identity). Separate parameter files for dev and prod environments.
 - **CI/CD**: GitHub Actions workflows for continuous integration (lint, type-check, test) and deployment (build container image, deploy infrastructure, deploy application).
 - **Local development**: Azure Cosmos DB emulator (`vnext-preview`, ARM-compatible) and Azurite (Azure Storage emulator) via Docker (Docker Compose configuration in the repository) for fully offline development. Local configuration via `.env` files; deployed environments use Azure App Configuration with managed identity.
 

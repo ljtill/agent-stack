@@ -13,6 +13,7 @@ src/agent_stack/
 ├── models/          # Pydantic data models
 ├── pipeline/        # Orchestrator and change feed processor
 ├── routes/          # FastAPI route handlers
+├── services/        # Health checks and service-layer utilities
 ├── storage/         # Azure Blob Storage client and static site renderer
 ├── app.py           # FastAPI application factory
 └── config.py        # Configuration from environment variables
