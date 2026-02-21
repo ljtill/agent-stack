@@ -81,9 +81,10 @@ class PipelineOrchestrator:
             usage = await self._execute_link_stage(stage, link)
             run.status = AgentRunStatus.COMPLETED
             run.usage = self._normalize_usage(usage)
-        except Exception:
+        except Exception as exc:
             logger.exception("Agent stage %s failed for link %s", stage, link_id)
             run.status = AgentRunStatus.FAILED
+            run.output = {"error": str(exc)}
         finally:
             run.completed_at = datetime.now(UTC)
             await self._agent_runs_repo.update(run, link_id)
@@ -116,9 +117,10 @@ class PipelineOrchestrator:
             usage = await self._edit.run(edition_id)
             run.status = AgentRunStatus.COMPLETED
             run.usage = self._normalize_usage(usage)
-        except Exception:
+        except Exception as exc:
             logger.exception("Edit agent failed for feedback %s", feedback_id)
             run.status = AgentRunStatus.FAILED
+            run.output = {"error": str(exc)}
         finally:
             run.completed_at = datetime.now(UTC)
             await self._agent_runs_repo.update(run, feedback_id)

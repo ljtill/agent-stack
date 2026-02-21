@@ -51,6 +51,7 @@ async def edition_detail(request: Request, edition_id: str):
     # Gather all agent runs for this edition's links and feedback
     trigger_ids = [link.id for link in links]
     agent_runs = await runs_repo.get_by_triggers(trigger_ids) if trigger_ids else []
+    links_by_id = {link.id: link for link in links}
 
     return templates.TemplateResponse(
         "edition_detail.html",
@@ -60,6 +61,7 @@ async def edition_detail(request: Request, edition_id: str):
             "links": links,
             "editing": False,
             "agent_runs": agent_runs,
+            "links_by_id": links_by_id,
         },
     )
 
