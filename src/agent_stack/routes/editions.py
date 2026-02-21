@@ -90,7 +90,7 @@ async def cancel_title_edit(request: Request, edition_id: str):
     )
 
 
-@router.patch("/{edition_id}/title", response_class=HTMLResponse)
+@router.post("/{edition_id}/title", response_class=HTMLResponse)
 async def update_title(request: Request, edition_id: str, title: str = Form("")):
     """Update the edition title and return the display partial."""
     templates = request.app.state.templates
