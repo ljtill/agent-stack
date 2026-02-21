@@ -15,6 +15,17 @@ env:
   IMAGE_NAME: agent-stack
 
 jobs:
+  bicep:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Build Bicep
+        run: az bicep build --file infra/main.bicep
+
   build:
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
