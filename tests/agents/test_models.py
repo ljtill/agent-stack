@@ -1,6 +1,35 @@
 """Tests for data models."""
 
+import uuid
+from datetime import UTC
+
 from agent_stack.models import AgentRun, AgentRunStatus, AgentStage, Edition, EditionStatus, Feedback, Link, LinkStatus
+from agent_stack.models.base import DocumentBase, _new_id, _utcnow
+
+
+def test_new_id_generates_valid_uuid():
+    result = _new_id()
+    parsed = uuid.UUID(result)
+    assert str(parsed) == result
+
+
+def test_utcnow_returns_utc():
+    now = _utcnow()
+    assert now.tzinfo == UTC
+
+
+def test_document_base_defaults():
+    doc = DocumentBase()
+    assert doc.id  # non-empty
+    assert doc.created_at is not None
+    assert doc.updated_at is not None
+    assert doc.deleted_at is None
+
+
+def test_document_base_unique_ids():
+    doc1 = DocumentBase()
+    doc2 = DocumentBase()
+    assert doc1.id != doc2.id
 
 
 def test_link_defaults():

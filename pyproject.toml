@@ -28,6 +28,7 @@ agent-stack = "agent_stack.app:main"
 dev = [
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.0.0",
     "ruff>=0.15.2",
     "ty>=0.0.18",
 ]
@@ -49,3 +50,15 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["agent_stack"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+    "if TYPE_CHECKING:",
+]
