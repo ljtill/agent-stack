@@ -9,6 +9,7 @@ from agent_stack.services.health import (
     check_change_feed,
     check_cosmos,
     check_openai,
+    check_storage,
 )
 
 # --- Cosmos DB ---
@@ -66,6 +67,36 @@ async def test_check_openai_unhealthy():
 
     assert result.healthy is False
     assert "nodename" in result.error
+
+
+# --- Azure Storage ---
+
+
+@pytest.mark.asyncio
+async def test_check_storage_healthy():
+    container = AsyncMock()
+    storage = MagicMock()
+    storage._get_container.return_value = container
+
+    result = await check_storage(storage)
+
+    assert result.healthy is True
+    assert result.name == "Azure Storage"
+    assert result.latency_ms is not None
+    assert result.error is None
+
+
+@pytest.mark.asyncio
+async def test_check_storage_unhealthy():
+    container = AsyncMock()
+    container.get_container_properties.side_effect = RuntimeError("Storage unavailable")
+    storage = MagicMock()
+    storage._get_container.return_value = container
+
+    result = await check_storage(storage)
+
+    assert result.healthy is False
+    assert "Storage unavailable" in result.error
 
 
 # --- Change Feed Processor ---

@@ -11,6 +11,7 @@ from agent_framework.azure import AzureOpenAIChatClient
 from azure.cosmos.aio import DatabaseProxy
 
 from agent_stack.pipeline.change_feed import ChangeFeedProcessor
+from agent_stack.storage.blob import BlobStorageClient
 
 
 @dataclass
@@ -81,6 +82,19 @@ def _clean_openai_error(raw: str) -> str:
     return raw
 
 
+async def check_storage(storage: BlobStorageClient) -> ServiceHealth:
+    """Probe Azure Storage with a lightweight container existence check."""
+    start = time.monotonic()
+    try:
+        container = storage._get_container()
+        await container.get_container_properties()
+        latency = (time.monotonic() - start) * 1000
+        return ServiceHealth(name="Azure Storage", healthy=True, latency_ms=round(latency, 1))
+    except Exception as exc:
+        latency = (time.monotonic() - start) * 1000
+        return ServiceHealth(name="Azure Storage", healthy=False, latency_ms=round(latency, 1), error=str(exc))
+
+
 def check_change_feed(processor: ChangeFeedProcessor) -> ServiceHealth:
     """Check whether the change feed background task is alive."""
     if processor._running and processor._task is not None and not processor._task.done():
@@ -96,12 +110,12 @@ async def check_all(
     database: DatabaseProxy,
     openai_client: AzureOpenAIChatClient,
     processor: ChangeFeedProcessor,
+    storage: BlobStorageClient | None = None,
 ) -> list[ServiceHealth]:
     """Run all health probes and return results."""
-    cosmos_result, openai_result = await asyncio.gather(
-        check_cosmos(database),
-        check_openai(openai_client),
-        return_exceptions=False,
-    )
+    coros: list = [check_cosmos(database), check_openai(openai_client)]
+    if storage is not None:
+        coros.append(check_storage(storage))
+    network_results = await asyncio.gather(*coros, return_exceptions=False)
     feed_result = check_change_feed(processor)
-    return [cosmos_result, openai_result, feed_result]
+    return [*network_results, feed_result]
