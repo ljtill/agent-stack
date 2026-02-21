@@ -1,6 +1,6 @@
 # Copilot Instructions
 
-The full project specification lives in `docs/SPEC.md` — always consult it for architecture, data model, component design, and tech stack details. These instructions cover **operational guidance** that is not in the spec.
+The full project specification lives in `docs/SPECIFICATION.md` — always consult it for architecture, data model, component design, and tech stack details. These instructions cover **operational guidance** that is not in the spec.
 
 ## Development Tooling
 
