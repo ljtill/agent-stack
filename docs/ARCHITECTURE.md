@@ -184,11 +184,4 @@ graph LR
     Build -->|workflow_run| Release["Release<br/><i>Bicep deployment<br/>(infra)</i>"]
     Release -->|workflow_run| Deploy["Deploy<br/><i>Container App update</i>"]
 
-    style Check fill:#2d333b,stroke:#539bf5
-    style Test fill:#2d333b,stroke:#539bf5
-    style Build fill:#2d333b,stroke:#f0883e
-    style Release fill:#2d333b,stroke:#f0883e
-    style Deploy fill:#2d333b,stroke:#f0883e
 ```
-
-> Workflows marked in blue run on all pushes and PRs. Orange workflows only run on `main` after upstream success, and authenticate to Azure via OIDC.
