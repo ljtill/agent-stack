@@ -85,9 +85,28 @@ uv run ruff format src/ tests/
 uv run ty check src/
 ```
 
-## Deployment
+## Pipelines
 
-Infrastructure is managed with Bicep. Deploy with:
+The project uses GitHub Actions with four separate workflows chained via `workflow_run` triggers. All Azure-facing workflows authenticate using OIDC federated credentials.
+
+| Workflow | File | Trigger | Responsibility |
+|---|---|---|---|
+| **Test** | `test.yml` | Push / PR to `main` | Lint, format check, type check, unit tests |
+| **Build** | `build.yml` | Test success on `main` | Docker build and push to ACR |
+| **Release** | `release.yml` | Build success on `main` | Bicep infrastructure deployment |
+| **Deploy** | `deploy.yml` | Release success on `main` | Container App update |
+
+### Azure Authentication
+
+Workflows use federated credentials via `azure/login@v2` with the `production` GitHub environment. Required secrets:
+
+- `AZURE_CLIENT_ID`
+- `AZURE_TENANT_ID`
+- `AZURE_SUBSCRIPTION_ID`
+
+### Manual Deployment
+
+Infrastructure can also be deployed manually with Bicep:
 
 ```bash
 az deployment group create \
@@ -95,5 +114,3 @@ az deployment group create \
   --template-file infra/main.bicep \
   --parameters infra/params/prod.bicepparam
 ```
-
-CI/CD is handled by GitHub Actions — see `.github/workflows/ci.yml` and `.github/workflows/cd.yml`.
