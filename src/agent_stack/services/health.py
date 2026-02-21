@@ -49,7 +49,11 @@ async def check_openai(client: AzureOpenAIChatClient) -> ServiceHealth:
         return ServiceHealth(name="Azure OpenAI", healthy=True, latency_ms=round(latency, 1))
     except Exception as exc:
         latency = (time.monotonic() - start) * 1000
-        return ServiceHealth(name="Azure OpenAI", healthy=False, latency_ms=round(latency, 1), error=str(exc))
+        # Extract a clean message — the raw str(exc) includes the Python class repr
+        message = exc.args[0] if exc.args else str(exc)
+        if "Connection error" in str(exc):
+            message = "Connection error — check AZURE_OPENAI_ENDPOINT is reachable"
+        return ServiceHealth(name="Azure OpenAI", healthy=False, latency_ms=round(latency, 1), error=message)
 
 
 def check_change_feed(processor: ChangeFeedProcessor) -> ServiceHealth:
