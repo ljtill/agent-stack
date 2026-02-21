@@ -344,6 +344,7 @@ class PipelineOrchestrator:
             return
 
         logger.info("Orchestrator processing link=%s status=%s", link_id, status)
+        run = await self._create_orchestrator_run(link_id, {"status": status})
         t0 = time.monotonic()
         try:
             message = (
@@ -353,10 +354,17 @@ class PipelineOrchestrator:
                 f"URL: {link.url}\n"
                 f"Current status: {status}"
             )
-            await self._agent.run(message)
+            response = await self._agent.run(message)
+            run.status = AgentRunStatus.COMPLETED
+            run.output = {"content": response.text if response else None}
         except Exception:
             logger.exception("Orchestrator failed for link %s", link_id)
+            run.status = AgentRunStatus.FAILED
+            run.output = {"error": "Orchestrator failed"}
         finally:
+            run.completed_at = datetime.now(UTC)
+            await self._agent_runs_repo.update(run, link_id)
+            await self._publish_run_event(run)
             elapsed_ms = (time.monotonic() - t0) * 1000
             logger.info(
                 "Orchestrator completed link=%s duration_ms=%.0f",
@@ -377,6 +385,9 @@ class PipelineOrchestrator:
             feedback_id,
             edition_id,
         )
+        run = await self._create_orchestrator_run(
+            feedback_id, {"edition_id": edition_id}
+        )
         t0 = time.monotonic()
         try:
             message = (
@@ -385,10 +396,17 @@ class PipelineOrchestrator:
                 f"Feedback ID: {feedback_id}\n"
                 f"Run the edit stage to address the feedback."
             )
-            await self._agent.run(message)
+            response = await self._agent.run(message)
+            run.status = AgentRunStatus.COMPLETED
+            run.output = {"content": response.text if response else None}
         except Exception:
             logger.exception("Orchestrator failed for feedback %s", feedback_id)
+            run.status = AgentRunStatus.FAILED
+            run.output = {"error": "Orchestrator failed"}
         finally:
+            run.completed_at = datetime.now(UTC)
+            await self._agent_runs_repo.update(run, feedback_id)
+            await self._publish_run_event(run)
             elapsed_ms = (time.monotonic() - t0) * 1000
             logger.info(
                 "Orchestrator completed feedback=%s duration_ms=%.0f",
@@ -399,6 +417,9 @@ class PipelineOrchestrator:
     async def handle_publish(self, edition_id: str) -> None:
         """Process a publish approval by invoking the orchestrator agent."""
         logger.info("Orchestrator processing publish for edition=%s", edition_id)
+        run = await self._create_orchestrator_run(
+            edition_id, {"edition_id": edition_id}
+        )
         t0 = time.monotonic()
         try:
             message = (
@@ -406,16 +427,63 @@ class PipelineOrchestrator:
                 f"Edition ID: {edition_id}\n"
                 f"Run the publish stage to render and upload it."
             )
-            await self._agent.run(message)
+            response = await self._agent.run(message)
+            run.status = AgentRunStatus.COMPLETED
+            run.output = {"content": response.text if response else None}
         except Exception:
             logger.exception("Orchestrator failed for publish edition=%s", edition_id)
+            run.status = AgentRunStatus.FAILED
+            run.output = {"error": "Orchestrator failed"}
         finally:
+            run.completed_at = datetime.now(UTC)
+            await self._agent_runs_repo.update(run, edition_id)
+            await self._publish_run_event(run)
             elapsed_ms = (time.monotonic() - t0) * 1000
             logger.info(
                 "Orchestrator completed publish edition=%s duration_ms=%.0f",
                 edition_id,
                 elapsed_ms,
             )
+
+    async def _create_orchestrator_run(
+        self, trigger_id: str, input_data: dict
+    ) -> AgentRun:
+        """Create an agent run record for the orchestrator itself."""
+        run = AgentRun(
+            stage=AgentStage.ORCHESTRATOR,
+            trigger_id=trigger_id,
+            input=input_data,
+            started_at=datetime.now(UTC),
+        )
+        await self._agent_runs_repo.create(run)
+        await self._events.publish(
+            "agent-run-start",
+            {
+                "id": run.id,
+                "stage": run.stage,
+                "trigger_id": run.trigger_id,
+                "status": run.status,
+                "started_at": (run.started_at.isoformat() if run.started_at else None),
+            },
+        )
+        return run
+
+    async def _publish_run_event(self, run: AgentRun) -> None:
+        """Publish an SSE event when a run completes or fails."""
+        await self._events.publish(
+            "agent-run-complete",
+            {
+                "id": run.id,
+                "stage": run.stage,
+                "trigger_id": run.trigger_id,
+                "status": run.status,
+                "output": run.output,
+                "started_at": (run.started_at.isoformat() if run.started_at else None),
+                "completed_at": (
+                    run.completed_at.isoformat() if run.completed_at else None
+                ),
+            },
+        )
 
     @staticmethod
     def _normalize_usage(usage: dict | None) -> dict | None:

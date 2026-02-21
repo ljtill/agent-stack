@@ -11,6 +11,7 @@ from agent_stack.models.base import DocumentBase
 class AgentStage(StrEnum):
     """Enumerate pipeline stages an agent can execute."""
 
+    ORCHESTRATOR = "orchestrator"
     FETCH = "fetch"
     REVIEW = "review"
     DRAFT = "draft"

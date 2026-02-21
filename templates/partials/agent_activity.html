@@ -1,5 +1,7 @@
 {% macro _run_summary(run, link) %}
-{%- if link -%}
+{%- if run.stage == 'orchestrator' -%}
+    Orchestrating pipeline
+{%- elif link -%}
     {%- set domain = link.url.split('/')[2] if link.url and '/' in link.url else link.url -%}
     {%- if run.stage == 'fetch' -%}
         Fetching content from {{ domain }}
