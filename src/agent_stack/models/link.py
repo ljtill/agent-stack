@@ -1,0 +1,28 @@
+"""Link document model — submitted URLs with processing status."""
+
+from __future__ import annotations
+
+from enum import StrEnum
+
+from pydantic import Field
+
+from agent_stack.models.base import DocumentBase
+
+
+class LinkStatus(StrEnum):
+    SUBMITTED = "submitted"
+    FETCHING = "fetching"
+    REVIEWED = "reviewed"
+    DRAFTED = "drafted"
+
+
+class Link(DocumentBase):
+    """A submitted URL tracked through the agent pipeline."""
+
+    url: str
+    title: str | None = None
+    status: LinkStatus = LinkStatus.SUBMITTED
+    content: str | None = None
+    review: dict | None = None  # type: ignore[type-arg]
+    edition_id: str = Field(..., description="Associated edition (partition key)")
+    submitted_at: str | None = None
