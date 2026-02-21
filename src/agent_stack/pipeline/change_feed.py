@@ -51,18 +51,40 @@ class ChangeFeedProcessor:
         links_token: str | None = None
         feedback_token: str | None = None
 
+        consecutive_errors = 0
+
         while self._running:
+            had_error = False
+
             try:
                 links_token = await self._process_feed(
                     links_container, links_token, self._orchestrator.handle_link_change
                 )
+            except Exception as exc:
+                had_error = True
+                if consecutive_errors == 0:
+                    logger.exception("Error processing links change feed")
+                else:
+                    logger.warning("Error processing links change feed: %s", exc)
+
+            try:
                 feedback_token = await self._process_feed(
                     feedback_container, feedback_token, self._orchestrator.handle_feedback_change
                 )
-            except Exception:
-                logger.exception("Error processing change feed")
+            except Exception as exc:
+                had_error = True
+                if consecutive_errors == 0:
+                    logger.exception("Error processing feedback change feed")
+                else:
+                    logger.warning("Error processing feedback change feed: %s", exc)
 
-            await asyncio.sleep(1.0)
+            if had_error:
+                consecutive_errors += 1
+                backoff = min(1.0 * (2**consecutive_errors), 30.0)
+                await asyncio.sleep(backoff)
+            else:
+                consecutive_errors = 0
+                await asyncio.sleep(1.0)
 
     async def _process_feed(
         self,
