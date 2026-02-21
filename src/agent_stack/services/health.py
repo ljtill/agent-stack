@@ -49,11 +49,36 @@ async def check_openai(client: AzureOpenAIChatClient) -> ServiceHealth:
         return ServiceHealth(name="Azure OpenAI", healthy=True, latency_ms=round(latency, 1))
     except Exception as exc:
         latency = (time.monotonic() - start) * 1000
-        # Extract a clean message — the raw str(exc) includes the Python class repr
-        message = exc.args[0] if exc.args else str(exc)
-        if "Connection error" in str(exc):
-            message = "Connection error — check AZURE_OPENAI_ENDPOINT is reachable"
+        raw = str(exc)
+
+        # A max_tokens / output limit error means the API is reachable — treat as healthy
+        if "max_tokens" in raw or "model output limit" in raw:
+            return ServiceHealth(name="Azure OpenAI", healthy=True, latency_ms=round(latency, 1))
+
+        message = _clean_openai_error(raw)
         return ServiceHealth(name="Azure OpenAI", healthy=False, latency_ms=round(latency, 1), error=message)
+
+
+def _clean_openai_error(raw: str) -> str:
+    """Extract a human-readable message from an Azure OpenAI exception."""
+    if "Connection error" in raw:
+        return "Connection error — check AZURE_OPENAI_ENDPOINT is reachable"
+
+    # Strip the Python class repr prefix (e.g. "<class '...'>  service failed ...")
+    if raw.startswith("<class "):
+        idx = raw.find(">")
+        if idx != -1:
+            raw = raw[idx + 1 :].strip().removeprefix("service failed to complete the prompt:").strip()
+
+    # Try to pull the nested message from the error dict
+    if "'message':" in raw:
+        import re
+
+        match = re.search(r"'message':\s*'([^']+)'", raw)
+        if match:
+            return match.group(1)
+
+    return raw
 
 
 def check_change_feed(processor: ChangeFeedProcessor) -> ServiceHealth:
