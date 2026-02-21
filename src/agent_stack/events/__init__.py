@@ -28,9 +28,9 @@ class EventManager:
             cls._instance = cls()
         return cls._instance
 
-    async def publish(self, event_type: str, data: dict[str, Any]) -> None:
+    async def publish(self, event_type: str, data: dict[str, Any] | str) -> None:
         """Broadcast an event to all connected SSE clients."""
-        message = {"event": event_type, "data": json.dumps(data)}
+        message = {"event": event_type, "data": json.dumps(data) if isinstance(data, dict) else data}
         for queue in self._queues:
             await queue.put(message)
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from datetime import UTC, datetime
+from html import escape
 from typing import Any
 
 from agent_framework.azure import AzureOpenAIChatClient
@@ -24,6 +25,40 @@ from agent_stack.models.agent_run import AgentRun, AgentRunStatus, AgentStage
 from agent_stack.models.link import LinkStatus
 
 logger = logging.getLogger(__name__)
+
+
+def _render_link_row(link, runs: list) -> str:
+    """Render an HTML table row for a link (used in SSE updates)."""
+    url = escape(link.url)
+    display_url = (escape(link.url[:47]) + "...") if len(link.url) > 50 else url
+    title = escape(link.title) if link.title else "—"
+    status = escape(link.status)
+    created = link.created_at.strftime("%Y-%m-%d %H:%M") if link.created_at else "—"
+
+    if runs:
+        latest = runs[-1] if runs[-1].started_at else runs[0]
+        run_status = escape(latest.status)
+        run_stage = escape(latest.stage)
+        count = len(runs)
+        suffix = "s" if count != 1 else ""
+        progress = (
+            f'<span class="agent-indicator">'
+            f'<span class="agent-indicator-dot agent-indicator-dot-{run_status}"></span>'
+            f'<span class="stage-{run_stage}">{run_stage}</span>'
+            f"</span> ({count} run{suffix})"
+        )
+    else:
+        progress = '<span class="agent-indicator" style="color: var(--text-muted);">—</span>'
+
+    return (
+        f'<tr id="link-{escape(link.id)}" hx-swap-oob="true">'
+        f'<td><a href="{url}" target="_blank" style="color: var(--accent);">{display_url}</a></td>'
+        f"<td>{title}</td>"
+        f'<td><span class="badge badge-{status}">{status}</span></td>'
+        f"<td>{progress}</td>"
+        f'<td style="color: var(--text-muted);">{created}</td>'
+        f"</tr>"
+    )
 
 
 class PipelineOrchestrator:
@@ -100,15 +135,10 @@ class PipelineOrchestrator:
         # Publish link-update so the links table refreshes in-place
         updated_link = await self._links_repo.get(link_id, edition_id)
         if updated_link:
+            runs = await self._agent_runs_repo.get_by_trigger(link_id)
             await self._events.publish(
                 "link-update",
-                {
-                    "id": updated_link.id,
-                    "url": updated_link.url,
-                    "title": updated_link.title,
-                    "status": updated_link.status,
-                    "edition_id": updated_link.edition_id,
-                },
+                _render_link_row(updated_link, runs),
             )
 
     async def handle_feedback_change(self, document: dict[str, Any]) -> None:

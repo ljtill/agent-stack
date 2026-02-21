@@ -59,7 +59,7 @@ async def test_handle_link_change_submitted(orchestrator, mock_repos):
     )
 
     links.get.assert_called_with("link-1", "ed-1")
-    assert links.get.call_count == 2  # initial fetch + post-update fetch for SSE
+    assert links.get.call_count == 3  # initial fetch + fail check + SSE publish
     agent_runs.create.assert_called_once()
     orchestrator._fetch.run.assert_called_once_with(link)
 
