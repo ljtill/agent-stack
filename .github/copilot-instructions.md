@@ -2,18 +2,50 @@
 
 The full project specification lives in `docs/SPECIFICATION.md` — always consult it for architecture, data model, component design, and tech stack details. These instructions cover **operational guidance** that is not in the spec.
 
-## Development Tooling
+## Build, Test & Lint
 
-- **Package & project management**: Use `uv` for all dependency management, virtual environments, and running scripts (e.g., `uv run`, `uv add`, `uv sync`). Note: `agent-framework-core` is a prerelease package — always use `--prerelease=allow` with `uv sync`.
-- **Type checking**: Use `ty` for static type analysis (`uv run ty check src/`)
-- **Linting & formatting**: Use `ruff` for linting and code formatting (`uv run ruff check src/ tests/` and `uv run ruff format src/ tests/`)
-- **Validation before committing**: Always run `ruff check`, `ruff format --check`, `ty check`, and `pytest` before committing changes. All four must pass cleanly.
-- **Dependencies**: Only use well-known, widely-adopted packages. When in doubt, ask before adding a dependency. Always use the latest stable version available on PyPI when adding or updating packages — check https://pypi.org/pypi/{package}/json for current versions.
-- **Bicep**: Always use the latest available API versions for all Azure resource definitions. Check the Azure Resource Manager template reference for current API versions before creating or updating Bicep modules.
-- **Source control**: Commit at the end of major changes using imperative mood subject lines (e.g., "Add …", "Update …", "Remove …") with an optional prose paragraph body describing the why or key details
-- **Documentation**: Always review `README.md` at the end of major changes and keep it up-to-date with the current state of the project
-- **Local Cosmos DB**: The emulator uses `mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview` (ARM-compatible). Ports: 8081 (gateway), 1234 (data explorer). Runs via `docker compose up -d`.
+```bash
+# Install dependencies (prerelease flag required for agent-framework-core)
+uv sync --all-groups --prerelease=allow
+
+# Run all tests
+uv run pytest tests/ -v
+
+# Run a single test file or test function
+uv run pytest tests/agents/test_fetch.py -v
+uv run pytest tests/agents/test_fetch.py::test_fetch_agent_returns_content -v
+
+# Lint and format
+uv run ruff check src/ tests/
+uv run ruff format src/ tests/
+
+# Type checking
+uv run ty check src/
+
+# Run the app locally (requires docker compose up -d first)
+uv run uvicorn agent_stack.app:create_app --factory --reload --reload-dir src
+```
+
+Always run `ruff check`, `ruff format --check`, `ty check`, and `pytest` before committing. All four must pass cleanly.
+
+## Architecture
+
+This is an event-driven editorial pipeline for a newsletter. The system has three surfaces: a FastAPI + HTMX dashboard (private), a multi-agent LLM pipeline, and a statically generated public newsletter site.
+
+**Event flow**: Editor submits link → Cosmos DB → change feed processor → pipeline orchestrator → sub-agents (Fetch → Review → Draft) → Cosmos DB updates → SSE to dashboard. Feedback and publish follow similar event-driven paths. No external message broker — Cosmos DB's change feed is the sole event source.
+
+**Agent architecture**: Five specialized agents (Fetch, Review, Draft, Edit, Publish) are coordinated by a `PipelineOrchestrator` agent. Each agent wraps a Microsoft Agent Framework `Agent` instance, exposes `@tool`-decorated methods as LLM-callable functions, and is registered on the orchestrator via `.as_tool()`. Middleware (rate limiting, token tracking, tool logging) stacks on each agent.
+
+**App wiring**: `app.py` uses a lifespan context manager to initialize Cosmos client → repositories → agents → orchestrator → change feed processor, stashing everything in `app.state`. Routes access dependencies via `request.app.state`.
 
 ## Key Conventions
 
-- The edition `content` dict follows a structured schema — see `prompts/draft.md` for the full specification.
+- **Package management**: Use `uv` for everything — `uv run`, `uv add`, `uv sync`. The `agent-framework-core` package requires `--prerelease=allow`.
+- **Database layer**: `BaseRepository[T]` provides generic CRUD with automatic soft-delete filtering (`deleted_at` timestamp). Each entity (Link, Edition, Feedback, AgentRun) has its own repository subclass.
+- **Agent prompts**: Stored as Markdown in `prompts/` (one per agent stage), loaded at runtime. The edition `content` dict follows a structured schema — see `prompts/draft.md` for the full specification.
+- **Config**: Frozen dataclasses in `config.py`, composed into a `Settings` aggregate. Values come from environment variables (`.env` locally, Azure App Configuration in production).
+- **Frontend**: Jinja2 templates + HTMX for the dashboard. Partials in `templates/partials/` return HTML fragments for in-place updates. SSE via `sse-starlette` for real-time events.
+- **Test patterns**: `AsyncMock` fixtures for repositories, callable factory fixtures (`make_link()`, `make_edition()`, etc.) with sensible defaults, `pytest-asyncio` with `asyncio_mode = "auto"`.
+- **Bicep**: Use the latest available API versions for all Azure resource definitions. Infrastructure modules live in `infra/`.
+- **Source control**: Imperative mood commit subjects (e.g., "Add …", "Update …"). Always review `README.md` at the end of major changes.
+- **Dependencies**: Only add well-known, widely-adopted packages. Use the latest stable version from PyPI.

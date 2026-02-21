@@ -29,10 +29,11 @@ def _extract_tools(agent_obj: object) -> list[dict[str, str]]:
     for t in tools:
         if callable(t):
             name = getattr(t, "__name__", None) or getattr(t, "name", str(t))
-            doc = getattr(t, "__doc__", None) or ""
-            result.append(
-                {"name": name, "description": doc.strip().split("\n")[0] if doc else ""}
-            )
+            desc = getattr(t, "description", None) or ""
+            if not desc:
+                doc = getattr(t, "__doc__", None) or ""
+                desc = doc.strip().split("\n")[0] if doc else ""
+            result.append({"name": name, "description": desc})
         elif hasattr(t, "name"):
             result.append(
                 {"name": t.name, "description": getattr(t, "description", "") or ""}
