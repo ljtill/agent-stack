@@ -2,7 +2,6 @@
 
 from datetime import UTC, datetime
 
-import pytest
 from jinja2 import Environment, FileSystemLoader
 
 from agent_stack.models.edition import Edition, EditionStatus
@@ -66,7 +65,6 @@ def test_newsletter_templates_dir_exists() -> None:
     assert (NEWSLETTER_TEMPLATES / "index.html").exists()
 
 
-@pytest.mark.asyncio
 async def test_render_edition_produces_html() -> None:
     """Test that edition rendering produces valid HTML with the new design."""
     env = Environment(
@@ -108,7 +106,6 @@ async def test_render_edition_produces_html() -> None:
     assert "--signal-green" in html
 
 
-@pytest.mark.asyncio
 async def test_render_index_produces_html() -> None:
     """Test that index rendering produces valid HTML with the archive design."""
     env = Environment(

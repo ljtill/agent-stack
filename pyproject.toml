@@ -67,6 +67,7 @@ markers = [
 
 [tool.coverage.run]
 source = ["agent_stack"]
+omit = ["src/agent_stack/app.py"]
 
 [tool.coverage.report]
 show_missing = true

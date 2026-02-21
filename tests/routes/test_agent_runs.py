@@ -2,12 +2,9 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from agent_stack.routes.agent_runs import recent_runs
 
 
-@pytest.mark.unit
 class TestRecentRunsRoute:
     """Test the Recent Runs Route."""
 

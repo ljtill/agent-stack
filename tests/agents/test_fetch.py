@@ -24,7 +24,6 @@ def fetch_agent(links_repo: AsyncMock) -> tuple[FetchAgent, object]:
         return FetchAgent(client, links_repo)
 
 
-@pytest.mark.asyncio
 async def test_save_fetched_content_updates_link(
     fetch_agent: FetchAgent, links_repo: AsyncMock
 ) -> None:
@@ -45,7 +44,6 @@ async def test_save_fetched_content_updates_link(
     links_repo.update.assert_called_once_with(link, "ed-1")
 
 
-@pytest.mark.asyncio
 async def test_save_fetched_content_link_not_found(
     fetch_agent: FetchAgent, links_repo: AsyncMock
 ) -> None:
@@ -60,7 +58,6 @@ async def test_save_fetched_content_link_not_found(
     links_repo.update.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_fetch_url_returns_error_on_connect_error() -> None:
     """Verify fetch url returns error on connect error."""
     with patch("agent_stack.agents.fetch.httpx.AsyncClient") as mock_client_cls:
@@ -78,7 +75,6 @@ async def test_fetch_url_returns_error_on_connect_error() -> None:
         assert "error" in result
 
 
-@pytest.mark.asyncio
 async def test_fetch_url_returns_error_on_http_status_error() -> None:
     """Verify fetch url returns error on http status error."""
     with patch("agent_stack.agents.fetch.httpx.AsyncClient") as mock_client_cls:
@@ -100,7 +96,6 @@ async def test_fetch_url_returns_error_on_http_status_error() -> None:
         assert "404" in result["error"]
 
 
-@pytest.mark.asyncio
 async def test_fetch_url_sets_user_agent_header() -> None:
     """Verify fetch_url sends a User-Agent header."""
     with patch("agent_stack.agents.fetch.httpx.AsyncClient") as mock_client_cls:
@@ -121,7 +116,6 @@ async def test_fetch_url_sets_user_agent_header() -> None:
         assert "AgentStack" in headers["User-Agent"]
 
 
-@pytest.mark.asyncio
 async def test_mark_link_failed_updates_status(
     fetch_agent: FetchAgent, links_repo: AsyncMock
 ) -> None:
@@ -140,7 +134,6 @@ async def test_mark_link_failed_updates_status(
     links_repo.update.assert_called_once_with(link, "ed-1")
 
 
-@pytest.mark.asyncio
 async def test_mark_link_failed_link_not_found(
     fetch_agent: FetchAgent, links_repo: AsyncMock
 ) -> None:

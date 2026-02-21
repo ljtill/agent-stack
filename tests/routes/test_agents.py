@@ -2,12 +2,9 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from agent_stack.routes.agents import agents_page
 
 
-@pytest.mark.asyncio
 async def test_agents_page_renders_template() -> None:
     """Verify agents page renders template."""
     request = MagicMock()
@@ -52,7 +49,6 @@ async def test_agents_page_renders_template() -> None:
     assert ctx["agents"][0]["recent_runs"] == []
 
 
-@pytest.mark.asyncio
 async def test_agents_page_with_runs() -> None:
     """Verify agents page with runs."""
     request = MagicMock()

@@ -35,7 +35,6 @@ def publish_agent_no_fns(editions_repo: AsyncMock) -> tuple[PublishAgent, object
         return PublishAgent(client, editions_repo)
 
 
-@pytest.mark.asyncio
 async def test_render_and_upload_calls_functions(
     publish_agent: PublishAgent, editions_repo: AsyncMock
 ) -> None:
@@ -51,7 +50,6 @@ async def test_render_and_upload_calls_functions(
     publish_agent.upload_fn.assert_called_once_with("ed-1", "<html>test</html>")
 
 
-@pytest.mark.asyncio
 async def test_render_and_upload_skips_without_functions(
     publish_agent_no_fns: PublishAgent, editions_repo: AsyncMock
 ) -> None:
@@ -63,7 +61,6 @@ async def test_render_and_upload_skips_without_functions(
     assert result["status"] == "skipped"
 
 
-@pytest.mark.asyncio
 async def test_render_and_upload_edition_not_found(
     publish_agent: PublishAgent, editions_repo: AsyncMock
 ) -> None:
@@ -73,7 +70,6 @@ async def test_render_and_upload_edition_not_found(
     assert "error" in result
 
 
-@pytest.mark.asyncio
 async def test_mark_published_updates_status(
     publish_agent: PublishAgent, editions_repo: AsyncMock
 ) -> None:
@@ -89,7 +85,6 @@ async def test_mark_published_updates_status(
     editions_repo.update.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_mark_published_edition_not_found(
     publish_agent: PublishAgent, editions_repo: AsyncMock
 ) -> None:

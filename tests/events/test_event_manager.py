@@ -17,7 +17,6 @@ def reset_event_manager() -> None:
     EventManager.instance = None
 
 
-@pytest.mark.unit
 class TestEventManagerPublish:
     """Test the Event Manager Publish."""
 
@@ -53,7 +52,6 @@ class TestEventManagerPublish:
         await manager.publish("test", {"ok": True})
 
 
-@pytest.mark.unit
 class TestEventManagerEventGenerator:
     """Test the Event Manager Event Generator."""
 
@@ -104,7 +102,6 @@ class TestEventManagerEventGenerator:
         assert len(manager.queues) == 0
 
 
-@pytest.mark.unit
 class TestEventManagerCreateResponse:
     """Test the Event Manager Create Response."""
 

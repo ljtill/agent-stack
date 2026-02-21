@@ -155,7 +155,7 @@ def entra_config() -> EntraConfig:
 
 
 @pytest.fixture
-def mock_cosmos_db_container() -> None:
+def mock_cosmos_db_container() -> AsyncMock:
     """Create a mock Cosmos DB container with standard async methods."""
     container = AsyncMock()
     container.create_item = AsyncMock()

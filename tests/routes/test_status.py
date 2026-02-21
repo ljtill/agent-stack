@@ -2,12 +2,9 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from agent_stack.routes.status import status
 
 
-@pytest.mark.unit
 class TestStatusRoute:
     """Test the Status Route."""
 

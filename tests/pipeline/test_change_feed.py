@@ -61,7 +61,6 @@ def processor(mock_orchestrator: AsyncMock) -> tuple[ChangeFeedProcessor, object
     return ChangeFeedProcessor(db, mock_orchestrator)
 
 
-@pytest.mark.asyncio
 async def test_process_feed_delegates_to_handler(
     processor: ChangeFeedProcessor,
 ) -> None:
@@ -79,7 +78,6 @@ async def test_process_feed_delegates_to_handler(
     handler.assert_any_call({"id": "link-2"})
 
 
-@pytest.mark.asyncio
 async def test_process_feed_passes_continuation_token(
     processor: ChangeFeedProcessor,
 ) -> None:
@@ -93,7 +91,6 @@ async def test_process_feed_passes_continuation_token(
     assert factory.last_kwargs["continuation"] == "token-123"
 
 
-@pytest.mark.asyncio
 async def test_process_feed_no_token_on_first_call(
     processor: ChangeFeedProcessor,
 ) -> None:
@@ -107,7 +104,6 @@ async def test_process_feed_no_token_on_first_call(
     assert "continuation" not in factory.last_kwargs
 
 
-@pytest.mark.asyncio
 async def test_process_feed_returns_continuation_token(
     processor: ChangeFeedProcessor,
 ) -> None:
@@ -120,7 +116,6 @@ async def test_process_feed_returns_continuation_token(
     assert result == _TEST_TOKEN
 
 
-@pytest.mark.asyncio
 async def test_process_feed_handles_handler_error(
     processor: ChangeFeedProcessor,
 ) -> None:
@@ -136,7 +131,6 @@ async def test_process_feed_handles_handler_error(
     assert handler.call_count == _EXPECTED_HANDLER_CALL_COUNT
 
 
-@pytest.mark.asyncio
 async def test_start_creates_background_task(processor: ChangeFeedProcessor) -> None:
     """Verify start creates background task."""
     await processor.start()
@@ -145,7 +139,6 @@ async def test_start_creates_background_task(processor: ChangeFeedProcessor) -> 
     await processor.stop()
 
 
-@pytest.mark.asyncio
 async def test_stop_cancels_task(processor: ChangeFeedProcessor) -> None:
     """Verify stop cancels task."""
     await processor.start()

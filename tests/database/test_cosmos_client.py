@@ -10,7 +10,6 @@ from agent_stack.database.client import CosmosClient
 _EXPECTED_CONTAINER_COUNT = 4
 
 
-@pytest.mark.unit
 class TestCosmosClient:
     """Test the Cosmos Client."""
 

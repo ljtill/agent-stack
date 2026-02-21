@@ -20,7 +20,6 @@ def test_get_instance_returns_singleton() -> None:
     assert mgr1 is mgr2
 
 
-@pytest.mark.asyncio
 async def test_publish_to_empty_queues() -> None:
     """Verify publish to empty queues."""
     mgr = EventManager.get_instance()

@@ -10,7 +10,6 @@ from agent_stack.storage.renderer import StaticSiteRenderer
 _EXPECTED_UPLOAD_COUNT = 2
 
 
-@pytest.mark.unit
 class TestStaticSiteRendererPublish:
     """Test the Static Site Renderer Publish."""
 

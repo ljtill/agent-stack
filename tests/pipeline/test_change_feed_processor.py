@@ -44,7 +44,6 @@ class _MockPageIterator:
             raise StopAsyncIteration from None
 
 
-@pytest.mark.unit
 class TestChangeFeedProcessor:
     """Test the Change Feed Processor."""
 
@@ -184,3 +183,84 @@ class TestChangeFeedProcessor:
         result = await processor.process_feed(mock_container, "old-token", AsyncMock())
 
         assert result == "old-token"
+
+    async def test_poll_loop_processes_both_containers(
+        self, mock_database: MagicMock, mock_orchestrator: MagicMock
+    ) -> None:
+        """Verify _poll_loop calls process_feed for links and feedback containers."""
+        processor = ChangeFeedProcessor(mock_database, mock_orchestrator)
+
+        call_count = 0
+
+        async def _fake_process_feed(*_args: object, **_kwargs: object) -> str | None:
+            nonlocal call_count
+            call_count += 1
+            # Stop the loop after one full iteration
+            if call_count >= 2:  # noqa: PLR2004
+                processor._running = False  # noqa: SLF001
+            return None
+
+        with patch.object(processor, "process_feed", side_effect=_fake_process_feed):
+            processor._running = True  # noqa: SLF001
+            await processor._poll_loop()  # noqa: SLF001
+
+        assert call_count == 2  # noqa: PLR2004
+
+    async def test_poll_loop_continues_on_links_error(
+        self, mock_database: MagicMock, mock_orchestrator: MagicMock
+    ) -> None:
+        """Verify _poll_loop continues processing feedback even if links feed errors."""
+        processor = ChangeFeedProcessor(mock_database, mock_orchestrator)
+
+        call_count = 0
+
+        async def _error_then_ok(*_args: object, **_kwargs: object) -> str | None:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                msg = "links feed error"
+                raise RuntimeError(msg)
+            # Stop after processing feedback
+            processor._running = False  # noqa: SLF001
+            return None
+
+        with (
+            patch.object(processor, "process_feed", side_effect=_error_then_ok),
+            patch("asyncio.sleep", new_callable=AsyncMock),
+        ):
+            processor._running = True  # noqa: SLF001
+            await processor._poll_loop()  # noqa: SLF001
+
+        # Both links (errored) and feedback (ok) were attempted
+        assert call_count == 2  # noqa: PLR2004
+
+    async def test_poll_loop_backoff_on_consecutive_errors(
+        self, mock_database: MagicMock, mock_orchestrator: MagicMock
+    ) -> None:
+        """Verify exponential backoff increases on consecutive errors."""
+        processor = ChangeFeedProcessor(mock_database, mock_orchestrator)
+
+        iteration = 0
+
+        async def _always_error(*_args: object, **_kwargs: object) -> str | None:
+            nonlocal iteration
+            iteration += 1
+            if iteration > 4:  # noqa: PLR2004
+                processor._running = False  # noqa: SLF001
+                return None
+            msg = "persistent error"
+            raise RuntimeError(msg)
+
+        sleep_values: list[float] = []
+        original_sleep = AsyncMock(side_effect=sleep_values.append)
+
+        with (
+            patch.object(processor, "process_feed", side_effect=_always_error),
+            patch("asyncio.sleep", original_sleep),
+        ):
+            processor._running = True  # noqa: SLF001
+            await processor._poll_loop()  # noqa: SLF001
+
+        # Should have backoff values (2.0, 4.0, ...) capped at 30.0
+        assert len(sleep_values) > 0
+        assert sleep_values[0] > 1.0

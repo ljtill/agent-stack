@@ -31,7 +31,6 @@ def repo(mock_container: AsyncMock) -> ConcreteRepo:
     return ConcreteRepo(db)
 
 
-@pytest.mark.asyncio
 async def test_create_calls_create_item(
     repo: ConcreteRepo, mock_container: AsyncMock
 ) -> None:
@@ -44,7 +43,6 @@ async def test_create_calls_create_item(
     assert body["url"] == "https://example.com"
 
 
-@pytest.mark.asyncio
 async def test_get_returns_model_on_success(
     repo: ConcreteRepo, mock_container: AsyncMock
 ) -> None:
@@ -63,7 +61,6 @@ async def test_get_returns_model_on_success(
     assert result.url == "https://example.com"
 
 
-@pytest.mark.asyncio
 async def test_get_returns_none_on_exception(
     repo: ConcreteRepo, mock_container: AsyncMock
 ) -> None:
@@ -75,7 +72,6 @@ async def test_get_returns_none_on_exception(
     assert result is None
 
 
-@pytest.mark.asyncio
 async def test_get_returns_none_for_soft_deleted(
     repo: ConcreteRepo, mock_container: AsyncMock
 ) -> None:
@@ -93,7 +89,6 @@ async def test_get_returns_none_for_soft_deleted(
     assert result is None
 
 
-@pytest.mark.asyncio
 async def test_update_sets_updated_at(
     repo: ConcreteRepo, mock_container: AsyncMock
 ) -> None:
@@ -106,7 +101,6 @@ async def test_update_sets_updated_at(
     assert "partition_key" not in call_kwargs
 
 
-@pytest.mark.asyncio
 async def test_soft_delete_sets_deleted_at(
     repo: ConcreteRepo, mock_container: AsyncMock
 ) -> None:
@@ -118,7 +112,6 @@ async def test_soft_delete_sets_deleted_at(
     mock_container.replace_item.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_query_filters_soft_deleted(
     repo: ConcreteRepo, mock_container: AsyncMock
 ) -> None:

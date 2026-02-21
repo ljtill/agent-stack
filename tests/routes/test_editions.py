@@ -2,21 +2,22 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
-from agent_stack.models.edition import Edition
+from agent_stack.models.edition import Edition, EditionStatus
 from agent_stack.routes.editions import (
     cancel_title_edit,
     create_edition,
     delete_edition,
     edit_title_form,
+    edition_detail,
+    list_editions,
+    publish_edition,
     update_title,
 )
 
 _EXPECTED_REDIRECT_STATUS = 303
 
 
-def _make_request(_app_state: object | None = None) -> None:
+def _make_request(_app_state: object | None = None) -> MagicMock:
     """Create a mock request with app state."""
     request = MagicMock()
     request.app.state.cosmos.database = MagicMock()
@@ -25,7 +26,6 @@ def _make_request(_app_state: object | None = None) -> None:
     return request
 
 
-@pytest.mark.asyncio
 async def test_create_edition_with_title() -> None:
     """Creating an edition with a title stores it in content."""
     request = _make_request()
@@ -43,7 +43,6 @@ async def test_create_edition_with_title() -> None:
         assert created_edition.content["sections"] == []
 
 
-@pytest.mark.asyncio
 async def test_create_edition_with_empty_title() -> None:
     """Creating an edition without a title stores empty string."""
     request = _make_request()
@@ -59,7 +58,6 @@ async def test_create_edition_with_empty_title() -> None:
         assert created_edition.content["title"] == ""
 
 
-@pytest.mark.asyncio
 async def test_create_edition_strips_whitespace() -> None:
     """Title whitespace is stripped on creation."""
     request = _make_request()
@@ -75,7 +73,6 @@ async def test_create_edition_strips_whitespace() -> None:
         assert created_edition.content["title"] == "Padded Title"
 
 
-@pytest.mark.asyncio
 async def test_update_title() -> None:
     """PATCH title updates the edition content and persists."""
     request = _make_request()
@@ -94,7 +91,6 @@ async def test_update_title() -> None:
         assert edition.content["title"] == "New Title"
 
 
-@pytest.mark.asyncio
 async def test_update_title_strips_whitespace() -> None:
     """PATCH title strips whitespace before saving."""
     request = _make_request()
@@ -111,7 +107,6 @@ async def test_update_title_strips_whitespace() -> None:
         assert edition.content["title"] == "Trimmed"
 
 
-@pytest.mark.asyncio
 async def test_update_title_renders_display_partial() -> None:
     """PATCH title returns the display-mode partial."""
     request = _make_request()
@@ -131,7 +126,6 @@ async def test_update_title_renders_display_partial() -> None:
         )
 
 
-@pytest.mark.asyncio
 async def test_edit_title_form_renders_editing_partial() -> None:
     """GET title/edit returns the editing-mode partial."""
     request = _make_request()
@@ -150,7 +144,6 @@ async def test_edit_title_form_renders_editing_partial() -> None:
         )
 
 
-@pytest.mark.asyncio
 async def test_cancel_title_edit_renders_display_partial() -> None:
     """GET title/cancel returns the display-mode partial."""
     request = _make_request()
@@ -169,7 +162,6 @@ async def test_cancel_title_edit_renders_display_partial() -> None:
         )
 
 
-@pytest.mark.asyncio
 async def test_delete_edition_soft_deletes() -> None:
     """POST delete soft-deletes the edition and redirects."""
     request = _make_request()
@@ -188,7 +180,6 @@ async def test_delete_edition_soft_deletes() -> None:
         assert response.status_code == _EXPECTED_REDIRECT_STATUS
 
 
-@pytest.mark.asyncio
 async def test_delete_edition_not_found() -> None:
     """POST delete on missing edition still redirects without error."""
     request = _make_request()
@@ -201,4 +192,83 @@ async def test_delete_edition_not_found() -> None:
         response = await delete_edition(request, edition_id="missing")
 
         repo.soft_delete.assert_not_called()
+        assert response.status_code == _EXPECTED_REDIRECT_STATUS
+
+
+async def test_list_editions_renders_template() -> None:
+    """GET /editions/ fetches all editions and renders the list template."""
+    request = _make_request()
+    editions = [Edition(id="ed-1", content={"title": "Issue #1", "sections": []})]
+
+    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
+        repo = AsyncMock()
+        mock_repo_cls.return_value = repo
+        repo.list_all.return_value = editions
+
+        await list_editions(request)
+
+        repo.list_all.assert_called_once()
+        request.app.state.templates.TemplateResponse.assert_called_once_with(
+            "editions.html",
+            {"request": request, "editions": editions},
+        )
+
+
+async def test_edition_detail_renders_template() -> None:
+    """GET /editions/{id} fetches the edition with links and renders detail template."""
+    request = _make_request()
+    edition = Edition(id="ed-1", content={"title": "Issue #1", "sections": []})
+
+    with (
+        patch("agent_stack.routes.editions.EditionRepository") as mock_ed_cls,
+        patch("agent_stack.routes.editions.LinkRepository") as mock_link_cls,
+        patch("agent_stack.routes.editions.AgentRunRepository") as mock_run_cls,
+    ):
+        ed_repo = AsyncMock()
+        mock_ed_cls.return_value = ed_repo
+        ed_repo.get.return_value = edition
+
+        link_repo = AsyncMock()
+        mock_link_cls.return_value = link_repo
+        link_repo.get_by_edition.return_value = []
+
+        run_repo = AsyncMock()
+        mock_run_cls.return_value = run_repo
+
+        await edition_detail(request, edition_id="ed-1")
+
+        ed_repo.get.assert_called_once_with("ed-1", "ed-1")
+        link_repo.get_by_edition.assert_called_once_with("ed-1")
+        request.app.state.templates.TemplateResponse.assert_called_once()
+
+
+async def test_publish_edition_sets_in_review() -> None:
+    """POST /editions/{id}/publish transitions the edition to IN_REVIEW."""
+    request = _make_request()
+    edition = Edition(id="ed-1", content={"title": "Ready", "sections": []})
+
+    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
+        repo = AsyncMock()
+        mock_repo_cls.return_value = repo
+        repo.get.return_value = edition
+
+        response = await publish_edition(request, edition_id="ed-1")
+
+        assert edition.status == EditionStatus.IN_REVIEW
+        repo.update.assert_called_once_with(edition, "ed-1")
+        assert response.status_code == _EXPECTED_REDIRECT_STATUS
+
+
+async def test_publish_edition_not_found() -> None:
+    """POST /editions/{id}/publish on missing edition still redirects."""
+    request = _make_request()
+
+    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
+        repo = AsyncMock()
+        mock_repo_cls.return_value = repo
+        repo.get.return_value = None
+
+        response = await publish_edition(request, edition_id="missing")
+
+        repo.update.assert_not_called()
         assert response.status_code == _EXPECTED_REDIRECT_STATUS

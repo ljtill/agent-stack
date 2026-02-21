@@ -11,7 +11,6 @@ from agent_stack.models.agent_run import AgentRun, AgentRunStatus, AgentStage
 _EXPECTED_TRIGGER_COUNT = 2
 
 
-@pytest.mark.unit
 class TestAgentRunRepository:
     """Test the Agent Run Repository."""
 

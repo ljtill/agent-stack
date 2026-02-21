@@ -8,6 +8,8 @@ from agent_stack.models.agent_run import AgentRunStatus
 from agent_stack.models.link import Link, LinkStatus
 from agent_stack.pipeline.orchestrator import PipelineOrchestrator
 
+pytestmark = pytest.mark.integration
+
 _EXPECTED_LINK_GET_COUNT = 3
 
 _MockRepos = tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock]
@@ -24,7 +26,9 @@ def mock_repos() -> _MockRepos:
 
 
 @pytest.fixture
-def orchestrator(mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock]) -> None:
+def orchestrator(
+    mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
+) -> PipelineOrchestrator:
     """Create a PipelineOrchestrator with mocked dependencies."""
     links, editions, feedback, agent_runs = mock_repos
     client = MagicMock()
@@ -37,13 +41,12 @@ def orchestrator(mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock]) 
         patch("agent_stack.pipeline.orchestrator.PublishAgent"),
         patch("agent_stack.pipeline.orchestrator.EventManager") as mock_events_cls,
     ):
-        mock_events = AsyncMock()
+        mock_events = MagicMock()
+        mock_events.publish = AsyncMock()
         mock_events_cls.get_instance.return_value = mock_events
+        return PipelineOrchestrator(client, links, editions, feedback, agent_runs)
 
-    return PipelineOrchestrator(client, links, editions, feedback, agent_runs)
 
-
-@pytest.mark.asyncio
 async def test_handle_link_change_submitted(
     orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
 ) -> None:
@@ -78,7 +81,6 @@ async def test_handle_link_change_submitted(
     orchestrator.fetch.run.assert_called_once_with(link)
 
 
-@pytest.mark.asyncio
 async def test_handle_link_change_drafted_is_noop(
     orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
 ) -> None:
@@ -103,7 +105,6 @@ async def test_handle_link_change_drafted_is_noop(
     agent_runs.create.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_handle_link_change_not_found(
     orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
 ) -> None:
@@ -122,7 +123,6 @@ async def test_handle_link_change_not_found(
     agent_runs.create.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_handle_feedback_change_triggers_edit(
     orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
 ) -> None:
@@ -146,7 +146,6 @@ async def test_handle_feedback_change_triggers_edit(
     orchestrator.edit.run.assert_called_once_with("ed-1")
 
 
-@pytest.mark.asyncio
 async def test_handle_feedback_change_resolved_is_noop(
     orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
 ) -> None:
@@ -164,7 +163,6 @@ async def test_handle_feedback_change_resolved_is_noop(
     agent_runs.create.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_agent_run_logged_on_failure(
     orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
 ) -> None:

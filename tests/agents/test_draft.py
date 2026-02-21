@@ -27,7 +27,6 @@ def draft_agent(
         return DraftAgent(client, links_repo, editions_repo)
 
 
-@pytest.mark.asyncio
 async def test_get_reviewed_link_returns_data(
     draft_agent: DraftAgent, repos: tuple[AsyncMock, AsyncMock]
 ) -> None:
@@ -48,7 +47,6 @@ async def test_get_reviewed_link_returns_data(
     assert result["review"] == {"insights": ["a"]}
 
 
-@pytest.mark.asyncio
 async def test_get_edition_content(
     draft_agent: DraftAgent, repos: tuple[AsyncMock, AsyncMock]
 ) -> None:
@@ -61,7 +59,6 @@ async def test_get_edition_content(
     assert result["title"] == "Newsletter"
 
 
-@pytest.mark.asyncio
 async def test_save_draft_updates_edition_and_link(
     draft_agent: DraftAgent, repos: tuple[AsyncMock, AsyncMock]
 ) -> None:
@@ -82,7 +79,6 @@ async def test_save_draft_updates_edition_and_link(
     links_repo.update.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_save_draft_deduplicates_link_ids(
     draft_agent: DraftAgent, repos: tuple[AsyncMock, AsyncMock]
 ) -> None:

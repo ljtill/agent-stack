@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from agent_stack.agents.registry import (
     _extract_instructions,
     _extract_middleware,
@@ -32,7 +30,6 @@ def _make_agent_obj(**inner_attrs: object) -> MagicMock:
     return obj
 
 
-@pytest.mark.unit
 class TestExtractTools:
     """Test suite for the _extract_tools function."""
 
@@ -91,7 +88,6 @@ class TestExtractTools:
         assert "Fetch the raw HTML" in tools[0]["description"]
 
 
-@pytest.mark.unit
 class TestExtractOptions:
     """Test suite for the _extract_options function."""
 
@@ -121,7 +117,6 @@ class TestExtractOptions:
         assert _extract_options(agent_obj) == {}
 
 
-@pytest.mark.unit
 class TestExtractMiddleware:
     """Test suite for the _extract_middleware function."""
 
@@ -143,7 +138,6 @@ class TestExtractMiddleware:
         assert _extract_middleware(agent_obj) == []
 
 
-@pytest.mark.unit
 class TestExtractInstructions:
     """Test suite for the _extract_instructions function."""
 
@@ -173,7 +167,6 @@ class TestExtractInstructions:
         assert result == {"preview": "", "full": ""}
 
 
-@pytest.mark.unit
 class TestGetAgentMetadata:
     """Test suite for the get_agent_metadata function."""
 

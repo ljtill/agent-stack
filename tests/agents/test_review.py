@@ -25,7 +25,6 @@ def review_agent(links_repo: AsyncMock) -> tuple[ReviewAgent, object]:
         return ReviewAgent(client, links_repo)
 
 
-@pytest.mark.asyncio
 async def test_get_link_content_returns_json(
     review_agent: ReviewAgent, links_repo: AsyncMock
 ) -> None:
@@ -46,7 +45,6 @@ async def test_get_link_content_returns_json(
     assert result["url"] == "https://example.com"
 
 
-@pytest.mark.asyncio
 async def test_get_link_content_not_found(
     review_agent: ReviewAgent, links_repo: AsyncMock
 ) -> None:
@@ -56,7 +54,6 @@ async def test_get_link_content_not_found(
     assert "error" in result
 
 
-@pytest.mark.asyncio
 async def test_save_review_updates_link(
     review_agent: ReviewAgent, links_repo: AsyncMock
 ) -> None:
@@ -84,7 +81,6 @@ async def test_save_review_updates_link(
     links_repo.update.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_save_review_link_not_found(
     review_agent: ReviewAgent, links_repo: AsyncMock
 ) -> None:
@@ -98,7 +94,6 @@ async def test_save_review_link_not_found(
     assert "error" in result
 
 
-@pytest.mark.asyncio
 async def test_save_review_retries_on_failure(
     review_agent: ReviewAgent, links_repo: AsyncMock
 ) -> None:
@@ -117,7 +112,6 @@ async def test_save_review_retries_on_failure(
     assert review_agent.save_failures == 1
 
 
-@pytest.mark.asyncio
 async def test_save_review_raises_after_max_retries(
     review_agent: ReviewAgent, links_repo: AsyncMock
 ) -> None:
@@ -138,7 +132,6 @@ async def test_save_review_raises_after_max_retries(
         )
 
 
-@pytest.mark.asyncio
 @pytest.mark.usefixtures("links_repo")
 async def test_save_review_resets_failures_on_run(review_agent: ReviewAgent) -> None:
     """Verify save review resets failures on run."""

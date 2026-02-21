@@ -2,12 +2,9 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from agent_stack.routes.events import events
 
 
-@pytest.mark.unit
 class TestEventsRoute:
     """Test the Events Route."""
 

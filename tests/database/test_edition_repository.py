@@ -10,7 +10,6 @@ from agent_stack.models.edition import Edition, EditionStatus
 _EXPECTED_EDITION_COUNT = 2
 
 
-@pytest.mark.unit
 class TestEditionRepository:
     """Test the Edition Repository."""
 

@@ -25,7 +25,6 @@ def edit_agent(repos: tuple[AsyncMock, AsyncMock]) -> tuple[EditAgent, object, o
         return EditAgent(client, editions_repo, feedback_repo)
 
 
-@pytest.mark.asyncio
 async def test_get_edition_content(
     edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]
 ) -> None:
@@ -41,7 +40,6 @@ async def test_get_edition_content(
 _EXPECTED_FEEDBACK_COUNT = 2
 
 
-@pytest.mark.asyncio
 async def test_get_feedback_returns_unresolved(
     edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]
 ) -> None:
@@ -59,7 +57,6 @@ async def test_get_feedback_returns_unresolved(
     assert result[1]["comment"] == "Rewrite"
 
 
-@pytest.mark.asyncio
 async def test_save_edit_updates_content(
     edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]
 ) -> None:
@@ -76,7 +73,6 @@ async def test_save_edit_updates_content(
     editions_repo.update.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_resolve_feedback_marks_resolved(
     edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]
 ) -> None:
@@ -94,7 +90,6 @@ async def test_resolve_feedback_marks_resolved(
     feedback_repo.update.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_resolve_feedback_not_found(
     edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]
 ) -> None:

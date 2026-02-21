@@ -8,7 +8,6 @@ from agent_stack.config import StorageConfig
 from agent_stack.storage.blob import BlobStorageClient
 
 
-@pytest.mark.unit
 class TestBlobStorageClient:
     """Test the Blob Storage Client."""
 

@@ -16,7 +16,6 @@ async def protected_view(_request: MagicMock) -> None:
     return {"user": "authenticated"}
 
 
-@pytest.mark.asyncio
 async def test_require_auth_raises_401_when_no_session() -> None:
     """Verify require auth raises 401 when no session."""
     request = MagicMock()
@@ -26,7 +25,6 @@ async def test_require_auth_raises_401_when_no_session() -> None:
     assert exc_info.value.status_code == _EXPECTED_UNAUTHORIZED_STATUS
 
 
-@pytest.mark.asyncio
 async def test_require_auth_raises_401_when_no_user() -> None:
     """Verify require auth raises 401 when no user."""
     request = MagicMock()
@@ -36,7 +34,6 @@ async def test_require_auth_raises_401_when_no_user() -> None:
     assert exc_info.value.status_code == _EXPECTED_UNAUTHORIZED_STATUS
 
 
-@pytest.mark.asyncio
 async def test_require_auth_passes_when_user_present() -> None:
     """Verify require auth passes when user present."""
     request = MagicMock()

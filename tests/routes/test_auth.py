@@ -2,14 +2,11 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from agent_stack.routes.auth import callback, login, logout
 
 _EXPECTED_REDIRECT_STATUS = 307
 
 
-@pytest.mark.unit
 class TestAuthRoutes:
     """Test the Auth Routes."""
 

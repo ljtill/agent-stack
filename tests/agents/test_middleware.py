@@ -13,7 +13,6 @@ _EXPECTED_TOTAL_TOKENS = 150
 _EXPECTED_USAGE_TOKENS = 500
 
 
-@pytest.mark.unit
 class TestTokenTrackingMiddleware:
     """Test the Token Tracking Middleware."""
 
@@ -72,7 +71,6 @@ class TestTokenTrackingMiddleware:
         assert context.metadata["usage"]["total_tokens"] == 0
 
 
-@pytest.mark.unit
 class TestRateLimitMiddleware:
     """Test the Rate Limit Middleware."""
 

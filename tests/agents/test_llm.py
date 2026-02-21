@@ -2,13 +2,10 @@
 
 from unittest.mock import patch
 
-import pytest
-
 from agent_stack.agents.llm import create_chat_client
 from agent_stack.config import OpenAIConfig
 
 
-@pytest.mark.unit
 class TestCreateChatClient:
     """Test the Create Chat Client."""
 

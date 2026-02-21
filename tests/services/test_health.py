@@ -2,11 +2,13 @@
 
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
 from agent_stack.config import CosmosConfig, OpenAIConfig, StorageConfig
 from agent_stack.pipeline.change_feed import ChangeFeedProcessor
 from agent_stack.services.health import (
+    StorageHealthConfig,
+    _clean_openai_error,
+    _storage_account_name,
+    check_all,
     check_change_feed,
     check_cosmos,
     check_openai,
@@ -20,7 +22,6 @@ _cosmos_config = CosmosConfig(
 )
 
 
-@pytest.mark.asyncio
 async def test_check_cosmos_healthy() -> None:
     """Verify check cosmos healthy."""
     container = AsyncMock()
@@ -36,7 +37,6 @@ async def test_check_cosmos_healthy() -> None:
     assert result.detail == "https://localhost:8081 · agent-stack"
 
 
-@pytest.mark.asyncio
 async def test_check_cosmos_unhealthy() -> None:
     """Verify check cosmos unhealthy."""
     container = AsyncMock()
@@ -57,7 +57,6 @@ _openai_config = OpenAIConfig(
 )
 
 
-@pytest.mark.asyncio
 async def test_check_openai_healthy() -> None:
     """Verify check openai healthy."""
     client = AsyncMock()
@@ -72,7 +71,6 @@ async def test_check_openai_healthy() -> None:
     assert result.detail == "https://myoai.openai.azure.com · gpt-4o"
 
 
-@pytest.mark.asyncio
 async def test_check_openai_unhealthy() -> None:
     """Verify check openai unhealthy."""
     client = AsyncMock()
@@ -94,7 +92,6 @@ _storage_config = StorageConfig(
 )
 
 
-@pytest.mark.asyncio
 async def test_check_storage_healthy() -> None:
     """Verify check storage healthy."""
     container = AsyncMock()
@@ -110,7 +107,6 @@ async def test_check_storage_healthy() -> None:
     assert result.detail == "myaccount · $web"
 
 
-@pytest.mark.asyncio
 async def test_check_storage_unhealthy() -> None:
     """Verify check storage unhealthy."""
     container = AsyncMock()
@@ -183,3 +179,122 @@ def test_check_change_feed_task_finished_unexpectedly() -> None:
 
     assert result.healthy is False
     assert "unexpectedly" in result.error
+
+
+# --- OpenAI treated healthy on max_tokens error ---
+
+
+async def test_check_openai_healthy_on_max_tokens_error() -> None:
+    """Verify OpenAI is marked healthy when error mentions max_tokens."""
+    client = AsyncMock()
+    client.get_response = AsyncMock(side_effect=ValueError("max_tokens is too large"))
+
+    result = await check_openai(client, _openai_config)
+
+    assert result.healthy is True
+
+
+# --- _clean_openai_error helpers ---
+
+
+def test_clean_openai_error_connection_error() -> None:
+    """Verify connection error is cleaned to a helpful message."""
+    result = _clean_openai_error("Connection error to https://example.com")
+
+    assert "Connection error" in result
+    assert "AZURE_OPENAI_ENDPOINT" in result
+
+
+def test_clean_openai_error_class_repr_prefix() -> None:
+    """Verify class repr prefix is stripped."""
+    raw = (
+        "<class 'openai.APIError'>  service failed to complete the prompt:"
+        " something went wrong"
+    )
+
+    result = _clean_openai_error(raw)
+
+    assert result == "something went wrong"
+
+
+def test_clean_openai_error_nested_message() -> None:
+    """Verify nested message dict is extracted."""
+    raw = "Error: {'message': 'Rate limit exceeded', 'code': '429'}"
+
+    result = _clean_openai_error(raw)
+
+    assert result == "Rate limit exceeded"
+
+
+def test_clean_openai_error_passthrough() -> None:
+    """Verify unrecognized errors pass through unchanged."""
+    raw = "Something totally unexpected"
+
+    result = _clean_openai_error(raw)
+
+    assert result == raw
+
+
+# --- _storage_account_name ---
+
+
+def test_storage_account_name_extracts_name() -> None:
+    """Verify account name is extracted from connection string."""
+    conn = "DefaultEndpointsProtocol=https;AccountName=mystore;AccountKey=key"
+
+    assert _storage_account_name(conn) == "mystore"
+
+
+def test_storage_account_name_unknown_fallback() -> None:
+    """Verify 'unknown' is returned when account name is not found."""
+    assert _storage_account_name("SomeOtherFormat=value") == "unknown"
+
+
+# --- check_all aggregation ---
+
+
+async def test_check_all_without_storage() -> None:
+    """Verify check_all runs cosmos, openai, and change feed probes."""
+    database = MagicMock()
+    database.get_container_client.return_value = AsyncMock()
+    openai_client = AsyncMock()
+    openai_client.get_response = AsyncMock(return_value=MagicMock())
+    processor = _make_processor(running=True, task_done=False)
+
+    results = await check_all(
+        database,
+        openai_client,
+        processor,
+        _cosmos_config,
+        _openai_config,
+    )
+
+    names = [r.name for r in results]
+    assert "Azure Cosmos DB" in names
+    assert "Azure OpenAI" in names
+    assert "Change Feed Processor" in names
+    assert "Azure Storage" not in names
+
+
+async def test_check_all_with_storage() -> None:
+    """Verify check_all includes storage when config is provided."""
+    database = MagicMock()
+    database.get_container_client.return_value = AsyncMock()
+    openai_client = AsyncMock()
+    openai_client.get_response = AsyncMock(return_value=MagicMock())
+    processor = _make_processor(running=True, task_done=False)
+    storage_client = MagicMock()
+    storage_client.get_container.return_value = AsyncMock()
+    storage_health = StorageHealthConfig(client=storage_client, config=_storage_config)
+
+    results = await check_all(
+        database,
+        openai_client,
+        processor,
+        _cosmos_config,
+        _openai_config,
+        storage_health=storage_health,
+    )
+
+    names = [r.name for r in results]
+    assert "Azure Storage" in names
