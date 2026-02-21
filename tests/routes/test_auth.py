@@ -20,7 +20,9 @@ class TestAuthRoutes:
         request.session = {}
 
         with patch("agent_stack.routes.auth.MSALAuth") as mock_auth_cls:
-            mock_auth_cls.return_value.get_auth_flow.return_value = {"auth_uri": "https://login.microsoftonline.com/auth"}
+            mock_auth_cls.return_value.get_auth_flow.return_value = {
+                "auth_uri": "https://login.microsoftonline.com/auth"
+            }
 
             response = await login(request)
 

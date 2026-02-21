@@ -50,9 +50,10 @@ ignore = [
     "COM812",  # conflicts with ruff formatter
     "D203",    # conflicts with D211
     "D213",    # conflicts with D212
-    # --- S101: pytest requires assert ---
-    "S101",    # assert
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]  # pytest requires assert
 
 [tool.ruff.lint.flake8-annotations]
 allow-star-arg-any = true

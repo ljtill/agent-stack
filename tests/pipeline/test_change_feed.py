@@ -125,6 +125,7 @@ async def test_process_feed_handles_handler_error(processor: ChangeFeedProcessor
     await processor.process_feed(container, None, handler)
     assert handler.call_count == _EXPECTED_HANDLER_CALL_COUNT
 
+
 @pytest.mark.asyncio
 async def test_start_creates_background_task(processor: ChangeFeedProcessor) -> None:
     """Verify start creates background task."""

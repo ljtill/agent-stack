@@ -91,9 +91,7 @@ class TestChangeFeedProcessor:
 
         item = {"id": "link-1", "status": "submitted"}
 
-        page_iter = _MockPageIterator(
-            [_SingleItemPage([item])], continuation_token=_TEST_CONTINUATION_TOKEN
-        )
+        page_iter = _MockPageIterator([_SingleItemPage([item])], continuation_token=_TEST_CONTINUATION_TOKEN)
 
         mock_response = MagicMock()
         mock_response.by_page.return_value = page_iter
@@ -136,9 +134,7 @@ class TestChangeFeedProcessor:
 
         item = {"id": "link-1"}
 
-        page_iter = _MockPageIterator(
-            [_SingleItemPage([item])], continuation_token=_TEST_CONTINUATION_TOKEN_SHORT
-        )
+        page_iter = _MockPageIterator([_SingleItemPage([item])], continuation_token=_TEST_CONTINUATION_TOKEN_SHORT)
 
         mock_response = MagicMock()
         mock_response.by_page.return_value = page_iter
