@@ -69,7 +69,9 @@ class EditAgent:
         """Read the current edition content."""
         edition = await self._editions_repo.get(edition_id, edition_id)
         if not edition:
+            logger.warning("get_edition_content: edition %s not found", edition_id)
             return json.dumps({"error": "Edition not found"})
+        logger.info("Retrieved edition content — edition=%s", edition_id)
         return json.dumps(edition.content)
 
     @tool
@@ -79,6 +81,11 @@ class EditAgent:
     ) -> str:
         """Read unresolved editor feedback for the edition."""
         items = await self._feedback_repo.get_unresolved(edition_id)
+        logger.info(
+            "Retrieved %d unresolved feedback items — edition=%s",
+            len(items),
+            edition_id,
+        )
         return json.dumps(
             [{"id": f.id, "section": f.section, "comment": f.comment} for f in items]
         )
@@ -92,9 +99,11 @@ class EditAgent:
         """Update the edition with refined content."""
         edition = await self._editions_repo.get(edition_id, edition_id)
         if not edition:
+            logger.warning("save_edit: edition %s not found", edition_id)
             return json.dumps({"error": "Edition not found"})
         edition.content = json.loads(content) if isinstance(content, str) else content
         await self._editions_repo.update(edition, edition_id)
+        logger.info("Edit saved — edition=%s", edition_id)
         return json.dumps({"status": "edited", "edition_id": edition_id})
 
     @tool
@@ -106,9 +115,15 @@ class EditAgent:
         """Mark a feedback item as resolved."""
         feedback = await self._feedback_repo.get(feedback_id, edition_id)
         if not feedback:
+            logger.warning("resolve_feedback: feedback %s not found", feedback_id)
             return json.dumps({"error": "Feedback not found"})
         feedback.resolved = True
         await self._feedback_repo.update(feedback, edition_id)
+        logger.info(
+            "Feedback resolved — feedback=%s edition=%s",
+            feedback_id,
+            edition_id,
+        )
         return json.dumps({"status": "resolved", "feedback_id": feedback_id})
 
     async def run(self, edition_id: str) -> dict:

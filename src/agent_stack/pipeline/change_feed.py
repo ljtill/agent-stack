@@ -136,11 +136,17 @@ class ChangeFeedProcessor:
         try:
             async for page in page_iterator:
                 async for item in page:
+                    item_id = item.get("id", "unknown")
+                    logger.info(
+                        "Change feed processing item=%s container=%s",
+                        item_id,
+                        container.id,
+                    )
                     try:
                         await handler(item)
                     except Exception:
                         logger.exception(
-                            "Failed to process change feed item %s", item.get("id")
+                            "Failed to process change feed item %s", item_id
                         )
         except ServiceResponseError as exc:
             # The Cosmos DB vnext-preview emulator returns malformed HTTP responses

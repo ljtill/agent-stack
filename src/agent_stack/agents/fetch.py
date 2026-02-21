@@ -57,6 +57,7 @@ class FetchAgent:
     @tool
     async def fetch_url(url: Annotated[str, "The URL to fetch content from"]) -> str:
         """Fetch the raw HTML content of a URL."""
+        logger.info("Fetching URL: %s", url)
         headers = {
             "User-Agent": "Mozilla/5.0 (compatible; AgentStack/1.0; +https://github.com/ljtill/agent-stack)",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -67,6 +68,11 @@ class FetchAgent:
             ) as http:
                 response = await http.get(url)
                 response.raise_for_status()
+                logger.info(
+                    "URL fetched successfully: %s (%d bytes)",
+                    url,
+                    len(response.text),
+                )
                 return response.text
         except (
             httpx.ConnectError,
@@ -75,10 +81,12 @@ class FetchAgent:
             httpx.WriteTimeout,
             httpx.PoolTimeout,
         ) as exc:
+            logger.warning("URL unreachable: %s — %s", url, exc)
             return json.dumps(
                 {"error": f"URL is unreachable: {exc}", "unreachable": True}
             )
         except httpx.HTTPStatusError as exc:
+            logger.warning("HTTP error for %s — %d", url, exc.response.status_code)
             return json.dumps(
                 {
                     "error": f"HTTP {exc.response.status_code}: {exc}",
@@ -86,6 +94,7 @@ class FetchAgent:
                 }
             )
         except httpx.HTTPError as exc:
+            logger.warning("Failed to fetch URL: %s — %s", url, exc)
             return json.dumps(
                 {"error": f"Failed to fetch URL: {exc}", "unreachable": True}
             )
@@ -101,11 +110,18 @@ class FetchAgent:
         """Persist extracted title and content to the link document."""
         link = await self._links_repo.get(link_id, edition_id)
         if not link:
+            logger.warning("save_fetched_content: link %s not found", link_id)
             return json.dumps({"error": "Link not found"})
         link.title = title
         link.content = content
         link.status = LinkStatus.FETCHING
         await self._links_repo.update(link, edition_id)
+        logger.info(
+            "Fetched content saved — link=%s title=%s status=%s",
+            link_id,
+            title[:60],
+            link.status,
+        )
         return json.dumps({"status": "saved", "link_id": link_id})
 
     @tool
@@ -118,9 +134,11 @@ class FetchAgent:
         """Mark a link as failed when the URL is unreachable or cannot be processed."""
         link = await self._links_repo.get(link_id, edition_id)
         if not link:
+            logger.warning("mark_link_failed: link %s not found", link_id)
             return json.dumps({"error": "Link not found"})
         link.status = LinkStatus.FAILED
         await self._links_repo.update(link, edition_id)
+        logger.warning("Link marked failed — link=%s reason=%s", link_id, reason)
         return json.dumps({"status": "failed", "link_id": link_id, "reason": reason})
 
     async def run(self, link: Link) -> dict:

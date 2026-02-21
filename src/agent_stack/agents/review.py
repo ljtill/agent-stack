@@ -67,7 +67,13 @@ class ReviewAgent:
         """Read the fetched content for a link."""
         link = await self._links_repo.get(link_id, edition_id)
         if not link:
+            logger.warning("get_link_content: link %s not found", link_id)
             return json.dumps({"error": "Link not found"})
+        logger.info(
+            "Retrieved link content — link=%s title=%s",
+            link_id,
+            (link.title or "")[:60],
+        )
         return json.dumps(
             {"title": link.title, "content": link.content, "url": link.url}
         )
@@ -85,6 +91,7 @@ class ReviewAgent:
         """Persist the review output to the link document."""
         link = await self._links_repo.get(link_id, edition_id)
         if not link:
+            logger.warning("save_review: link %s not found", link_id)
             return json.dumps({"error": "Link not found"})
         link.review = {
             "insights": json.loads(insights) if isinstance(insights, str) else insights,
@@ -112,6 +119,13 @@ class ReviewAgent:
                 )
                 raise RuntimeError(msg) from exc
             return json.dumps({"error": f"Failed to save review: {exc}"})
+        logger.info(
+            "Review saved — link=%s category=%s score=%d status=%s",
+            link_id,
+            category,
+            relevance_score,
+            link.status,
+        )
         return json.dumps({"status": "reviewed", "link_id": link_id})
 
     async def run(self, link: Link) -> dict:

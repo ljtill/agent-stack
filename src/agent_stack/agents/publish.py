@@ -81,13 +81,21 @@ class PublishAgent:
         """Render the edition to HTML and upload to storage."""
         edition = await self._editions_repo.get(edition_id, edition_id)
         if not edition:
+            logger.warning("render_and_upload: edition %s not found", edition_id)
             return json.dumps({"error": "Edition not found"})
 
         if self._render_fn and self._upload_fn:
+            logger.info("Rendering edition %s to HTML", edition_id)
             html = await self._render_fn(edition)
+            logger.info("Uploading edition %s (%d bytes)", edition_id, len(html))
             await self._upload_fn(edition_id, html)
+            logger.info("Edition %s uploaded successfully", edition_id)
             return json.dumps({"status": "uploaded", "edition_id": edition_id})
 
+        logger.warning(
+            "Render/upload skipped — functions not configured for edition %s",
+            edition_id,
+        )
         return json.dumps(
             {"status": "skipped", "reason": "render/upload functions not configured"}
         )
@@ -100,10 +108,12 @@ class PublishAgent:
         """Mark the edition as published."""
         edition = await self._editions_repo.get(edition_id, edition_id)
         if not edition:
+            logger.warning("mark_published: edition %s not found", edition_id)
             return json.dumps({"error": "Edition not found"})
         edition.status = EditionStatus.PUBLISHED
         edition.published_at = datetime.now(UTC)
         await self._editions_repo.update(edition, edition_id)
+        logger.info("Edition published — edition=%s", edition_id)
         return json.dumps({"status": "published", "edition_id": edition_id})
 
     async def run(self, edition_id: str) -> dict:

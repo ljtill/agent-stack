@@ -66,7 +66,9 @@ class DraftAgent:
         """Read the reviewed link with its review output."""
         link = await self._links_repo.get(link_id, edition_id)
         if not link:
+            logger.warning("get_reviewed_link: link %s not found", link_id)
             return json.dumps({"error": "Link not found"})
+        logger.info("Retrieved reviewed link — link=%s", link_id)
         return json.dumps(
             {
                 "title": link.title,
@@ -84,7 +86,9 @@ class DraftAgent:
         """Read the current edition content."""
         edition = await self._editions_repo.get(edition_id, edition_id)
         if not edition:
+            logger.warning("get_edition_content: edition %s not found", edition_id)
             return json.dumps({"error": "Edition not found"})
+        logger.info("Retrieved edition content — edition=%s", edition_id)
         return json.dumps(edition.content)
 
     @tool
@@ -97,6 +101,7 @@ class DraftAgent:
         """Update the edition content with drafted material."""
         edition = await self._editions_repo.get(edition_id, edition_id)
         if not edition:
+            logger.warning("save_draft: edition %s not found", edition_id)
             return json.dumps({"error": "Edition not found"})
         edition.content = json.loads(content) if isinstance(content, str) else content
         if link_id not in edition.link_ids:
@@ -109,6 +114,11 @@ class DraftAgent:
             link.status = LinkStatus.DRAFTED
             await self._links_repo.update(link, edition_id)
 
+        logger.info(
+            "Draft saved — edition=%s link=%s status=drafted",
+            edition_id,
+            link_id,
+        )
         return json.dumps({"status": "drafted", "edition_id": edition_id})
 
     async def run(self, link: Link) -> dict:
