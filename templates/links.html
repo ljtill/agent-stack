@@ -42,11 +42,19 @@
                         <button type="submit" class="btn" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;">Retry</button>
                     </form>
                     {% endif %}
-                    <form method="post" action="/links/{{ link.id }}/delete" style="display: inline; margin-left: 0.25rem;"
-                          onsubmit="return confirm('Delete this link? If it has been drafted, the edition content will be regenerated.');">
-                        <input type="hidden" name="edition_id" value="{{ edition.id }}">
-                        <button type="submit" class="btn btn-danger" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;">Delete</button>
-                    </form>
+                    <span class="delete-inline" style="margin-left: 0.25rem;">
+                        <button type="button" class="btn btn-danger" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;"
+                                onclick="this.style.display='none'; this.nextElementSibling.style.display='inline';">Delete</button>
+                        <span style="display: none;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted); margin-right: 0.25rem;">Delete?</span>
+                            <form method="post" action="/links/{{ link.id }}/delete" style="display: inline;">
+                                <input type="hidden" name="edition_id" value="{{ edition.id }}">
+                                <button type="submit" class="btn btn-danger" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;">Confirm</button>
+                            </form>
+                            <button type="button" class="btn" style="padding: 0.15rem 0.5rem; font-size: 0.75rem; margin-left: 0.15rem;"
+                                    onclick="this.parentElement.style.display='none'; this.parentElement.previousElementSibling.style.display='inline';">Cancel</button>
+                        </span>
+                    </span>
                 </td>
                 <td>
                     {% set runs = link_runs.get(link.id, []) %}
