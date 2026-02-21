@@ -2,26 +2,36 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.database.repositories.links import LinkRepository
+from agent_stack.models.edition import EditionStatus
 from agent_stack.models.link import Link, LinkStatus
 
 router = APIRouter(prefix="/links", tags=["links"])
 
 
 @router.get("/", response_class=HTMLResponse)
-async def list_links(request: Request):
-    """Render the links page with all links for the active edition."""
+async def list_links(request: Request, edition_id: str | None = Query(None)):
+    """Render the links page with edition selector and filtered links."""
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
     editions_repo = _get_editions_repo(cosmos)
     links_repo = LinkRepository(cosmos.database)
     runs_repo = AgentRunRepository(cosmos.database)
 
-    edition = await editions_repo.get_active()
+    editions = await editions_repo.list_unpublished()
+
+    # Resolve selected edition: use query param if valid, else default to first
+    edition = None
+    if editions:
+        if edition_id:
+            edition = next((e for e in editions if e.id == edition_id), None)
+        if not edition:
+            edition = editions[0]
+
     links = await links_repo.get_by_edition(edition.id) if edition else []
 
     # Build a map of link_id -> agent runs for display
@@ -31,24 +41,34 @@ async def list_links(request: Request):
 
     return templates.TemplateResponse(
         "links.html",
-        {"request": request, "links": links, "edition": edition, "link_runs": link_runs},
+        {
+            "request": request,
+            "links": links,
+            "edition": edition,
+            "editions": editions,
+            "link_runs": link_runs,
+        },
     )
 
 
 @router.post("/")
-async def submit_link(request: Request, url: str = Form(...)):
-    """Submit a new link for the active edition."""
+async def submit_link(
+    request: Request,
+    url: str = Form(...),
+    edition_id: str = Form(...),
+):
+    """Submit a new link for the selected edition."""
     cosmos = request.app.state.cosmos
     editions_repo = _get_editions_repo(cosmos)
     links_repo = LinkRepository(cosmos.database)
 
-    edition = await editions_repo.get_active()
-    if not edition:
+    edition = await editions_repo.get(edition_id, edition_id)
+    if not edition or edition.status == EditionStatus.PUBLISHED:
         return RedirectResponse("/links/", status_code=303)
 
     link = Link(url=url, edition_id=edition.id)
     await links_repo.create(link)
-    return RedirectResponse("/links/", status_code=303)
+    return RedirectResponse(f"/links/?edition_id={edition.id}", status_code=303)
 
 
 @router.post("/{link_id}/retry")

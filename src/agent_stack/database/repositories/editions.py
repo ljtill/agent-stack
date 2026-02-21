@@ -29,6 +29,13 @@ class EditionRepository(BaseRepository[Edition]):
             "SELECT * FROM c WHERE NOT IS_DEFINED(c.deleted_at) ORDER BY c.created_at DESC",
         )
 
+    async def list_unpublished(self) -> list[Edition]:
+        """Return all non-published, non-deleted editions ordered by creation date descending."""
+        return await self.query(
+            "SELECT * FROM c WHERE c.status != @published AND NOT IS_DEFINED(c.deleted_at) ORDER BY c.created_at DESC",
+            [{"name": "@published", "value": EditionStatus.PUBLISHED.value}],
+        )
+
     async def list_published(self) -> list[Edition]:
         """Return all published editions."""
         return await self.query(

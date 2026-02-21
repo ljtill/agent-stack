@@ -4,10 +4,17 @@
 {% block content %}
 <h1>Links</h1>
 
-{% if edition %}
+{% if editions %}
 <div class="card">
     <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">Submit a Link</h2>
     <form method="post" action="/links" style="display: flex; gap: 0.5rem;">
+        <select name="edition_id" style="margin-bottom: 0; min-width: 200px;" onchange="window.location.href='/links/?edition_id=' + this.value">
+            {% for ed in editions %}
+            <option value="{{ ed.id }}" {% if edition and ed.id == edition.id %}selected{% endif %}>
+                {{ ed.content.get('title', 'Untitled') or 'Untitled' }} ({{ ed.status }})
+            </option>
+            {% endfor %}
+        </select>
         <input type="url" name="url" placeholder="https://example.com/article" required style="flex: 1; margin-bottom: 0;">
         <button type="submit" class="btn">Submit</button>
     </form>
@@ -65,7 +72,7 @@
 </div>
 {% else %}
 <div class="card">
-    <p style="color: var(--text-muted);">No active edition. <a href="/editions" style="color: var(--accent);">Create one</a> to start submitting links.</p>
+    <p style="color: var(--text-muted);">No active editions. <a href="/editions" style="color: var(--accent);">Create one</a> to start submitting links.</p>
 </div>
 {% endif %}
 {% endblock %}

@@ -18,7 +18,7 @@ def _make_request():
 
 
 @pytest.mark.asyncio
-async def test_list_links_with_active_edition():
+async def test_list_links_with_editions():
     request = _make_request()
     edition = Edition(id="ed-1", content={})
     links = [Link(id="link-1", url="https://example.com", edition_id="ed-1")]
@@ -28,7 +28,7 @@ async def test_list_links_with_active_edition():
         patch("agent_stack.routes.links.LinkRepository") as MockLinksRepo,
     ):
         editions_repo = AsyncMock()
-        editions_repo.get_active.return_value = edition
+        editions_repo.list_unpublished.return_value = [edition]
         mock_get_repo.return_value = editions_repo
 
         links_repo = AsyncMock()
@@ -41,10 +41,35 @@ async def test_list_links_with_active_edition():
         ctx = request.app.state.templates.TemplateResponse.call_args[0][1]
         assert ctx["links"] == links
         assert ctx["edition"] == edition
+        assert ctx["editions"] == [edition]
 
 
 @pytest.mark.asyncio
-async def test_list_links_without_active_edition():
+async def test_list_links_selects_edition_by_query_param():
+    request = _make_request()
+    ed1 = Edition(id="ed-1", content={})
+    ed2 = Edition(id="ed-2", content={})
+
+    with (
+        patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
+        patch("agent_stack.routes.links.LinkRepository") as MockLinksRepo,
+    ):
+        editions_repo = AsyncMock()
+        editions_repo.list_unpublished.return_value = [ed1, ed2]
+        mock_get_repo.return_value = editions_repo
+
+        links_repo = AsyncMock()
+        links_repo.get_by_edition.return_value = []
+        MockLinksRepo.return_value = links_repo
+
+        await list_links(request, edition_id="ed-2")
+
+        ctx = request.app.state.templates.TemplateResponse.call_args[0][1]
+        assert ctx["edition"] == ed2
+
+
+@pytest.mark.asyncio
+async def test_list_links_without_editions():
     request = _make_request()
 
     with (
@@ -52,7 +77,7 @@ async def test_list_links_without_active_edition():
         patch("agent_stack.routes.links.LinkRepository") as MockLinksRepo,
     ):
         editions_repo = AsyncMock()
-        editions_repo.get_active.return_value = None
+        editions_repo.list_unpublished.return_value = []
         mock_get_repo.return_value = editions_repo
         MockLinksRepo.return_value = AsyncMock()
 
@@ -61,6 +86,7 @@ async def test_list_links_without_active_edition():
         ctx = request.app.state.templates.TemplateResponse.call_args[0][1]
         assert ctx["links"] == []
         assert ctx["edition"] is None
+        assert ctx["editions"] == []
 
 
 @pytest.mark.asyncio
@@ -73,13 +99,13 @@ async def test_submit_link_creates_link():
         patch("agent_stack.routes.links.LinkRepository") as MockLinksRepo,
     ):
         editions_repo = AsyncMock()
-        editions_repo.get_active.return_value = edition
+        editions_repo.get.return_value = edition
         mock_get_repo.return_value = editions_repo
 
         links_repo = AsyncMock()
         MockLinksRepo.return_value = links_repo
 
-        response = await submit_link(request, url="https://example.com")
+        response = await submit_link(request, url="https://example.com", edition_id="ed-1")
 
         links_repo.create.assert_called_once()
         created = links_repo.create.call_args[0][0]
@@ -97,13 +123,13 @@ async def test_submit_link_redirects_when_no_edition():
         patch("agent_stack.routes.links.LinkRepository") as MockLinksRepo,
     ):
         editions_repo = AsyncMock()
-        editions_repo.get_active.return_value = None
+        editions_repo.get.return_value = None
         mock_get_repo.return_value = editions_repo
 
         links_repo = AsyncMock()
         MockLinksRepo.return_value = links_repo
 
-        response = await submit_link(request, url="https://example.com")
+        response = await submit_link(request, url="https://example.com", edition_id="nonexistent")
 
         links_repo.create.assert_not_called()
         assert response.status_code == 303
