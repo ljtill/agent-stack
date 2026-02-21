@@ -44,8 +44,12 @@ class FetchAgent:
     @tool
     async def _fetch_url(url: Annotated[str, "The URL to fetch content from"]) -> str:
         """Fetch the raw HTML content of a URL."""
+        headers = {
+            "User-Agent": "Mozilla/5.0 (compatible; AgentStack/1.0; +https://github.com/ljtill/agent-stack)",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        }
         try:
-            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as http:
+            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0, headers=headers) as http:
                 response = await http.get(url)
                 response.raise_for_status()
                 return response.text

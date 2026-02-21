@@ -81,6 +81,27 @@ async def test_fetch_url_returns_error_on_http_status_error():
 
 
 @pytest.mark.asyncio
+async def test_fetch_url_sets_user_agent_header():
+    """Verify fetch_url sends a User-Agent header."""
+    with patch("agent_stack.agents.fetch.httpx.AsyncClient") as MockClient:
+        mock_response = MagicMock()
+        mock_response.text = "<html>OK</html>"
+        mock_response.raise_for_status = MagicMock()
+        mock_client = AsyncMock()
+        mock_client.get.return_value = mock_response
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        MockClient.return_value = mock_client
+
+        await FetchAgent._fetch_url.func("https://example.com")
+
+        call_kwargs = MockClient.call_args
+        headers = call_kwargs.kwargs.get("headers") or call_kwargs[1].get("headers", {})
+        assert "User-Agent" in headers
+        assert "AgentStack" in headers["User-Agent"]
+
+
+@pytest.mark.asyncio
 async def test_mark_link_failed_updates_status(fetch_agent, links_repo):
     link = Link(id="link-1", url="https://unreachable.invalid", edition_id="ed-1")
     links_repo.get.return_value = link

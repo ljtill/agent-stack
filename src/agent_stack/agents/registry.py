@@ -18,6 +18,11 @@ def _extract_tools(agent_obj) -> list[dict[str, str]]:
     if inner is None:
         return []
     tools = getattr(inner, "_tools", None) or getattr(inner, "tools", None) or []
+    # Agent Framework stores tools in default_options["tools"]
+    if not tools:
+        opts = getattr(inner, "default_options", None)
+        if isinstance(opts, dict):
+            tools = opts.get("tools", []) or []
     result = []
     for t in tools:
         if callable(t):
@@ -39,7 +44,15 @@ def _extract_options(agent_obj) -> dict[str, Any]:
     opts = getattr(inner, "_default_options", None) or getattr(inner, "default_options", None)
     if opts is None:
         return {}
-    result: dict[str, Any] = {}
+    # Agent Framework stores options as a flat dict in default_options
+    if isinstance(opts, dict):
+        result: dict[str, Any] = {}
+        for attr in ("temperature", "max_tokens", "top_p", "response_format"):
+            val = opts.get(attr)
+            if val is not None:
+                result[attr] = val
+        return result
+    result = {}
     for attr in ("temperature", "max_tokens", "top_p", "response_format"):
         val = getattr(opts, attr, None)
         if val is not None:
@@ -53,6 +66,11 @@ def _extract_middleware(agent_obj) -> list[str]:
     if inner is None:
         return []
     mw = getattr(inner, "_middleware", None) or getattr(inner, "middleware", None) or []
+    # Agent Framework may store middleware in default_options["middleware"]
+    if not mw:
+        opts = getattr(inner, "default_options", None)
+        if isinstance(opts, dict):
+            mw = opts.get("middleware", []) or []
     return [type(m).__name__ for m in mw]
 
 
@@ -62,6 +80,11 @@ def _extract_instructions(agent_obj, max_length: int = 200) -> dict[str, str]:
     if inner is None:
         return {"preview": "", "full": ""}
     instructions = getattr(inner, "_instructions", None) or getattr(inner, "instructions", None) or ""
+    # Agent Framework may store instructions in default_options["instructions"]
+    if not instructions:
+        opts = getattr(inner, "default_options", None)
+        if isinstance(opts, dict):
+            instructions = opts.get("instructions", "") or ""
     preview = instructions[:max_length] + ("…" if len(instructions) > max_length else "")
     return {"preview": preview, "full": instructions}
 

@@ -1,5 +1,7 @@
 """Tests for the agent registry — introspection utilities."""
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -12,59 +14,93 @@ from agent_stack.agents.registry import (
     get_agent_metadata,
 )
 
+LONG_INSTRUCTIONS_LENGTH = 300
+PREVIEW_MAX_LENGTH = 200
+EXPECTED_PREVIEW_LENGTH = 201  # 200 chars + ellipsis character
+EXPECTED_AGENT_COUNT = 5
+
+
+def _make_agent_obj(**inner_attrs: object) -> MagicMock:
+    """Create a mock agent object with inner agent attributes set via setattr."""
+    inner = MagicMock()
+    for key, value in inner_attrs.items():
+        setattr(inner, key, value)
+    obj = MagicMock()
+    setattr(obj, "_agent", inner)
+    return obj
+
 
 @pytest.mark.unit
 class TestExtractTools:
-    def test_extracts_callable_tools(self):
-        agent_obj = MagicMock()
+    """Test suite for the _extract_tools function."""
 
-        def my_tool():
-            """Fetches data from API."""
-            pass
+    def test_extracts_callable_tools(self) -> None:
+        """Verify callable tools are extracted with name and description."""
 
-        agent_obj._agent._tools = [my_tool]
+        def my_tool() -> None:
+            """Fetch data from API."""
+
+        agent_obj = _make_agent_obj(_tools=[my_tool])
 
         tools = _extract_tools(agent_obj)
 
         assert len(tools) == 1
         assert tools[0]["name"] == "my_tool"
-        assert "Fetches data" in tools[0]["description"]
+        assert "Fetch data" in tools[0]["description"]
 
-    def test_extracts_named_tools(self):
-        agent_obj = MagicMock()
+    def test_extracts_named_tools(self) -> None:
+        """Verify named tool objects are extracted correctly."""
 
         class NamedTool:
             name = "save_data"
             description = "Saves data"
 
-        agent_obj._agent._tools = [NamedTool()]
+        agent_obj = _make_agent_obj(_tools=[NamedTool()])
 
         tools = _extract_tools(agent_obj)
 
         assert tools[0]["name"] == "save_data"
         assert tools[0]["description"] == "Saves data"
 
-    def test_returns_empty_when_no_agent(self):
+    def test_returns_empty_when_no_agent(self) -> None:
+        """Verify empty list returned when no inner agent exists."""
         agent_obj = MagicMock(spec=[])
         assert _extract_tools(agent_obj) == []
 
-    def test_returns_empty_when_no_tools(self):
-        agent_obj = MagicMock()
-        agent_obj._agent._tools = None
-        agent_obj._agent.tools = None
+    def test_returns_empty_when_no_tools(self) -> None:
+        """Verify empty list returned when tools are None."""
+        agent_obj = _make_agent_obj(_tools=None, tools=None)
         assert _extract_tools(agent_obj) == []
+
+    def test_extracts_tools_from_default_options(self) -> None:
+        """Agent Framework stores tools in default_options['tools']."""
+        agent_obj = _make_agent_obj(_tools=None, tools=None)
+
+        class FunctionTool:
+            name = "fetch_url"
+            description = "Fetch the raw HTML content of a URL."
+
+        agent_obj._agent.default_options = {"tools": [FunctionTool()]}
+
+        tools = _extract_tools(agent_obj)
+
+        assert len(tools) == 1
+        assert tools[0]["name"] == "fetch_url"
+        assert "Fetch the raw HTML" in tools[0]["description"]
 
 
 @pytest.mark.unit
 class TestExtractOptions:
-    def test_extracts_known_options(self):
-        agent_obj = MagicMock()
+    """Test suite for the _extract_options function."""
+
+    def test_extracts_known_options(self) -> None:
+        """Verify known options are extracted from agent defaults."""
         opts = MagicMock()
         opts.temperature = 0.7
         opts.max_tokens = 4096
         opts.top_p = None
         opts.response_format = None
-        agent_obj._agent._default_options = opts
+        agent_obj = _make_agent_obj(_default_options=opts)
 
         result = _extract_options(agent_obj)
 
@@ -72,58 +108,64 @@ class TestExtractOptions:
         assert result["max_tokens"] == 4096
         assert "top_p" not in result
 
-    def test_returns_empty_when_no_agent(self):
+    def test_returns_empty_when_no_agent(self) -> None:
+        """Verify empty dict returned when no inner agent exists."""
         agent_obj = MagicMock(spec=[])
         assert _extract_options(agent_obj) == {}
 
-    def test_returns_empty_when_no_options(self):
-        agent_obj = MagicMock()
-        agent_obj._agent._default_options = None
-        agent_obj._agent.default_options = None
+    def test_returns_empty_when_no_options(self) -> None:
+        """Verify empty dict returned when options are None."""
+        agent_obj = _make_agent_obj(_default_options=None, default_options=None)
         assert _extract_options(agent_obj) == {}
 
 
 @pytest.mark.unit
 class TestExtractMiddleware:
-    def test_extracts_middleware_class_names(self):
-        agent_obj = MagicMock()
+    """Test suite for the _extract_middleware function."""
+
+    def test_extracts_middleware_class_names(self) -> None:
+        """Verify middleware class names are extracted correctly."""
 
         class FakeMiddleware:
             pass
 
-        agent_obj._agent._middleware = [FakeMiddleware()]
+        agent_obj = _make_agent_obj(_middleware=[FakeMiddleware()])
 
         result = _extract_middleware(agent_obj)
 
         assert result == ["FakeMiddleware"]
 
-    def test_returns_empty_when_no_agent(self):
+    def test_returns_empty_when_no_agent(self) -> None:
+        """Verify empty list returned when no inner agent exists."""
         agent_obj = MagicMock(spec=[])
         assert _extract_middleware(agent_obj) == []
 
 
 @pytest.mark.unit
 class TestExtractInstructions:
-    def test_truncates_long_instructions(self):
-        agent_obj = MagicMock()
-        agent_obj._agent._instructions = "A" * 300
+    """Test suite for the _extract_instructions function."""
 
-        result = _extract_instructions(agent_obj, max_length=200)
+    def test_truncates_long_instructions(self) -> None:
+        """Verify long instructions are truncated with ellipsis."""
+        agent_obj = _make_agent_obj(_instructions="A" * LONG_INSTRUCTIONS_LENGTH)
 
-        assert len(result["preview"]) == 201  # 200 chars + ellipsis
+        result = _extract_instructions(agent_obj, max_length=PREVIEW_MAX_LENGTH)
+
+        assert len(result["preview"]) == EXPECTED_PREVIEW_LENGTH
         assert result["preview"].endswith("…")
-        assert len(result["full"]) == 300
+        assert len(result["full"]) == LONG_INSTRUCTIONS_LENGTH
 
-    def test_short_instructions_no_truncation(self):
-        agent_obj = MagicMock()
-        agent_obj._agent._instructions = "Short prompt"
+    def test_short_instructions_no_truncation(self) -> None:
+        """Verify short instructions are not truncated."""
+        agent_obj = _make_agent_obj(_instructions="Short prompt")
 
         result = _extract_instructions(agent_obj)
 
         assert result["preview"] == "Short prompt"
         assert result["full"] == "Short prompt"
 
-    def test_returns_empty_when_no_agent(self):
+    def test_returns_empty_when_no_agent(self) -> None:
+        """Verify empty strings returned when no inner agent exists."""
         agent_obj = MagicMock(spec=[])
         result = _extract_instructions(agent_obj)
         assert result == {"preview": "", "full": ""}
@@ -131,38 +173,44 @@ class TestExtractInstructions:
 
 @pytest.mark.unit
 class TestGetAgentMetadata:
-    def test_returns_metadata_for_registered_agents(self):
+    """Test suite for the get_agent_metadata function."""
+
+    def test_returns_metadata_for_registered_agents(self) -> None:
+        """Verify metadata is returned for all registered agents."""
         orchestrator = MagicMock()
         # Set up minimal agents
         for attr in ("_fetch", "_review", "_draft", "_edit", "_publish"):
-            agent = MagicMock()
-            agent._agent._tools = []
-            agent._agent._default_options = None
-            agent._agent.default_options = None
-            agent._agent._middleware = []
-            agent._agent._instructions = "Do stuff"
+            agent = _make_agent_obj(
+                _tools=[],
+                _default_options=None,
+                default_options=None,
+                _middleware=[],
+                _instructions="Do stuff",
+            )
             setattr(orchestrator, attr, agent)
 
         result = get_agent_metadata(orchestrator)
 
-        assert len(result) == 5
+        assert len(result) == EXPECTED_AGENT_COUNT
         names = [r["name"] for r in result]
         assert "fetch" in names
         assert "publish" in names
 
-    def test_skips_none_agents(self):
+    def test_skips_none_agents(self) -> None:
+        """Verify None agents are excluded from metadata."""
         orchestrator = MagicMock()
-        orchestrator._fetch = None
-        orchestrator._review = None
-        orchestrator._draft = None
-        orchestrator._edit = None
-        agent = MagicMock()
-        agent._agent._tools = []
-        agent._agent._default_options = None
-        agent._agent.default_options = None
-        agent._agent._middleware = []
-        agent._agent._instructions = ""
-        orchestrator._publish = agent
+        setattr(orchestrator, "_fetch", None)
+        setattr(orchestrator, "_review", None)
+        setattr(orchestrator, "_draft", None)
+        setattr(orchestrator, "_edit", None)
+        agent = _make_agent_obj(
+            _tools=[],
+            _default_options=None,
+            default_options=None,
+            _middleware=[],
+            _instructions="",
+        )
+        setattr(orchestrator, "_publish", agent)
 
         result = get_agent_metadata(orchestrator)
 
