@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 
+from azure.storage.blob import ContentSettings
 from azure.storage.blob.aio import BlobServiceClient, ContainerClient
 
 from agent_stack.config import StorageConfig
@@ -40,7 +41,7 @@ class BlobStorageClient:
         await blob.upload_blob(
             content.encode("utf-8"),
             overwrite=True,
-            content_settings={"content_type": "text/html; charset=utf-8"},
+            content_settings=ContentSettings(content_type="text/html; charset=utf-8"),
         )
         logger.info("Uploaded %s to %s", blob_name, self._config.container)
 
@@ -51,6 +52,6 @@ class BlobStorageClient:
         await blob.upload_blob(
             content.encode("utf-8"),
             overwrite=True,
-            content_settings={"content_type": "text/css; charset=utf-8"},
+            content_settings=ContentSettings(content_type="text/css; charset=utf-8"),
         )
         logger.info("Uploaded %s to %s", blob_name, self._config.container)

@@ -6,10 +6,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 from azure.cosmos.aio import ContainerProxy, DatabaseProxy
-from pydantic import BaseModel
+
+from agent_stack.models.base import DocumentBase
 
 
-class BaseRepository[T: BaseModel]:
+class BaseRepository[T: DocumentBase]:
     """Generic async repository for a Cosmos DB container."""
 
     container_name: str

@@ -25,7 +25,7 @@ class ChangeFeedProcessor:
         self._database = database
         self._orchestrator = orchestrator
         self._running = False
-        self._task: asyncio.Task | None = None  # type: ignore[type-arg]
+        self._task: asyncio.Task | None = None
 
     async def start(self) -> None:
         """Start polling the change feed in a background task."""
@@ -85,6 +85,8 @@ class ChangeFeedProcessor:
                 logger.exception("Failed to process change feed item %s", item.get("id"))
 
         if hasattr(response, "continuation_token"):
-            new_token = response.continuation_token
+            token = response.continuation_token
+            if isinstance(token, str):
+                new_token = token
 
         return new_token

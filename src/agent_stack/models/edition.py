@@ -21,6 +21,6 @@ class Edition(DocumentBase):
     """A newsletter edition continuously refined by the agent pipeline."""
 
     status: EditionStatus = EditionStatus.CREATED
-    content: dict = Field(default_factory=dict)  # type: ignore[type-arg]
+    content: dict = Field(default_factory=dict)
     link_ids: list[str] = Field(default_factory=list)
     published_at: datetime | None = None

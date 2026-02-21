@@ -23,6 +23,6 @@ class Link(DocumentBase):
     title: str | None = None
     status: LinkStatus = LinkStatus.SUBMITTED
     content: str | None = None
-    review: dict | None = None  # type: ignore[type-arg]
+    review: dict | None = None
     edition_id: str = Field(..., description="Associated edition (partition key)")
     submitted_at: str | None = None

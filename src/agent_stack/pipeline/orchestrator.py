@@ -110,7 +110,7 @@ class PipelineOrchestrator:
             case AgentStage.DRAFT:
                 await self._draft.run(link)
 
-    async def _create_run(self, stage: AgentStage, trigger_id: str, input_data: dict) -> AgentRun:  # type: ignore[type-arg]
+    async def _create_run(self, stage: AgentStage, trigger_id: str, input_data: dict) -> AgentRun:
         """Create and persist an agent run document."""
         run = AgentRun(
             stage=stage,

@@ -28,7 +28,7 @@ class AgentRun(DocumentBase):
     stage: AgentStage
     trigger_id: str
     status: AgentRunStatus = AgentRunStatus.RUNNING
-    input: dict | None = None  # type: ignore[type-arg]
-    output: dict | None = None  # type: ignore[type-arg]
+    input: dict | None = None
+    output: dict | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None
