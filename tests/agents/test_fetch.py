@@ -78,3 +78,27 @@ async def test_fetch_url_returns_error_on_http_status_error():
 
         assert result["unreachable"] is True
         assert "404" in result["error"]
+
+
+@pytest.mark.asyncio
+async def test_mark_link_failed_updates_status(fetch_agent, links_repo):
+    link = Link(id="link-1", url="https://unreachable.invalid", edition_id="ed-1")
+    links_repo.get.return_value = link
+
+    result = json.loads(await fetch_agent._mark_link_failed("link-1", "ed-1", "URL is unreachable"))
+
+    assert result["status"] == "failed"
+    assert result["link_id"] == "link-1"
+    assert result["reason"] == "URL is unreachable"
+    assert link.status == LinkStatus.FAILED
+    links_repo.update.assert_called_once_with(link, "ed-1")
+
+
+@pytest.mark.asyncio
+async def test_mark_link_failed_link_not_found(fetch_agent, links_repo):
+    links_repo.get.return_value = None
+
+    result = json.loads(await fetch_agent._mark_link_failed("missing", "ed-1", "unreachable"))
+
+    assert "error" in result
+    links_repo.update.assert_not_called()

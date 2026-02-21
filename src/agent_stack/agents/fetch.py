@@ -34,7 +34,7 @@ class FetchAgent:
             client=client,
             instructions=load_prompt("fetch"),
             name="fetch-agent",
-            tools=[self._fetch_url, self._save_fetched_content],
+            tools=[self._fetch_url, self._save_fetched_content, self._mark_link_failed],
             default_options=ChatOptions(max_tokens=2000, temperature=0.0),
             middleware=middleware,
         )
@@ -78,6 +78,21 @@ class FetchAgent:
         link.status = LinkStatus.FETCHING
         await self._links_repo.update(link, edition_id)
         return json.dumps({"status": "saved", "link_id": link_id})
+
+    @tool
+    async def _mark_link_failed(
+        self,
+        link_id: Annotated[str, "The link document ID"],
+        edition_id: Annotated[str, "The edition partition key"],
+        reason: Annotated[str, "Why the link failed (e.g. unreachable, timeout)"],
+    ) -> str:
+        """Mark a link as failed when the URL is unreachable or cannot be processed."""
+        link = await self._links_repo.get(link_id, edition_id)
+        if not link:
+            return json.dumps({"error": "Link not found"})
+        link.status = LinkStatus.FAILED
+        await self._links_repo.update(link, edition_id)
+        return json.dumps({"status": "failed", "link_id": link_id, "reason": reason})
 
     async def run(self, link: Link) -> dict | None:
         """Execute the fetch agent for a given link."""
