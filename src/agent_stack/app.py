@@ -62,14 +62,20 @@ async def lifespan(app: FastAPI):
     storage: BlobStorageClient | None = None
 
     if settings.storage.connection_string:
-        storage = BlobStorageClient(settings.storage)
-        await storage.initialize()
-        app.state.storage = storage
+        try:
+            storage = BlobStorageClient(settings.storage)
+            await storage.initialize()
+            app.state.storage = storage
 
-        renderer = StaticSiteRenderer(editions_repo, storage)
-        render_fn = renderer.render_edition
-        upload_fn = storage.upload_html
-        logger.info("Blob storage configured")
+            renderer = StaticSiteRenderer(editions_repo, storage)
+            render_fn = renderer.render_edition
+            upload_fn = storage.upload_html
+            logger.info("Blob storage configured")
+        except Exception:
+            logger.warning("Failed to connect to blob storage — publish uploads disabled", exc_info=True)
+            if storage:
+                await storage.close()
+            storage = None
     else:
         logger.warning("AZURE_STORAGE_CONNECTION_STRING not set — publish uploads disabled")
 
