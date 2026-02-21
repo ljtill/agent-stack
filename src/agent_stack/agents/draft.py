@@ -1,0 +1,96 @@
+"""Draft agent — composes or revises newsletter content from reviewed material."""
+
+from __future__ import annotations
+
+import json
+import logging
+from typing import Annotated
+
+from agent_framework import Agent, tool
+from agent_framework.azure import AzureOpenAIChatClient
+
+from agent_stack.agents.prompts import load_prompt
+from agent_stack.database.repositories.editions import EditionRepository
+from agent_stack.database.repositories.links import LinkRepository
+from agent_stack.models.link import Link, LinkStatus
+
+logger = logging.getLogger(__name__)
+
+
+class DraftAgent:
+    """Drafts newsletter content by integrating reviewed links into the edition."""
+
+    def __init__(
+        self,
+        client: AzureOpenAIChatClient,
+        links_repo: LinkRepository,
+        editions_repo: EditionRepository,
+    ) -> None:
+        self._links_repo = links_repo
+        self._editions_repo = editions_repo
+        self._agent = Agent(
+            client=client,
+            instructions=load_prompt("draft"),
+            name="draft-agent",
+            tools=[self._get_reviewed_link, self._get_edition_content, self._save_draft],
+        )
+
+    @tool
+    async def _get_reviewed_link(
+        self,
+        link_id: Annotated[str, "The link document ID"],
+        edition_id: Annotated[str, "The edition partition key"],
+    ) -> str:
+        """Read the reviewed link with its review output."""
+        link = await self._links_repo.get(link_id, edition_id)
+        if not link:
+            return json.dumps({"error": "Link not found"})
+        return json.dumps(
+            {
+                "title": link.title,
+                "url": link.url,
+                "content": link.content,
+                "review": link.review,
+            }
+        )
+
+    @tool
+    async def _get_edition_content(
+        self,
+        edition_id: Annotated[str, "The edition document ID"],
+    ) -> str:
+        """Read the current edition content."""
+        edition = await self._editions_repo.get(edition_id, edition_id)
+        if not edition:
+            return json.dumps({"error": "Edition not found"})
+        return json.dumps(edition.content)
+
+    @tool
+    async def _save_draft(
+        self,
+        edition_id: Annotated[str, "The edition document ID"],
+        link_id: Annotated[str, "The link being drafted"],
+        content: Annotated[str, "Updated edition content as JSON"],
+    ) -> str:
+        """Update the edition content with drafted material."""
+        edition = await self._editions_repo.get(edition_id, edition_id)
+        if not edition:
+            return json.dumps({"error": "Edition not found"})
+        edition.content = json.loads(content) if isinstance(content, str) else content
+        if link_id not in edition.link_ids:
+            edition.link_ids.append(link_id)
+        await self._editions_repo.update(edition, edition_id)
+
+        # Transition link status
+        link = await self._links_repo.get(link_id, edition_id)
+        if link:
+            link.status = LinkStatus.DRAFTED
+            await self._links_repo.update(link, edition_id)
+
+        return json.dumps({"status": "drafted", "edition_id": edition_id})
+
+    async def run(self, link: Link) -> None:
+        """Execute the draft agent for a reviewed link."""
+        logger.info("Draft agent processing link %s for edition %s", link.id, link.edition_id)
+        message = f"Draft newsletter content for this reviewed link.\nLink ID: {link.id}\nEdition ID: {link.edition_id}"
+        await self._agent.run(message)

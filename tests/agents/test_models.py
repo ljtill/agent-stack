@@ -1,0 +1,47 @@
+"""Tests for data models."""
+
+from agent_stack.models import AgentRun, AgentRunStatus, AgentStage, Edition, EditionStatus, Feedback, Link, LinkStatus
+
+
+def test_link_defaults():
+    link = Link(url="https://example.com", edition_id="ed-1")
+    assert link.status == LinkStatus.SUBMITTED
+    assert link.title is None
+    assert link.content is None
+    assert link.review is None
+    assert link.deleted_at is None
+    assert link.id  # auto-generated
+
+
+def test_edition_defaults():
+    edition = Edition()
+    assert edition.status == EditionStatus.CREATED
+    assert edition.content == {}
+    assert edition.link_ids == []
+    assert edition.published_at is None
+
+
+def test_feedback_model():
+    fb = Feedback(edition_id="ed-1", section="intro", comment="Needs more context")
+    assert fb.resolved is False
+    assert fb.edition_id == "ed-1"
+
+
+def test_agent_run_model():
+    run = AgentRun(stage=AgentStage.FETCH, trigger_id="link-1")
+    assert run.status == AgentRunStatus.RUNNING
+    assert run.completed_at is None
+
+
+def test_link_status_enum():
+    assert LinkStatus.SUBMITTED == "submitted"
+    assert LinkStatus.FETCHING == "fetching"
+    assert LinkStatus.REVIEWED == "reviewed"
+    assert LinkStatus.DRAFTED == "drafted"
+
+
+def test_edition_status_enum():
+    assert EditionStatus.CREATED == "created"
+    assert EditionStatus.DRAFTING == "drafting"
+    assert EditionStatus.IN_REVIEW == "in_review"
+    assert EditionStatus.PUBLISHED == "published"
