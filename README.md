@@ -43,8 +43,8 @@ docker compose up -d
 cp .env.example .env
 # Edit .env with your credentials
 
-# Run the application
-uv run python -m agent_stack.app
+# Run the application (with hot reload)
+uv run uvicorn agent_stack.app:create_app --factory --reload --reload-dir src
 ```
 
 ### Tests
