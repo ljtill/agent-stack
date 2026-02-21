@@ -1,0 +1,63 @@
+@description('Name of the App Configuration store')
+param name string
+
+@description('Location for the resource')
+param location string
+
+@description('Principal ID for role assignment')
+param principalId string
+
+@description('Cosmos DB endpoint')
+param cosmosEndpoint string
+
+@description('Cosmos DB database name')
+param cosmosDatabase string
+
+@description('Storage account connection string')
+@secure()
+param storageConnectionString string
+
+resource appConfig 'Microsoft.AppConfiguration/configurationStores@2023-03-01' = {
+  name: name
+  location: location
+  sku: {
+    name: 'free'
+  }
+}
+
+// App Configuration Data Reader role assignment
+resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(appConfig.id, principalId, '516239f1-63e1-4d78-a4de-a74fb236a071')
+  scope: appConfig
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '516239f1-63e1-4d78-a4de-a74fb236a071')
+    principalId: principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource cosmosEndpointKv 'Microsoft.AppConfiguration/configurationStores/keyValues@2023-03-01' = {
+  parent: appConfig
+  name: 'COSMOS_ENDPOINT'
+  properties: {
+    value: cosmosEndpoint
+  }
+}
+
+resource cosmosDatabaseKv 'Microsoft.AppConfiguration/configurationStores/keyValues@2023-03-01' = {
+  parent: appConfig
+  name: 'COSMOS_DATABASE'
+  properties: {
+    value: cosmosDatabase
+  }
+}
+
+resource storageConnectionKv 'Microsoft.AppConfiguration/configurationStores/keyValues@2023-03-01' = {
+  parent: appConfig
+  name: 'AZURE_STORAGE_CONNECTION_STRING'
+  properties: {
+    value: storageConnectionString
+  }
+}
+
+output endpoint string = appConfig.properties.endpoint
