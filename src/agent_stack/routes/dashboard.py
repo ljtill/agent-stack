@@ -16,7 +16,7 @@ async def dashboard(request: Request):
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
     runs_repo = AgentRunRepository(cosmos.database)
-    recent_runs = await runs_repo.list_recent(20)
+    recent_runs = await runs_repo.list_recent(5)
     return templates.TemplateResponse(
         "dashboard.html",
         {"request": request, "recent_runs": recent_runs},
