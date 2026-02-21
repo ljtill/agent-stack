@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
-
-from azure.cosmos.aio import ContainerProxy, DatabaseProxy
+from typing import TYPE_CHECKING, Any
 
 from agent_stack.models.base import DocumentBase
+
+if TYPE_CHECKING:
+    from azure.cosmos.aio import ContainerProxy, DatabaseProxy
 
 
 class BaseRepository[T: DocumentBase]:

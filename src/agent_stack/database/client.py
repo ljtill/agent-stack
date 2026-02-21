@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from azure.cosmos import PartitionKey
 from azure.cosmos.aio import CosmosClient as AzureCosmosClient
 from azure.cosmos.aio import DatabaseProxy
 
-from agent_stack.config import CosmosConfig
+if TYPE_CHECKING:
+    from agent_stack.config import CosmosConfig
 
 
 class CosmosClient:
@@ -29,7 +30,7 @@ class CosmosClient:
     async def initialize(self) -> None:
         """Create the client and ensure the database and containers exist."""
         self._client = AzureCosmosClient(self._config.endpoint, credential=self._config.key)
-        db = cast(DatabaseProxy, await self._client.create_database_if_not_exists(self._config.database))
+        db = cast("DatabaseProxy", await self._client.create_database_if_not_exists(self._config.database))
         for name, partition_key in self._CONTAINERS:
             await db.create_container_if_not_exists(id=name, partition_key=PartitionKey(path=partition_key))
         self._database = db

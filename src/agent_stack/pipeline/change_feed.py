@@ -5,12 +5,14 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from azure.core.exceptions import ServiceResponseError
-from azure.cosmos.aio import ContainerProxy, DatabaseProxy
 
-from agent_stack.pipeline.orchestrator import PipelineOrchestrator
+if TYPE_CHECKING:
+    from azure.cosmos.aio import ContainerProxy, DatabaseProxy
+
+    from agent_stack.pipeline.orchestrator import PipelineOrchestrator
 
 logger = logging.getLogger(__name__)
 

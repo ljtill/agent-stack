@@ -7,9 +7,7 @@ import os
 import time
 from datetime import UTC, datetime
 from html import escape
-from typing import Any
-
-from agent_framework.azure import AzureOpenAIChatClient
+from typing import TYPE_CHECKING, Any
 
 from agent_stack.agents.draft import DraftAgent
 from agent_stack.agents.edit import EditAgent
@@ -17,13 +15,17 @@ from agent_stack.agents.fetch import FetchAgent
 from agent_stack.agents.middleware import RateLimitMiddleware
 from agent_stack.agents.publish import PublishAgent
 from agent_stack.agents.review import ReviewAgent
-from agent_stack.database.repositories.agent_runs import AgentRunRepository
-from agent_stack.database.repositories.editions import EditionRepository
-from agent_stack.database.repositories.feedback import FeedbackRepository
-from agent_stack.database.repositories.links import LinkRepository
 from agent_stack.events import EventManager
 from agent_stack.models.agent_run import AgentRun, AgentRunStatus, AgentStage
 from agent_stack.models.link import LinkStatus
+
+if TYPE_CHECKING:
+    from agent_framework.azure import AzureOpenAIChatClient
+
+    from agent_stack.database.repositories.agent_runs import AgentRunRepository
+    from agent_stack.database.repositories.editions import EditionRepository
+    from agent_stack.database.repositories.feedback import FeedbackRepository
+    from agent_stack.database.repositories.links import LinkRepository
 
 logger = logging.getLogger(__name__)
 

@@ -6,15 +6,18 @@ import json
 import logging
 import time
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from agent_framework import Agent, ChatOptions, tool
-from agent_framework.azure import AzureOpenAIChatClient
 
 from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
-from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.models.edition import EditionStatus
+
+if TYPE_CHECKING:
+    from agent_framework.azure import AzureOpenAIChatClient
+
+    from agent_stack.database.repositories.editions import EditionRepository
 
 logger = logging.getLogger(__name__)
 

@@ -5,15 +5,18 @@ from __future__ import annotations
 import json
 import logging
 import time
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from agent_framework import Agent, ChatOptions, tool
-from agent_framework.azure import AzureOpenAIChatClient
 
 from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
-from agent_stack.database.repositories.links import LinkRepository
 from agent_stack.models.link import Link, LinkStatus
+
+if TYPE_CHECKING:
+    from agent_framework.azure import AzureOpenAIChatClient
+
+    from agent_stack.database.repositories.links import LinkRepository
 
 logger = logging.getLogger(__name__)
 

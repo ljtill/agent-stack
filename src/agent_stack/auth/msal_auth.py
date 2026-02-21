@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import msal
 
-from agent_stack.config import EntraConfig
+if TYPE_CHECKING:
+    from agent_stack.config import EntraConfig
 
 
 class MSALAuth:

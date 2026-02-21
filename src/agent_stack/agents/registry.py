@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from agent_stack.agents.draft import DraftAgent
 from agent_stack.agents.edit import EditAgent
 from agent_stack.agents.fetch import FetchAgent
 from agent_stack.agents.publish import PublishAgent
 from agent_stack.agents.review import ReviewAgent
-from agent_stack.pipeline.orchestrator import PipelineOrchestrator
+
+if TYPE_CHECKING:
+    from agent_stack.pipeline.orchestrator import PipelineOrchestrator
 
 
 def _extract_tools(agent_obj) -> list[dict[str, str]]:

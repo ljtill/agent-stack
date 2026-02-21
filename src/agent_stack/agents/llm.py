@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from agent_framework.azure import AzureOpenAIChatClient
 from azure.identity import DefaultAzureCredential
 
-from agent_stack.config import OpenAIConfig
+if TYPE_CHECKING:
+    from agent_stack.config import OpenAIConfig
 
 
 def create_chat_client(config: OpenAIConfig, *, use_key: str | None = None) -> AzureOpenAIChatClient:

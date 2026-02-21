@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from azure.storage.blob import ContentSettings
 from azure.storage.blob.aio import BlobServiceClient, ContainerClient
 
-from agent_stack.config import StorageConfig
+if TYPE_CHECKING:
+    from agent_stack.config import StorageConfig
 
 logger = logging.getLogger(__name__)
 

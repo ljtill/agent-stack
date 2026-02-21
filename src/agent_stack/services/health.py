@@ -5,14 +5,17 @@ from __future__ import annotations
 import asyncio
 import time
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from agent_framework import Message
-from agent_framework.azure import AzureOpenAIChatClient
-from azure.cosmos.aio import DatabaseProxy
 
-from agent_stack.config import CosmosConfig, OpenAIConfig, StorageConfig
-from agent_stack.pipeline.change_feed import ChangeFeedProcessor
-from agent_stack.storage.blob import BlobStorageClient
+if TYPE_CHECKING:
+    from agent_framework.azure import AzureOpenAIChatClient
+    from azure.cosmos.aio import DatabaseProxy
+
+    from agent_stack.config import CosmosConfig, OpenAIConfig, StorageConfig
+    from agent_stack.pipeline.change_feed import ChangeFeedProcessor
+    from agent_stack.storage.blob import BlobStorageClient
 
 
 @dataclass

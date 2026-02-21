@@ -26,7 +26,7 @@ def _make_agent_obj(**inner_attrs: object) -> MagicMock:
     for key, value in inner_attrs.items():
         setattr(inner, key, value)
     obj = MagicMock()
-    setattr(obj, "_agent", inner)
+    obj._agent = inner
     return obj
 
 
@@ -199,10 +199,10 @@ class TestGetAgentMetadata:
     def test_skips_none_agents(self) -> None:
         """Verify None agents are excluded from metadata."""
         orchestrator = MagicMock()
-        setattr(orchestrator, "_fetch", None)
-        setattr(orchestrator, "_review", None)
-        setattr(orchestrator, "_draft", None)
-        setattr(orchestrator, "_edit", None)
+        orchestrator._fetch = None
+        orchestrator._review = None
+        orchestrator._draft = None
+        orchestrator._edit = None
         agent = _make_agent_obj(
             _tools=[],
             _default_options=None,
@@ -210,7 +210,7 @@ class TestGetAgentMetadata:
             _middleware=[],
             _instructions="",
         )
-        setattr(orchestrator, "_publish", agent)
+        orchestrator._publish = agent
 
         result = get_agent_metadata(orchestrator)
 

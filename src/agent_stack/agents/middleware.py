@@ -5,11 +5,14 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections.abc import Awaitable, Callable
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from agent_framework import ChatContext, ChatMiddleware
-from agent_framework._types import UsageDetails
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from agent_framework._types import UsageDetails
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +31,7 @@ class TokenTrackingMiddleware(ChatMiddleware):
 
         usage: dict[str, Any] = {}
         if context.result and hasattr(context.result, "usage_details") and context.result.usage_details:
-            ud = cast(UsageDetails, context.result.usage_details)
+            ud = cast("UsageDetails", context.result.usage_details)
             usage = {
                 "input_token_count": ud.get("input_token_count"),
                 "output_token_count": ud.get("output_token_count"),
@@ -48,7 +51,7 @@ class TokenTrackingMiddleware(ChatMiddleware):
         )
 
         # Stash usage on context metadata for upstream consumers
-        meta = cast(dict[str, Any], context.metadata)
+        meta = cast("dict[str, Any]", context.metadata)
         meta["usage"] = {
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
@@ -104,7 +107,7 @@ class RateLimitMiddleware(ChatMiddleware):
         """Record actual token usage from the response."""
         tokens = 0
         if context.result and hasattr(context.result, "usage_details") and context.result.usage_details:
-            ud = cast(UsageDetails, context.result.usage_details)
+            ud = cast("UsageDetails", context.result.usage_details)
             tokens = ud.get("total_token_count", 0) or 0
 
         async with self._lock:

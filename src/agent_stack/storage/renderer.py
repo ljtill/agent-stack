@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from jinja2 import Environment, FileSystemLoader
 
-from agent_stack.database.repositories.editions import EditionRepository
-from agent_stack.models.edition import Edition
-from agent_stack.storage.blob import BlobStorageClient
+if TYPE_CHECKING:
+    from agent_stack.database.repositories.editions import EditionRepository
+    from agent_stack.models.edition import Edition
+    from agent_stack.storage.blob import BlobStorageClient
 
 logger = logging.getLogger(__name__)
 

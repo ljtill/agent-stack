@@ -5,11 +5,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from collections.abc import AsyncGenerator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from fastapi import Request
 from sse_starlette.sse import EventSourceResponse
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+    from fastapi import Request
 
 logger = logging.getLogger(__name__)
 
