@@ -32,6 +32,7 @@ class FetchAgent:
         *,
         rate_limiter: RateLimitMiddleware | None = None,
     ) -> None:
+        """Initialize the fetch agent with LLM client and link repository."""
         self._links_repo = links_repo
         middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]
         self._agent = Agent(

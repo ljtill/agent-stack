@@ -11,14 +11,18 @@ from agent_stack.models.agent_run import AgentRun, AgentRunStatus, AgentStage
 
 @pytest.mark.unit
 class TestAgentRunRepository:
+    """Test the Agent Run Repository."""
+
     @pytest.fixture
-    def repo(self):
+    def repo(self) -> AgentRunRepository:
+        """Create a repo for testing."""
         mock_db = MagicMock()
         mock_container = AsyncMock()
         mock_db.get_container_client.return_value = mock_container
         return AgentRunRepository(mock_db)
 
-    async def test_get_by_trigger(self, repo):
+    async def test_get_by_trigger(self, repo: AgentRunRepository) -> None:
+        """Verify get by trigger."""
         run = AgentRun(stage=AgentStage.FETCH, trigger_id="link-1", status=AgentRunStatus.COMPLETED)
         repo.query = AsyncMock(return_value=[run])
 
@@ -27,7 +31,8 @@ class TestAgentRunRepository:
         assert len(result) == 1
         assert result[0].trigger_id == "link-1"
 
-    async def test_get_by_stage(self, repo):
+    async def test_get_by_stage(self, repo: AgentRunRepository) -> None:
+        """Verify get by stage."""
         repo.query = AsyncMock(return_value=[])
 
         result = await repo.get_by_stage("link-1", AgentStage.REVIEW)
@@ -36,12 +41,14 @@ class TestAgentRunRepository:
         call_args = repo.query.call_args
         assert "@stage" in call_args[0][0]
 
-    async def test_get_by_triggers_empty_list(self, repo):
+    async def test_get_by_triggers_empty_list(self, repo: AgentRunRepository) -> None:
+        """Verify get by triggers empty list."""
         result = await repo.get_by_triggers([])
 
         assert result == []
 
-    async def test_get_by_triggers_merges_results(self, repo):
+    async def test_get_by_triggers_merges_results(self, repo: AgentRunRepository) -> None:
+        """Verify get by triggers merges results."""
         from datetime import datetime
 
         run1 = AgentRun(
@@ -64,7 +71,8 @@ class TestAgentRunRepository:
         # Sorted by started_at descending
         assert result[0].trigger_id == "link-2"
 
-    async def test_list_recent(self, repo):
+    async def test_list_recent(self, repo: AgentRunRepository) -> None:
+        """Verify list recent."""
         repo.query = AsyncMock(return_value=[])
 
         result = await repo.list_recent(10)
@@ -73,7 +81,8 @@ class TestAgentRunRepository:
         call_args = repo.query.call_args
         assert "@limit" in call_args[0][0]
 
-    async def test_list_recent_by_stage(self, repo):
+    async def test_list_recent_by_stage(self, repo: AgentRunRepository) -> None:
+        """Verify list recent by stage."""
         repo.query = AsyncMock(return_value=[])
 
         result = await repo.list_recent_by_stage(AgentStage.DRAFT, limit=3)

@@ -7,6 +7,8 @@ from agent_stack.models.edition import Edition, EditionStatus
 
 
 class EditionRepository(BaseRepository[Edition]):
+    """Provide data access for the editions container."""
+
     container_name = "editions"
     model_class = Edition
 

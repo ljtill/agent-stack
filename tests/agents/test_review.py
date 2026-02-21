@@ -10,19 +10,22 @@ from agent_stack.models.link import Link, LinkStatus
 
 
 @pytest.fixture
-def links_repo():
+def links_repo() -> AsyncMock:
+    """Create a links repo for testing."""
     return AsyncMock()
 
 
 @pytest.fixture
-def review_agent(links_repo):
+def review_agent(links_repo: AsyncMock) -> tuple[ReviewAgent, object]:
+    """Create a review agent for testing."""
     client = MagicMock()
     with patch("agent_stack.agents.review.Agent"):
         return ReviewAgent(client, links_repo)
 
 
 @pytest.mark.asyncio
-async def test_get_link_content_returns_json(review_agent, links_repo):
+async def test_get_link_content_returns_json(review_agent: ReviewAgent, links_repo: AsyncMock) -> None:
+    """Verify get link content returns json."""
     link = Link(id="link-1", url="https://example.com", edition_id="ed-1", title="Title", content="Body text")
     links_repo.get.return_value = link
 
@@ -34,14 +37,16 @@ async def test_get_link_content_returns_json(review_agent, links_repo):
 
 
 @pytest.mark.asyncio
-async def test_get_link_content_not_found(review_agent, links_repo):
+async def test_get_link_content_not_found(review_agent: ReviewAgent, links_repo: AsyncMock) -> None:
+    """Verify get link content not found."""
     links_repo.get.return_value = None
     result = json.loads(await review_agent._get_link_content("missing", "ed-1"))
     assert "error" in result
 
 
 @pytest.mark.asyncio
-async def test_save_review_updates_link(review_agent, links_repo):
+async def test_save_review_updates_link(review_agent: ReviewAgent, links_repo: AsyncMock) -> None:
+    """Verify save review updates link."""
     link = Link(id="link-1", url="https://example.com", edition_id="ed-1")
     links_repo.get.return_value = link
 
@@ -57,14 +62,16 @@ async def test_save_review_updates_link(review_agent, links_repo):
 
 
 @pytest.mark.asyncio
-async def test_save_review_link_not_found(review_agent, links_repo):
+async def test_save_review_link_not_found(review_agent: ReviewAgent, links_repo: AsyncMock) -> None:
+    """Verify save review link not found."""
     links_repo.get.return_value = None
     result = json.loads(await review_agent._save_review("missing", "ed-1", "[]", "cat", 5, "justification"))
     assert "error" in result
 
 
 @pytest.mark.asyncio
-async def test_save_review_retries_on_failure(review_agent, links_repo):
+async def test_save_review_retries_on_failure(review_agent: ReviewAgent, links_repo: AsyncMock) -> None:
+    """Verify save review retries on failure."""
     link = Link(id="link-1", url="https://example.com", edition_id="ed-1")
     links_repo.get.return_value = link
     links_repo.update.side_effect = Exception("Cosmos DB error")
@@ -76,7 +83,8 @@ async def test_save_review_retries_on_failure(review_agent, links_repo):
 
 
 @pytest.mark.asyncio
-async def test_save_review_raises_after_max_retries(review_agent, links_repo):
+async def test_save_review_raises_after_max_retries(review_agent: ReviewAgent, links_repo: AsyncMock) -> None:
+    """Verify save review raises after max retries."""
     link = Link(id="link-1", url="https://example.com", edition_id="ed-1")
     links_repo.get.return_value = link
     links_repo.update.side_effect = Exception("Cosmos DB error")
@@ -90,7 +98,8 @@ async def test_save_review_raises_after_max_retries(review_agent, links_repo):
 
 
 @pytest.mark.asyncio
-async def test_save_review_resets_failures_on_run(review_agent, links_repo):
+async def test_save_review_resets_failures_on_run(review_agent: ReviewAgent, links_repo: AsyncMock) -> None:
+    """Verify save review resets failures on run."""
     review_agent._save_failures = 2
     mock_response = MagicMock()
     mock_response.usage_details = None

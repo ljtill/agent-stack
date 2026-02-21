@@ -32,6 +32,7 @@ class EditAgent:
         *,
         rate_limiter: RateLimitMiddleware | None = None,
     ) -> None:
+        """Initialize the edit agent with LLM client and repositories."""
         self._editions_repo = editions_repo
         self._feedback_repo = feedback_repo
         middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]

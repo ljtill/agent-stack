@@ -10,7 +10,7 @@ from agent_stack.events import EventManager
 
 
 @pytest.fixture(autouse=True)
-def reset_event_manager():
+def reset_event_manager() -> None:
     """Reset the EventManager singleton between tests."""
     EventManager._instance = None
     yield
@@ -19,7 +19,10 @@ def reset_event_manager():
 
 @pytest.mark.unit
 class TestEventManagerPublish:
-    async def test_publish_broadcasts_to_all_queues(self):
+    """Test the Event Manager Publish."""
+
+    async def test_publish_broadcasts_to_all_queues(self) -> None:
+        """Verify publish broadcasts to all queues."""
         manager = EventManager.get_instance()
         q1: asyncio.Queue = asyncio.Queue()
         q2: asyncio.Queue = asyncio.Queue()
@@ -33,7 +36,8 @@ class TestEventManagerPublish:
         assert json.loads(msg1["data"])["stage"] == "fetch"
         assert msg2 == msg1
 
-    async def test_publish_with_string_data(self):
+    async def test_publish_with_string_data(self) -> None:
+        """Verify publish with string data."""
         manager = EventManager.get_instance()
         q: asyncio.Queue = asyncio.Queue()
         manager._queues.append(q)
@@ -43,14 +47,18 @@ class TestEventManagerPublish:
         msg = q.get_nowait()
         assert msg["data"] == "hello"
 
-    async def test_publish_with_no_subscribers(self):
+    async def test_publish_with_no_subscribers(self) -> None:
+        """Verify publish with no subscribers."""
         manager = EventManager.get_instance()
         await manager.publish("test", {"ok": True})
 
 
 @pytest.mark.unit
 class TestEventManagerEventGenerator:
-    async def test_yields_queued_messages(self):
+    """Test the Event Manager Event Generator."""
+
+    async def test_yields_queued_messages(self) -> None:
+        """Verify yields queued messages."""
         manager = EventManager.get_instance()
         request = MagicMock()
         request.is_disconnected = AsyncMock(side_effect=[False, True])
@@ -58,7 +66,7 @@ class TestEventManagerEventGenerator:
         gen = manager._event_generator(request)
         msg = {"event": "test", "data": "payload"}
 
-        async def _produce():
+        async def _produce() -> None:
             await asyncio.sleep(0.01)
             for q in manager._queues:
                 await q.put(msg)
@@ -70,7 +78,8 @@ class TestEventManagerEventGenerator:
         assert result["event"] == "test"
         assert result["data"] == "payload"
 
-    async def test_sends_ping_on_timeout(self):
+    async def test_sends_ping_on_timeout(self) -> None:
+        """Verify sends ping on timeout."""
         manager = EventManager.get_instance()
         request = MagicMock()
         request.is_disconnected = AsyncMock(side_effect=[False, True])
@@ -82,7 +91,8 @@ class TestEventManagerEventGenerator:
 
         assert result["event"] == "ping"
 
-    async def test_removes_queue_on_disconnect(self):
+    async def test_removes_queue_on_disconnect(self) -> None:
+        """Verify removes queue on disconnect."""
         manager = EventManager.get_instance()
         request = MagicMock()
         request.is_disconnected = AsyncMock(return_value=True)
@@ -96,7 +106,10 @@ class TestEventManagerEventGenerator:
 
 @pytest.mark.unit
 class TestEventManagerCreateResponse:
-    def test_creates_sse_response(self):
+    """Test the Event Manager Create Response."""
+
+    def test_creates_sse_response(self) -> None:
+        """Verify creates sse response."""
         manager = EventManager.get_instance()
         request = MagicMock()
 

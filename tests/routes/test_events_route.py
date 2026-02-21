@@ -7,7 +7,10 @@ import pytest
 
 @pytest.mark.unit
 class TestEventsRoute:
-    async def test_returns_sse_response(self):
+    """Test the Events Route."""
+
+    async def test_returns_sse_response(self) -> None:
+        """Verify returns sse response."""
         from agent_stack.routes.events import events
 
         request = MagicMock()

@@ -10,6 +10,8 @@ from agent_stack.models.base import DocumentBase
 
 
 class LinkStatus(StrEnum):
+    """Enumerate processing statuses for a submitted link."""
+
     SUBMITTED = "submitted"
     FETCHING = "fetching"
     REVIEWED = "reviewed"

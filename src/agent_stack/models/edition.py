@@ -11,6 +11,8 @@ from agent_stack.models.base import DocumentBase
 
 
 class EditionStatus(StrEnum):
+    """Enumerate lifecycle statuses for a newsletter edition."""
+
     CREATED = "created"
     DRAFTING = "drafting"
     IN_REVIEW = "in_review"

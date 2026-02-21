@@ -7,6 +7,8 @@ from agent_stack.models.agent_run import AgentRun, AgentStage
 
 
 class AgentRunRepository(BaseRepository[AgentRun]):
+    """Provide data access for the agent_runs container."""
+
     container_name = "agent_runs"
     model_class = AgentRun
 

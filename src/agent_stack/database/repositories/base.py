@@ -18,6 +18,7 @@ class BaseRepository[T: DocumentBase]:
     model_class: type[T]
 
     def __init__(self, database: DatabaseProxy) -> None:
+        """Initialize the repository with a Cosmos DB database reference."""
         self._container: ContainerProxy = database.get_container_client(self.container_name)
 
     async def create(self, item: T) -> T:

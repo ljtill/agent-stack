@@ -7,7 +7,10 @@ import pytest
 
 @pytest.mark.unit
 class TestRecentRunsRoute:
-    async def test_returns_recent_runs(self):
+    """Test the Recent Runs Route."""
+
+    async def test_returns_recent_runs(self) -> None:
+        """Verify returns recent runs."""
         from agent_stack.routes.agent_runs import recent_runs
 
         request = MagicMock()

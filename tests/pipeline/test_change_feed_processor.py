@@ -9,22 +9,28 @@ from agent_stack.pipeline.change_feed import ChangeFeedProcessor
 
 @pytest.mark.unit
 class TestChangeFeedProcessor:
+    """Test the Change Feed Processor."""
+
     @pytest.fixture
-    def mock_database(self):
+    def mock_database(self) -> MagicMock:
+        """Create a mock database for testing."""
         return MagicMock()
 
     @pytest.fixture
-    def mock_orchestrator(self):
+    def mock_orchestrator(self) -> None:
+        """Create a mock orchestrator for testing."""
         orch = MagicMock()
         orch.handle_link_change = AsyncMock()
         orch.handle_feedback_change = AsyncMock()
         return orch
 
     @pytest.fixture
-    def processor(self, mock_database, mock_orchestrator):
+    def processor(self, mock_database: MagicMock, mock_orchestrator: MagicMock) -> tuple[ChangeFeedProcessor, object]:
+        """Create a processor for testing."""
         return ChangeFeedProcessor(mock_database, mock_orchestrator)
 
-    async def test_start_creates_background_task(self, processor):
+    async def test_start_creates_background_task(self, processor: ChangeFeedProcessor) -> None:
+        """Verify start creates background task."""
         # Prevent the actual poll loop from running
         with patch.object(processor, "_poll_loop", new_callable=AsyncMock):
             await processor.start()
@@ -34,47 +40,49 @@ class TestChangeFeedProcessor:
 
             await processor.stop()
 
-    async def test_stop_cancels_task(self, processor):
+    async def test_stop_cancels_task(self, processor: ChangeFeedProcessor) -> None:
+        """Verify stop cancels task."""
         with patch.object(processor, "_poll_loop", new_callable=AsyncMock):
             await processor.start()
             await processor.stop()
 
             assert processor._running is False
 
-    async def test_process_feed_calls_handler(self, processor):
+    async def test_process_feed_calls_handler(self, processor: ChangeFeedProcessor) -> None:
+        """Verify process feed calls handler."""
         mock_container = MagicMock()
 
         item = {"id": "link-1", "status": "submitted"}
 
         class MockPage:
-            def __aiter__(self):
+            def __aiter__(self) -> None:
                 return self
 
-            async def __anext__(self):
+            async def __anext__(self) -> None:
                 raise StopAsyncIteration from None
 
         class MockPageIterator:
-            def __init__(self, pages):
+            def __init__(self, pages: list[object]) -> None:
                 self._pages = iter(pages)
                 self.continuation_token = "token-abc"
 
-            def __aiter__(self):
+            def __aiter__(self) -> None:
                 return self
 
-            async def __anext__(self):
+            async def __anext__(self) -> None:
                 try:
                     return next(self._pages)
                 except StopIteration:
                     raise StopAsyncIteration from None
 
         class SingleItemPage:
-            def __init__(self, items):
+            def __init__(self, items: list[dict[str, str]]) -> None:
                 self._items = iter(items)
 
-            def __aiter__(self):
+            def __aiter__(self) -> None:
                 return self
 
-            async def __anext__(self):
+            async def __anext__(self) -> None:
                 try:
                     return next(self._items)
                 except StopIteration:
@@ -92,16 +100,17 @@ class TestChangeFeedProcessor:
         handler.assert_awaited_once_with(item)
         assert result == "token-abc"
 
-    async def test_process_feed_with_continuation_token(self, processor):
+    async def test_process_feed_with_continuation_token(self, processor: ChangeFeedProcessor) -> None:
+        """Verify process feed with continuation token."""
         mock_container = MagicMock()
 
         class EmptyPageIterator:
             continuation_token = None
 
-            def __aiter__(self):
+            def __aiter__(self) -> None:
                 return self
 
-            async def __anext__(self):
+            async def __anext__(self) -> None:
                 raise StopAsyncIteration from None
 
         page_iter = EmptyPageIterator()
@@ -116,33 +125,34 @@ class TestChangeFeedProcessor:
         assert call_kwargs["continuation"] == "prev-token"
         assert result == "prev-token"
 
-    async def test_process_feed_handles_item_error(self, processor):
+    async def test_process_feed_handles_item_error(self, processor: ChangeFeedProcessor) -> None:
+        """Verify process feed handles item error."""
         mock_container = MagicMock()
 
         item = {"id": "link-1"}
 
         class SingleItemPage:
-            def __init__(self, items):
+            def __init__(self, items: list[dict[str, str]]) -> None:
                 self._items = iter(items)
 
-            def __aiter__(self):
+            def __aiter__(self) -> None:
                 return self
 
-            async def __anext__(self):
+            async def __anext__(self) -> None:
                 try:
                     return next(self._items)
                 except StopIteration:
                     raise StopAsyncIteration from None
 
         class MockPageIterator:
-            def __init__(self, pages):
+            def __init__(self, pages: list[object]) -> None:
                 self._pages = iter(pages)
                 self.continuation_token = "token"
 
-            def __aiter__(self):
+            def __aiter__(self) -> None:
                 return self
 
-            async def __anext__(self):
+            async def __anext__(self) -> None:
                 try:
                     return next(self._pages)
                 except StopIteration:
@@ -159,7 +169,8 @@ class TestChangeFeedProcessor:
 
         assert result == "token"
 
-    async def test_process_feed_handles_emulator_http_error(self, processor):
+    async def test_process_feed_handles_emulator_http_error(self, processor: ChangeFeedProcessor) -> None:
+        """Verify process feed handles emulator http error."""
         from azure.core.exceptions import ServiceResponseError
 
         mock_container = MagicMock()
@@ -167,10 +178,10 @@ class TestChangeFeedProcessor:
         class ErrorPageIterator:
             continuation_token = None
 
-            def __aiter__(self):
+            def __aiter__(self) -> None:
                 return self
 
-            async def __anext__(self):
+            async def __anext__(self) -> None:
                 raise ServiceResponseError("Expected HTTP/ blah")
 
         page_iter = ErrorPageIterator()

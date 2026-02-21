@@ -9,7 +9,7 @@ from agent_stack.models.link import Link, LinkStatus
 from agent_stack.routes.links import list_links, retry_link, submit_link
 
 
-def _make_request():
+def _make_request() -> None:
     request = MagicMock()
     request.app.state.cosmos.database = MagicMock()
     request.app.state.templates = MagicMock()
@@ -18,7 +18,8 @@ def _make_request():
 
 
 @pytest.mark.asyncio
-async def test_list_links_with_editions():
+async def test_list_links_with_editions() -> None:
+    """Verify list links with editions."""
     request = _make_request()
     edition = Edition(id="ed-1", content={})
     links = [Link(id="link-1", url="https://example.com", edition_id="ed-1")]
@@ -45,7 +46,8 @@ async def test_list_links_with_editions():
 
 
 @pytest.mark.asyncio
-async def test_list_links_selects_edition_by_query_param():
+async def test_list_links_selects_edition_by_query_param() -> None:
+    """Verify list links selects edition by query param."""
     request = _make_request()
     ed1 = Edition(id="ed-1", content={})
     ed2 = Edition(id="ed-2", content={})
@@ -69,7 +71,8 @@ async def test_list_links_selects_edition_by_query_param():
 
 
 @pytest.mark.asyncio
-async def test_list_links_without_editions():
+async def test_list_links_without_editions() -> None:
+    """Verify list links without editions."""
     request = _make_request()
 
     with (
@@ -90,7 +93,8 @@ async def test_list_links_without_editions():
 
 
 @pytest.mark.asyncio
-async def test_submit_link_creates_link():
+async def test_submit_link_creates_link() -> None:
+    """Verify submit link creates link."""
     request = _make_request()
     edition = Edition(id="ed-1", content={})
 
@@ -115,7 +119,8 @@ async def test_submit_link_creates_link():
 
 
 @pytest.mark.asyncio
-async def test_submit_link_redirects_when_no_edition():
+async def test_submit_link_redirects_when_no_edition() -> None:
+    """Verify submit link redirects when no edition."""
     request = _make_request()
 
     with (
@@ -136,7 +141,8 @@ async def test_submit_link_redirects_when_no_edition():
 
 
 @pytest.mark.asyncio
-async def test_retry_link_resets_to_submitted():
+async def test_retry_link_resets_to_submitted() -> None:
+    """Verify retry link resets to submitted."""
     request = _make_request()
     edition = Edition(id="ed-1", content={})
     link = Link(id="link-1", url="https://example.com", edition_id="ed-1", status=LinkStatus.FAILED)
@@ -163,7 +169,8 @@ async def test_retry_link_resets_to_submitted():
 
 
 @pytest.mark.asyncio
-async def test_retry_link_ignores_non_failed():
+async def test_retry_link_ignores_non_failed() -> None:
+    """Verify retry link ignores non failed."""
     request = _make_request()
     edition = Edition(id="ed-1", content={})
     link = Link(id="link-1", url="https://example.com", edition_id="ed-1", status=LinkStatus.SUBMITTED)

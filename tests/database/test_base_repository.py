@@ -1,5 +1,6 @@
 """Tests for BaseRepository with mocked Cosmos DB container."""
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -9,24 +10,29 @@ from agent_stack.models.link import Link
 
 
 class ConcreteRepo(BaseRepository[Link]):
+    """Test the Concrete Repo."""
+
     container_name = "links"
     model_class = Link
 
 
 @pytest.fixture
-def mock_container():
+def mock_container() -> AsyncMock:
+    """Create a mock container."""
     return AsyncMock()
 
 
 @pytest.fixture
-def repo(mock_container):
+def repo(mock_container: AsyncMock) -> ConcreteRepo:
+    """Create a repo for testing."""
     db = MagicMock()
     db.get_container_client.return_value = mock_container
     return ConcreteRepo(db)
 
 
 @pytest.mark.asyncio
-async def test_create_calls_create_item(repo, mock_container):
+async def test_create_calls_create_item(repo: ConcreteRepo, mock_container: AsyncMock) -> None:
+    """Verify create calls create item."""
     link = Link(url="https://example.com", edition_id="ed-1")
     result = await repo.create(link)
     assert result is link
@@ -36,7 +42,8 @@ async def test_create_calls_create_item(repo, mock_container):
 
 
 @pytest.mark.asyncio
-async def test_get_returns_model_on_success(repo, mock_container):
+async def test_get_returns_model_on_success(repo: ConcreteRepo, mock_container: AsyncMock) -> None:
+    """Verify get returns model on success."""
     mock_container.read_item.return_value = {
         "id": "link-1",
         "url": "https://example.com",
@@ -52,14 +59,16 @@ async def test_get_returns_model_on_success(repo, mock_container):
 
 
 @pytest.mark.asyncio
-async def test_get_returns_none_on_exception(repo, mock_container):
+async def test_get_returns_none_on_exception(repo: ConcreteRepo, mock_container: AsyncMock) -> None:
+    """Verify get returns none on exception."""
     mock_container.read_item.side_effect = Exception("Not found")
     result = await repo.get("missing", "ed-1")
     assert result is None
 
 
 @pytest.mark.asyncio
-async def test_get_returns_none_for_soft_deleted(repo, mock_container):
+async def test_get_returns_none_for_soft_deleted(repo: ConcreteRepo, mock_container: AsyncMock) -> None:
+    """Verify get returns none for soft deleted."""
     mock_container.read_item.return_value = {
         "id": "link-1",
         "url": "https://example.com",
@@ -74,7 +83,8 @@ async def test_get_returns_none_for_soft_deleted(repo, mock_container):
 
 
 @pytest.mark.asyncio
-async def test_update_sets_updated_at(repo, mock_container):
+async def test_update_sets_updated_at(repo: ConcreteRepo, mock_container: AsyncMock) -> None:
+    """Verify update sets updated at."""
     link = Link(url="https://example.com", edition_id="ed-1")
     original_updated = link.updated_at
     result = await repo.update(link, "ed-1")
@@ -84,7 +94,8 @@ async def test_update_sets_updated_at(repo, mock_container):
 
 
 @pytest.mark.asyncio
-async def test_soft_delete_sets_deleted_at(repo, mock_container):
+async def test_soft_delete_sets_deleted_at(repo: ConcreteRepo, mock_container: AsyncMock) -> None:
+    """Verify soft delete sets deleted at."""
     link = Link(url="https://example.com", edition_id="ed-1")
     assert link.deleted_at is None
     result = await repo.soft_delete(link, "ed-1")
@@ -93,7 +104,8 @@ async def test_soft_delete_sets_deleted_at(repo, mock_container):
 
 
 @pytest.mark.asyncio
-async def test_query_filters_soft_deleted(repo, mock_container):
+async def test_query_filters_soft_deleted(repo: ConcreteRepo, mock_container: AsyncMock) -> None:
+    """Verify query filters soft deleted."""
     items = [
         {
             "id": "link-1",
@@ -114,7 +126,7 @@ async def test_query_filters_soft_deleted(repo, mock_container):
         },
     ]
 
-    async def mock_query_items(**kwargs):
+    async def mock_query_items(**kwargs: Any) -> None:
         for item in items:
             yield item
 

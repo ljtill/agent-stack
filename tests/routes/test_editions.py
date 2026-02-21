@@ -14,7 +14,7 @@ from agent_stack.routes.editions import (
 )
 
 
-def _make_request(app_state=None):
+def _make_request(app_state: object | None = None) -> None:
     """Create a mock request with app state."""
     request = MagicMock()
     request.app.state.cosmos.database = MagicMock()
@@ -24,7 +24,7 @@ def _make_request(app_state=None):
 
 
 @pytest.mark.asyncio
-async def test_create_edition_with_title():
+async def test_create_edition_with_title() -> None:
     """Creating an edition with a title stores it in content."""
     request = _make_request()
 
@@ -42,7 +42,7 @@ async def test_create_edition_with_title():
 
 
 @pytest.mark.asyncio
-async def test_create_edition_with_empty_title():
+async def test_create_edition_with_empty_title() -> None:
     """Creating an edition without a title stores empty string."""
     request = _make_request()
 
@@ -58,7 +58,7 @@ async def test_create_edition_with_empty_title():
 
 
 @pytest.mark.asyncio
-async def test_create_edition_strips_whitespace():
+async def test_create_edition_strips_whitespace() -> None:
     """Title whitespace is stripped on creation."""
     request = _make_request()
 
@@ -74,7 +74,7 @@ async def test_create_edition_strips_whitespace():
 
 
 @pytest.mark.asyncio
-async def test_update_title():
+async def test_update_title() -> None:
     """PATCH title updates the edition content and persists."""
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Old Title", "sections": []})
@@ -93,7 +93,7 @@ async def test_update_title():
 
 
 @pytest.mark.asyncio
-async def test_update_title_strips_whitespace():
+async def test_update_title_strips_whitespace() -> None:
     """PATCH title strips whitespace before saving."""
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "", "sections": []})
@@ -110,7 +110,7 @@ async def test_update_title_strips_whitespace():
 
 
 @pytest.mark.asyncio
-async def test_update_title_renders_display_partial():
+async def test_update_title_renders_display_partial() -> None:
     """PATCH title returns the display-mode partial."""
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
@@ -130,7 +130,7 @@ async def test_update_title_renders_display_partial():
 
 
 @pytest.mark.asyncio
-async def test_edit_title_form_renders_editing_partial():
+async def test_edit_title_form_renders_editing_partial() -> None:
     """GET title/edit returns the editing-mode partial."""
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
@@ -149,7 +149,7 @@ async def test_edit_title_form_renders_editing_partial():
 
 
 @pytest.mark.asyncio
-async def test_cancel_title_edit_renders_display_partial():
+async def test_cancel_title_edit_renders_display_partial() -> None:
     """GET title/cancel returns the display-mode partial."""
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
@@ -168,7 +168,7 @@ async def test_cancel_title_edit_renders_display_partial():
 
 
 @pytest.mark.asyncio
-async def test_delete_edition_soft_deletes():
+async def test_delete_edition_soft_deletes() -> None:
     """POST delete soft-deletes the edition and redirects."""
     request = _make_request()
     edition = Edition(id="ed-1", content={"title": "Title", "sections": []})
@@ -187,7 +187,7 @@ async def test_delete_edition_soft_deletes():
 
 
 @pytest.mark.asyncio
-async def test_delete_edition_not_found():
+async def test_delete_edition_not_found() -> None:
     """POST delete on missing edition still redirects without error."""
     request = _make_request()
 

@@ -7,6 +7,8 @@ from agent_stack.models.feedback import Feedback
 
 
 class FeedbackRepository(BaseRepository[Feedback]):
+    """Provide data access for the feedback container."""
+
     container_name = "feedback"
     model_class = Feedback
 

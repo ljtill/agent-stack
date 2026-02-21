@@ -25,6 +25,7 @@ class TokenTrackingMiddleware(ChatMiddleware):
         context: ChatContext,
         call_next: Callable[[], Awaitable[None]],
     ) -> None:
+        """Track token usage and latency for an LLM call."""
         start = time.monotonic()
         await call_next()
         elapsed_ms = (time.monotonic() - start) * 1000
@@ -72,6 +73,7 @@ class RateLimitMiddleware(ChatMiddleware):
         tpm_limit: int = 800_000,
         rpm_limit: int = 8_000,
     ) -> None:
+        """Initialize the rate limiter with TPM and RPM constraints."""
         self._tpm_limit = tpm_limit
         self._rpm_limit = rpm_limit
         self._token_window: list[tuple[float, int]] = []
@@ -83,6 +85,7 @@ class RateLimitMiddleware(ChatMiddleware):
         context: ChatContext,
         call_next: Callable[[], Awaitable[None]],
     ) -> None:
+        """Enforce rate limits before forwarding the LLM call."""
         await self._wait_for_capacity()
         await call_next()
         await self._record_usage(context)

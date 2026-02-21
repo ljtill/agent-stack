@@ -34,6 +34,7 @@ class ReviewAgent:
         *,
         rate_limiter: RateLimitMiddleware | None = None,
     ) -> None:
+        """Initialize the review agent with LLM client and link repository."""
         self._links_repo = links_repo
         self._save_failures = 0
         middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]

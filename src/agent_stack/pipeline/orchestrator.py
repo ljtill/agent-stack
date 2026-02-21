@@ -77,6 +77,7 @@ class PipelineOrchestrator:
         render_fn=None,
         upload_fn=None,
     ) -> None:
+        """Initialize the orchestrator with LLM client and all repositories."""
         self._client = client
         self._links_repo = links_repo
         self._editions_repo = editions_repo

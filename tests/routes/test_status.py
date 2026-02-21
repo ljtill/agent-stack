@@ -7,7 +7,10 @@ import pytest
 
 @pytest.mark.unit
 class TestStatusRoute:
-    async def test_renders_status_page(self):
+    """Test the Status Route."""
+
+    async def test_renders_status_page(self) -> None:
+        """Verify renders status page."""
         from agent_stack.routes.status import status
 
         request = MagicMock()
@@ -30,7 +33,8 @@ class TestStatusRoute:
         assert call_args[0][0] == "status.html"
         assert call_args[0][1]["checks"] == mock_results
 
-    async def test_handles_missing_storage(self):
+    async def test_handles_missing_storage(self) -> None:
+        """Verify handles missing storage."""
         from agent_stack.routes.status import status
 
         request = MagicMock()

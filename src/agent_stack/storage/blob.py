@@ -18,6 +18,7 @@ class BlobStorageClient:
     """Uploads rendered static files to Azure Blob Storage's $web container."""
 
     def __init__(self, config: StorageConfig) -> None:
+        """Initialize the blob storage client with connection config."""
         self._config = config
         self._service_client: BlobServiceClient | None = None
 

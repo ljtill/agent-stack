@@ -34,6 +34,7 @@ class PublishAgent:
         *,
         rate_limiter: RateLimitMiddleware | None = None,
     ) -> None:
+        """Initialize the publish agent with LLM client and rendering hooks."""
         self._editions_repo = editions_repo
         self._render_fn = render_fn
         self._upload_fn = upload_fn

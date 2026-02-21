@@ -8,7 +8,8 @@ from agent_stack.routes.dashboard import dashboard
 
 
 @pytest.mark.asyncio
-async def test_dashboard_renders_template():
+async def test_dashboard_renders_template() -> None:
+    """Verify dashboard renders template."""
     request = MagicMock()
     request.app.state.templates = MagicMock()
     request.app.state.templates.TemplateResponse = MagicMock(return_value="<html>")

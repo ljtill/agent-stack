@@ -14,7 +14,7 @@ def get_user(request: Request) -> dict[str, Any] | None:
 
 
 def require_auth(func):
-    """Decorator that ensures the request has an authenticated session."""
+    """Ensure the request has an authenticated session."""
 
     @wraps(func)
     async def wrapper(request: Request, *args, **kwargs):

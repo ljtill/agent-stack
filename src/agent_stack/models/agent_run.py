@@ -9,6 +9,8 @@ from agent_stack.models.base import DocumentBase
 
 
 class AgentStage(StrEnum):
+    """Enumerate pipeline stages an agent can execute."""
+
     FETCH = "fetch"
     REVIEW = "review"
     DRAFT = "draft"
@@ -17,6 +19,8 @@ class AgentStage(StrEnum):
 
 
 class AgentRunStatus(StrEnum):
+    """Enumerate possible statuses for an agent run."""
+
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"

@@ -23,10 +23,12 @@ class EventManager:
     _instance: EventManager | None = None
 
     def __init__(self) -> None:
+        """Initialize the event manager with an empty subscriber list."""
         self._queues: list[asyncio.Queue] = []
 
     @classmethod
     def get_instance(cls) -> EventManager:
+        """Return the singleton EventManager instance, creating it if needed."""
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance

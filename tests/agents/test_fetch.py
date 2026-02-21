@@ -11,19 +11,22 @@ from agent_stack.models.link import Link, LinkStatus
 
 
 @pytest.fixture
-def links_repo():
+def links_repo() -> AsyncMock:
+    """Create a links repo for testing."""
     return AsyncMock()
 
 
 @pytest.fixture
-def fetch_agent(links_repo):
+def fetch_agent(links_repo: AsyncMock) -> tuple[FetchAgent, object]:
+    """Create a fetch agent for testing."""
     client = MagicMock()
     with patch("agent_stack.agents.fetch.Agent"):
         return FetchAgent(client, links_repo)
 
 
 @pytest.mark.asyncio
-async def test_save_fetched_content_updates_link(fetch_agent, links_repo):
+async def test_save_fetched_content_updates_link(fetch_agent: FetchAgent, links_repo: AsyncMock) -> None:
+    """Verify save fetched content updates link."""
     link = Link(id="link-1", url="https://example.com", edition_id="ed-1")
     links_repo.get.return_value = link
 
@@ -37,7 +40,8 @@ async def test_save_fetched_content_updates_link(fetch_agent, links_repo):
 
 
 @pytest.mark.asyncio
-async def test_save_fetched_content_link_not_found(fetch_agent, links_repo):
+async def test_save_fetched_content_link_not_found(fetch_agent: FetchAgent, links_repo: AsyncMock) -> None:
+    """Verify save fetched content link not found."""
     links_repo.get.return_value = None
 
     result = json.loads(await fetch_agent._save_fetched_content("missing", "ed-1", "Title", "Content"))
@@ -47,7 +51,8 @@ async def test_save_fetched_content_link_not_found(fetch_agent, links_repo):
 
 
 @pytest.mark.asyncio
-async def test_fetch_url_returns_error_on_connect_error():
+async def test_fetch_url_returns_error_on_connect_error() -> None:
+    """Verify fetch url returns error on connect error."""
     with patch("agent_stack.agents.fetch.httpx.AsyncClient") as MockClient:
         mock_client = AsyncMock()
         mock_client.get.side_effect = httpx.ConnectError("Connection refused")
@@ -62,7 +67,8 @@ async def test_fetch_url_returns_error_on_connect_error():
 
 
 @pytest.mark.asyncio
-async def test_fetch_url_returns_error_on_http_status_error():
+async def test_fetch_url_returns_error_on_http_status_error() -> None:
+    """Verify fetch url returns error on http status error."""
     with patch("agent_stack.agents.fetch.httpx.AsyncClient") as MockClient:
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
@@ -81,7 +87,7 @@ async def test_fetch_url_returns_error_on_http_status_error():
 
 
 @pytest.mark.asyncio
-async def test_fetch_url_sets_user_agent_header():
+async def test_fetch_url_sets_user_agent_header() -> None:
     """Verify fetch_url sends a User-Agent header."""
     with patch("agent_stack.agents.fetch.httpx.AsyncClient") as MockClient:
         mock_response = MagicMock()
@@ -102,7 +108,8 @@ async def test_fetch_url_sets_user_agent_header():
 
 
 @pytest.mark.asyncio
-async def test_mark_link_failed_updates_status(fetch_agent, links_repo):
+async def test_mark_link_failed_updates_status(fetch_agent: FetchAgent, links_repo: AsyncMock) -> None:
+    """Verify mark link failed updates status."""
     link = Link(id="link-1", url="https://unreachable.invalid", edition_id="ed-1")
     links_repo.get.return_value = link
 
@@ -116,7 +123,8 @@ async def test_mark_link_failed_updates_status(fetch_agent, links_repo):
 
 
 @pytest.mark.asyncio
-async def test_mark_link_failed_link_not_found(fetch_agent, links_repo):
+async def test_mark_link_failed_link_not_found(fetch_agent: FetchAgent, links_repo: AsyncMock) -> None:
+    """Verify mark link failed link not found."""
     links_repo.get.return_value = None
 
     result = json.loads(await fetch_agent._mark_link_failed("missing", "ed-1", "unreachable"))

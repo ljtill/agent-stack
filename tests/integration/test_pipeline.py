@@ -8,9 +8,11 @@ from agent_stack.models.agent_run import AgentRunStatus
 from agent_stack.models.link import Link, LinkStatus
 from agent_stack.pipeline.orchestrator import PipelineOrchestrator
 
+_MockRepos = tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock]
+
 
 @pytest.fixture
-def mock_repos():
+def mock_repos() -> _MockRepos:
     """Create mock repositories for integration testing."""
     links = AsyncMock()
     editions = AsyncMock()
@@ -20,7 +22,7 @@ def mock_repos():
 
 
 @pytest.fixture
-def orchestrator(mock_repos):
+def orchestrator(mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock]) -> None:
     """Create a PipelineOrchestrator with mocked dependencies."""
     links, editions, feedback, agent_runs = mock_repos
     client = MagicMock()
@@ -41,7 +43,7 @@ def orchestrator(mock_repos):
 
 
 @pytest.mark.asyncio
-async def test_handle_link_change_submitted(orchestrator, mock_repos):
+async def test_handle_link_change_submitted(orchestrator: PipelineOrchestrator, mock_repos: _MockRepos) -> None:
     """Test that a submitted link triggers the fetch agent and logs a run."""
     links, _, _, agent_runs = mock_repos
     link = Link(id="link-1", url="https://example.com", edition_id="ed-1", status=LinkStatus.SUBMITTED)
@@ -65,7 +67,7 @@ async def test_handle_link_change_submitted(orchestrator, mock_repos):
 
 
 @pytest.mark.asyncio
-async def test_handle_link_change_drafted_is_noop(orchestrator, mock_repos):
+async def test_handle_link_change_drafted_is_noop(orchestrator: PipelineOrchestrator, mock_repos: _MockRepos) -> None:
     """Test that a drafted link does not trigger any agent."""
     links, _, _, agent_runs = mock_repos
     link = Link(id="link-2", url="https://example.com", edition_id="ed-1", status=LinkStatus.DRAFTED)
@@ -83,7 +85,7 @@ async def test_handle_link_change_drafted_is_noop(orchestrator, mock_repos):
 
 
 @pytest.mark.asyncio
-async def test_handle_link_change_not_found(orchestrator, mock_repos):
+async def test_handle_link_change_not_found(orchestrator: PipelineOrchestrator, mock_repos: _MockRepos) -> None:
     """Test that a missing link is handled gracefully."""
     links, _, _, agent_runs = mock_repos
     links.get.return_value = None
@@ -100,7 +102,7 @@ async def test_handle_link_change_not_found(orchestrator, mock_repos):
 
 
 @pytest.mark.asyncio
-async def test_handle_feedback_change_triggers_edit(orchestrator, mock_repos):
+async def test_handle_feedback_change_triggers_edit(orchestrator: PipelineOrchestrator, mock_repos: _MockRepos) -> None:
     """Test that new feedback triggers the edit agent."""
     _, _, _, agent_runs = mock_repos
 
@@ -120,7 +122,9 @@ async def test_handle_feedback_change_triggers_edit(orchestrator, mock_repos):
 
 
 @pytest.mark.asyncio
-async def test_handle_feedback_change_resolved_is_noop(orchestrator, mock_repos):
+async def test_handle_feedback_change_resolved_is_noop(
+    orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
+) -> None:
     """Test that resolved feedback does not trigger any agent."""
     _, _, _, agent_runs = mock_repos
 
@@ -136,7 +140,7 @@ async def test_handle_feedback_change_resolved_is_noop(orchestrator, mock_repos)
 
 
 @pytest.mark.asyncio
-async def test_agent_run_logged_on_failure(orchestrator, mock_repos):
+async def test_agent_run_logged_on_failure(orchestrator: PipelineOrchestrator, mock_repos: _MockRepos) -> None:
     """Test that a failed agent run is logged with FAILED status."""
     links, _, _, agent_runs = mock_repos
     link = Link(id="link-3", url="https://example.com", edition_id="ed-1", status=LinkStatus.SUBMITTED)

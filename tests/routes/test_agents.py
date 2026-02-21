@@ -8,7 +8,8 @@ from agent_stack.routes.agents import agents_page
 
 
 @pytest.mark.asyncio
-async def test_agents_page_renders_template():
+async def test_agents_page_renders_template() -> None:
+    """Verify agents page renders template."""
     request = MagicMock()
     request.app.state.templates = MagicMock()
     request.app.state.templates.TemplateResponse = MagicMock(return_value="<html>")
@@ -47,7 +48,8 @@ async def test_agents_page_renders_template():
 
 
 @pytest.mark.asyncio
-async def test_agents_page_with_runs():
+async def test_agents_page_with_runs() -> None:
+    """Verify agents page with runs."""
     request = MagicMock()
     request.app.state.templates = MagicMock()
     request.app.state.templates.TemplateResponse = MagicMock(return_value="<html>")

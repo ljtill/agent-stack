@@ -50,13 +50,6 @@ ignore = [
     "COM812",  # conflicts with ruff formatter
     "D203",    # conflicts with D211
     "D213",    # conflicts with D212
-    # --- Phase 2: Docstrings ---
-    "D101",    # undocumented-public-class
-    "D102",    # undocumented-public-method
-    "D103",    # undocumented-public-function
-    "D104",    # undocumented-public-package
-    "D107",    # undocumented-public-init
-    "D401",    # non-imperative-mood
     # --- Phase 3: Type annotations ---
     "ANN001",  # missing-type-function-argument
     "ANN002",  # missing-type-args
@@ -90,6 +83,9 @@ ignore = [
     # --- S101: pytest requires assert ---
     "S101",    # assert
 ]
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
 
 [tool.ruff.lint.pylint]
 max-args = 7

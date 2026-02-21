@@ -16,6 +16,7 @@ class MSALAuth:
     SCOPE = ["User.Read"]
 
     def __init__(self, config: EntraConfig) -> None:
+        """Initialize the MSAL client with Entra ID configuration."""
         self._config = config
         self._app = msal.ConfidentialClientApplication(
             client_id=config.client_id,

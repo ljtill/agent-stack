@@ -7,6 +7,8 @@ from agent_stack.models.link import Link, LinkStatus
 
 
 class LinkRepository(BaseRepository[Link]):
+    """Provide data access for the links container."""
+
     container_name = "links"
     model_class = Link
 

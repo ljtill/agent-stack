@@ -7,14 +7,15 @@ import pytest
 from agent_stack.routes.feedback import submit_feedback
 
 
-def _make_request():
+def _make_request() -> None:
     request = MagicMock()
     request.app.state.cosmos.database = MagicMock()
     return request
 
 
 @pytest.mark.asyncio
-async def test_submit_feedback_creates_feedback():
+async def test_submit_feedback_creates_feedback() -> None:
+    """Verify submit feedback creates feedback."""
     request = _make_request()
 
     with patch("agent_stack.routes.feedback.FeedbackRepository") as MockRepo:

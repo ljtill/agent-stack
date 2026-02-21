@@ -33,6 +33,7 @@ class DraftAgent:
         *,
         rate_limiter: RateLimitMiddleware | None = None,
     ) -> None:
+        """Initialize the draft agent with LLM client and repositories."""
         self._links_repo = links_repo
         self._editions_repo = editions_repo
         middleware = [TokenTrackingMiddleware(), *([] if rate_limiter is None else [rate_limiter])]

@@ -8,7 +8,7 @@ from agent_stack.models.edition import Edition, EditionStatus
 from agent_stack.storage.renderer import NEWSLETTER_TEMPLATES
 
 
-def _sample_content():
+def _sample_content() -> None:
     return {
         "title": "Test Edition Title",
         "subtitle": "A subtitle for the test edition.",
@@ -53,14 +53,15 @@ def _sample_content():
     }
 
 
-def test_newsletter_templates_dir_exists():
+def test_newsletter_templates_dir_exists() -> None:
+    """Verify newsletter templates dir exists."""
     assert NEWSLETTER_TEMPLATES.exists()
     assert (NEWSLETTER_TEMPLATES / "edition.html").exists()
     assert (NEWSLETTER_TEMPLATES / "index.html").exists()
 
 
 @pytest.mark.asyncio
-async def test_render_edition_produces_html():
+async def test_render_edition_produces_html() -> None:
     """Test that edition rendering produces valid HTML with the new design."""
     from jinja2 import Environment, FileSystemLoader
 
@@ -102,7 +103,7 @@ async def test_render_edition_produces_html():
 
 
 @pytest.mark.asyncio
-async def test_render_index_produces_html():
+async def test_render_index_produces_html() -> None:
     """Test that index rendering produces valid HTML with the archive design."""
     from jinja2 import Environment, FileSystemLoader
 

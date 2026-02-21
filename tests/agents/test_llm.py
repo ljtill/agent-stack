@@ -4,10 +4,15 @@ from unittest.mock import patch
 
 import pytest
 
+from agent_stack.config import OpenAIConfig
+
 
 @pytest.mark.unit
 class TestCreateChatClient:
-    def test_creates_client_with_api_key(self, openai_config):
+    """Test the Create Chat Client."""
+
+    def test_creates_client_with_api_key(self, openai_config: OpenAIConfig) -> None:
+        """Verify creates client with api key."""
         with patch("agent_stack.agents.llm.AzureOpenAIChatClient") as MockClient:
             from agent_stack.agents.llm import create_chat_client
 
@@ -20,7 +25,8 @@ class TestCreateChatClient:
             )
             assert client == MockClient.return_value
 
-    def test_creates_client_with_managed_identity(self, openai_config):
+    def test_creates_client_with_managed_identity(self, openai_config: OpenAIConfig) -> None:
+        """Verify creates client with managed identity."""
         with (
             patch("agent_stack.agents.llm.AzureOpenAIChatClient") as MockClient,
             patch("agent_stack.agents.llm.DefaultAzureCredential") as MockCred,

@@ -1,5 +1,7 @@
 """Shared test fixtures for the agent-stack test suite."""
 
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -16,22 +18,26 @@ from agent_stack.models.link import Link, LinkStatus
 
 
 @pytest.fixture
-def mock_links_repo():
+def mock_links_repo() -> AsyncMock:
+    """Create a mock links repo for testing."""
     return AsyncMock()
 
 
 @pytest.fixture
-def mock_editions_repo():
+def mock_editions_repo() -> AsyncMock:
+    """Create a mock editions repo for testing."""
     return AsyncMock()
 
 
 @pytest.fixture
-def mock_feedback_repo():
+def mock_feedback_repo() -> AsyncMock:
+    """Create a mock feedback repo for testing."""
     return AsyncMock()
 
 
 @pytest.fixture
-def mock_agent_runs_repo():
+def mock_agent_runs_repo() -> AsyncMock:
+    """Create a mock agent runs repo for testing."""
     return AsyncMock()
 
 
@@ -41,10 +47,10 @@ def mock_agent_runs_repo():
 
 
 @pytest.fixture
-def make_link():
-    """Factory for Link instances with sensible defaults."""
+def make_link() -> Callable[..., Link]:
+    """Create a Link instance with sensible defaults."""
 
-    def _make(**kwargs):
+    def _make(**kwargs: Any) -> Link:
         defaults = {
             "url": "https://example.com",
             "edition_id": "ed-1",
@@ -57,10 +63,10 @@ def make_link():
 
 
 @pytest.fixture
-def make_edition():
-    """Factory for Edition instances with sensible defaults."""
+def make_edition() -> Callable[..., Edition]:
+    """Create an Edition instance with sensible defaults."""
 
-    def _make(**kwargs):
+    def _make(**kwargs: Any) -> Edition:
         defaults = {
             "content": {},
             "status": EditionStatus.CREATED,
@@ -72,10 +78,10 @@ def make_edition():
 
 
 @pytest.fixture
-def make_feedback():
-    """Factory for Feedback instances with sensible defaults."""
+def make_feedback() -> Callable[..., Feedback]:
+    """Create a Feedback instance with sensible defaults."""
 
-    def _make(**kwargs):
+    def _make(**kwargs: Any) -> Feedback:
         defaults = {
             "edition_id": "ed-1",
             "section": "intro",
@@ -88,10 +94,10 @@ def make_feedback():
 
 
 @pytest.fixture
-def make_agent_run():
-    """Factory for AgentRun instances with sensible defaults."""
+def make_agent_run() -> Callable[..., AgentRun]:
+    """Create an AgentRun instance with sensible defaults."""
 
-    def _make(**kwargs):
+    def _make(**kwargs: Any) -> AgentRun:
         defaults = {
             "stage": AgentStage.FETCH,
             "trigger_id": "link-1",
@@ -109,22 +115,26 @@ def make_agent_run():
 
 
 @pytest.fixture
-def cosmos_config():
+def cosmos_config() -> tuple[CosmosConfig, object, object]:
+    """Create a cosmos config for testing."""
     return CosmosConfig(endpoint="https://localhost:8081", key="test-key", database="test-db")
 
 
 @pytest.fixture
-def openai_config():
+def openai_config() -> tuple[OpenAIConfig, object]:
+    """Create a openai config for testing."""
     return OpenAIConfig(endpoint="https://test.openai.azure.com", deployment="gpt-test")
 
 
 @pytest.fixture
-def storage_config():
+def storage_config() -> tuple[StorageConfig, object]:
+    """Create a storage config for testing."""
     return StorageConfig(connection_string="DefaultEndpointsProtocol=https;AccountName=test", container="$web")
 
 
 @pytest.fixture
-def entra_config():
+def entra_config() -> EntraConfig:
+    """Create a entra config for testing."""
     return EntraConfig(
         tenant_id="test-tenant",
         client_id="test-client",
@@ -138,8 +148,8 @@ def entra_config():
 
 
 @pytest.fixture
-def mock_cosmos_db_container():
-    """A mock Cosmos DB container with standard async methods."""
+def mock_cosmos_db_container() -> None:
+    """Create a mock Cosmos DB container with standard async methods."""
     container = AsyncMock()
     container.create_item = AsyncMock()
     container.read_item = AsyncMock()

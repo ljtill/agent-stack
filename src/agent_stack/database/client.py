@@ -16,6 +16,7 @@ class CosmosClient:
     """Manages the async Cosmos DB client and database reference."""
 
     def __init__(self, config: CosmosConfig) -> None:
+        """Initialize the Cosmos DB client wrapper with connection config."""
         self._config = config
         self._client: AzureCosmosClient | None = None
         self._database: DatabaseProxy | None = None
@@ -44,6 +45,7 @@ class CosmosClient:
 
     @property
     def database(self) -> DatabaseProxy:
+        """Return the database proxy, raising if not yet initialized."""
         if self._database is None:
             raise RuntimeError("CosmosClient not initialized — call initialize() first")
         return self._database

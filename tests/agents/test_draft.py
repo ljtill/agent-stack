@@ -11,12 +11,14 @@ from agent_stack.models.link import Link, LinkStatus
 
 
 @pytest.fixture
-def repos():
+def repos() -> tuple[AsyncMock, AsyncMock, object]:
+    """Create mock repository instances."""
     return AsyncMock(), AsyncMock()  # links_repo, editions_repo
 
 
 @pytest.fixture
-def draft_agent(repos):
+def draft_agent(repos: tuple[AsyncMock, AsyncMock]) -> tuple[DraftAgent, object, object]:
+    """Create a draft agent for testing."""
     links_repo, editions_repo = repos
     client = MagicMock()
     with patch("agent_stack.agents.draft.Agent"):
@@ -24,7 +26,8 @@ def draft_agent(repos):
 
 
 @pytest.mark.asyncio
-async def test_get_reviewed_link_returns_data(draft_agent, repos):
+async def test_get_reviewed_link_returns_data(draft_agent: DraftAgent, repos: tuple[AsyncMock, AsyncMock]) -> None:
+    """Verify get reviewed link returns data."""
     links_repo, _ = repos
     link = Link(
         id="link-1",
@@ -42,7 +45,8 @@ async def test_get_reviewed_link_returns_data(draft_agent, repos):
 
 
 @pytest.mark.asyncio
-async def test_get_edition_content(draft_agent, repos):
+async def test_get_edition_content(draft_agent: DraftAgent, repos: tuple[AsyncMock, AsyncMock]) -> None:
+    """Verify get edition content."""
     _, editions_repo = repos
     edition = Edition(id="ed-1", content={"title": "Newsletter"})
     editions_repo.get.return_value = edition
@@ -52,7 +56,8 @@ async def test_get_edition_content(draft_agent, repos):
 
 
 @pytest.mark.asyncio
-async def test_save_draft_updates_edition_and_link(draft_agent, repos):
+async def test_save_draft_updates_edition_and_link(draft_agent: DraftAgent, repos: tuple[AsyncMock, AsyncMock]) -> None:
+    """Verify save draft updates edition and link."""
     links_repo, editions_repo = repos
     edition = Edition(id="ed-1", content={}, link_ids=[])
     editions_repo.get.return_value = edition
@@ -70,7 +75,8 @@ async def test_save_draft_updates_edition_and_link(draft_agent, repos):
 
 
 @pytest.mark.asyncio
-async def test_save_draft_deduplicates_link_ids(draft_agent, repos):
+async def test_save_draft_deduplicates_link_ids(draft_agent: DraftAgent, repos: tuple[AsyncMock, AsyncMock]) -> None:
+    """Verify save draft deduplicates link ids."""
     links_repo, editions_repo = repos
     edition = Edition(id="ed-1", content={}, link_ids=["link-1"])
     editions_repo.get.return_value = edition

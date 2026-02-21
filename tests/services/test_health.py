@@ -19,7 +19,8 @@ _cosmos_config = CosmosConfig(endpoint="https://localhost:8081", key="", databas
 
 
 @pytest.mark.asyncio
-async def test_check_cosmos_healthy():
+async def test_check_cosmos_healthy() -> None:
+    """Verify check cosmos healthy."""
     container = AsyncMock()
     database = MagicMock()
     database.get_container_client.return_value = container
@@ -34,7 +35,8 @@ async def test_check_cosmos_healthy():
 
 
 @pytest.mark.asyncio
-async def test_check_cosmos_unhealthy():
+async def test_check_cosmos_unhealthy() -> None:
+    """Verify check cosmos unhealthy."""
     container = AsyncMock()
     container.read.side_effect = RuntimeError("Connection refused")
     database = MagicMock()
@@ -52,7 +54,8 @@ _openai_config = OpenAIConfig(endpoint="https://myoai.openai.azure.com", deploym
 
 
 @pytest.mark.asyncio
-async def test_check_openai_healthy():
+async def test_check_openai_healthy() -> None:
+    """Verify check openai healthy."""
     client = AsyncMock()
     client.get_response = AsyncMock(return_value=MagicMock())
 
@@ -66,7 +69,8 @@ async def test_check_openai_healthy():
 
 
 @pytest.mark.asyncio
-async def test_check_openai_unhealthy():
+async def test_check_openai_unhealthy() -> None:
+    """Verify check openai unhealthy."""
     client = AsyncMock()
     client.get_response = AsyncMock(side_effect=ConnectionError("nodename nor servname provided"))
 
@@ -85,7 +89,8 @@ _storage_config = StorageConfig(
 
 
 @pytest.mark.asyncio
-async def test_check_storage_healthy():
+async def test_check_storage_healthy() -> None:
+    """Verify check storage healthy."""
     container = AsyncMock()
     storage = MagicMock()
     storage._get_container.return_value = container
@@ -100,7 +105,8 @@ async def test_check_storage_healthy():
 
 
 @pytest.mark.asyncio
-async def test_check_storage_unhealthy():
+async def test_check_storage_unhealthy() -> None:
+    """Verify check storage unhealthy."""
     container = AsyncMock()
     container.get_container_properties.side_effect = RuntimeError("Storage unavailable")
     storage = MagicMock()
@@ -115,7 +121,7 @@ async def test_check_storage_unhealthy():
 # --- Change Feed Processor ---
 
 
-def _make_processor(running: bool, task_done: bool = False, task_exc: Exception | None = None):
+def _make_processor(running: bool, task_done: bool = False, task_exc: Exception | None = None) -> None:
     processor = MagicMock(spec=ChangeFeedProcessor)
     processor._running = running
     if running or task_done:
@@ -129,7 +135,8 @@ def _make_processor(running: bool, task_done: bool = False, task_exc: Exception 
     return processor
 
 
-def test_check_change_feed_healthy():
+def test_check_change_feed_healthy() -> None:
+    """Verify check change feed healthy."""
     processor = _make_processor(running=True, task_done=False)
 
     result = check_change_feed(processor)
@@ -138,7 +145,8 @@ def test_check_change_feed_healthy():
     assert result.name == "Change Feed Processor"
 
 
-def test_check_change_feed_not_running():
+def test_check_change_feed_not_running() -> None:
+    """Verify check change feed not running."""
     processor = _make_processor(running=False, task_done=False)
 
     result = check_change_feed(processor)
@@ -147,7 +155,8 @@ def test_check_change_feed_not_running():
     assert "not running" in result.error
 
 
-def test_check_change_feed_task_crashed():
+def test_check_change_feed_task_crashed() -> None:
+    """Verify check change feed task crashed."""
     processor = _make_processor(running=False, task_done=True, task_exc=RuntimeError("boom"))
 
     result = check_change_feed(processor)
@@ -156,7 +165,8 @@ def test_check_change_feed_task_crashed():
     assert "boom" in result.error
 
 
-def test_check_change_feed_task_finished_unexpectedly():
+def test_check_change_feed_task_finished_unexpectedly() -> None:
+    """Verify check change feed task finished unexpectedly."""
     processor = _make_processor(running=False, task_done=True, task_exc=None)
 
     result = check_change_feed(processor)

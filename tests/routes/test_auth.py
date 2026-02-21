@@ -7,7 +7,10 @@ import pytest
 
 @pytest.mark.unit
 class TestAuthRoutes:
-    async def test_login_redirects_to_entra(self):
+    """Test the Auth Routes."""
+
+    async def test_login_redirects_to_entra(self) -> None:
+        """Verify login redirects to entra."""
         from agent_stack.routes.auth import login
 
         request = MagicMock()
@@ -22,7 +25,8 @@ class TestAuthRoutes:
             assert response.status_code == 307
             assert "auth_flow" in request.session
 
-    async def test_callback_success_sets_session(self):
+    async def test_callback_success_sets_session(self) -> None:
+        """Verify callback success sets session."""
         from agent_stack.routes.auth import callback
 
         request = MagicMock()
@@ -41,7 +45,8 @@ class TestAuthRoutes:
             assert response.headers["location"] == "/"
             assert "user" in request.session
 
-    async def test_callback_failure_redirects_to_login(self):
+    async def test_callback_failure_redirects_to_login(self) -> None:
+        """Verify callback failure redirects to login."""
         from agent_stack.routes.auth import callback
 
         request = MagicMock()
@@ -57,7 +62,8 @@ class TestAuthRoutes:
             assert response.status_code == 307
             assert response.headers["location"] == "/auth/login"
 
-    async def test_logout_clears_session(self):
+    async def test_logout_clears_session(self) -> None:
+        """Verify logout clears session."""
         from agent_stack.routes.auth import logout
 
         session = {"user": {"name": "Test"}}

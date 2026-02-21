@@ -25,6 +25,7 @@ class ChangeFeedProcessor:
     """
 
     def __init__(self, database: DatabaseProxy, orchestrator: PipelineOrchestrator) -> None:
+        """Initialize the change feed processor with database and orchestrator."""
         self._database = database
         self._orchestrator = orchestrator
         self._running = False

@@ -10,15 +10,20 @@ from agent_stack.database.client import CosmosClient
 
 @pytest.mark.unit
 class TestCosmosClient:
+    """Test the Cosmos Client."""
+
     @pytest.fixture
-    def config(self):
+    def config(self) -> tuple[CosmosConfig, object, object]:
+        """Create a config for testing."""
         return CosmosConfig(endpoint="https://localhost:8081", key="test-key", database="test-db")
 
     @pytest.fixture
-    def client(self, config):
+    def client(self, config: CosmosConfig) -> CosmosClient:
+        """Create a mock client."""
         return CosmosClient(config)
 
-    async def test_initialize_creates_db_and_containers(self, client):
+    async def test_initialize_creates_db_and_containers(self, client: CosmosClient) -> None:
+        """Verify initialize creates db and containers."""
         with patch("agent_stack.database.client.AzureCosmosClient") as MockAzure:
             mock_azure = AsyncMock()
             mock_db = AsyncMock()
@@ -30,7 +35,8 @@ class TestCosmosClient:
             mock_azure.create_database_if_not_exists.assert_called_once_with("test-db")
             assert mock_db.create_container_if_not_exists.call_count == 4
 
-    async def test_close_cleans_up(self, client):
+    async def test_close_cleans_up(self, client: CosmosClient) -> None:
+        """Verify close cleans up."""
         mock_azure = AsyncMock()
         client._client = mock_azure
         client._database = MagicMock()
@@ -41,14 +47,17 @@ class TestCosmosClient:
         assert client._client is None
         assert client._database is None
 
-    async def test_close_noop_when_not_initialized(self, client):
+    async def test_close_noop_when_not_initialized(self, client: CosmosClient) -> None:
+        """Verify close noop when not initialized."""
         await client.close()  # Should not raise
 
-    def test_database_property_raises_when_not_initialized(self, client):
+    def test_database_property_raises_when_not_initialized(self, client: CosmosClient) -> None:
+        """Verify database property raises when not initialized."""
         with pytest.raises(RuntimeError, match="not initialized"):
             _ = client.database
 
-    async def test_database_property_returns_after_init(self, client):
+    async def test_database_property_returns_after_init(self, client: CosmosClient) -> None:
+        """Verify database property returns after init."""
         with patch("agent_stack.database.client.AzureCosmosClient") as MockAzure:
             mock_azure = AsyncMock()
             mock_db = AsyncMock()

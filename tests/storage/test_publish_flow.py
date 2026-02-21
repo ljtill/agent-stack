@@ -10,14 +10,18 @@ from agent_stack.storage.renderer import StaticSiteRenderer
 
 @pytest.mark.unit
 class TestStaticSiteRendererPublish:
+    """Test the Static Site Renderer Publish."""
+
     @pytest.fixture
-    def renderer(self):
+    def renderer(self) -> None:
+        """Create a renderer for testing."""
         editions_repo = AsyncMock()
         storage = AsyncMock()
         r = StaticSiteRenderer(editions_repo, storage)
         return r
 
-    async def test_publish_edition_renders_and_uploads(self, renderer):
+    async def test_publish_edition_renders_and_uploads(self, renderer: StaticSiteRenderer) -> None:
+        """Verify publish edition renders and uploads."""
         edition = Edition(id="ed-1", content={"title": "Test"}, status=EditionStatus.PUBLISHED)
         renderer._editions_repo.get.return_value = edition
         renderer._editions_repo.list_published.return_value = [edition]
@@ -31,7 +35,8 @@ class TestStaticSiteRendererPublish:
         assert calls[0][0][0] == "editions/ed-1.html"
         assert calls[1][0][0] == "index.html"
 
-    async def test_publish_edition_not_found_does_nothing(self, renderer):
+    async def test_publish_edition_not_found_does_nothing(self, renderer: StaticSiteRenderer) -> None:
+        """Verify publish edition not found does nothing."""
         renderer._editions_repo.get.return_value = None
 
         await renderer.publish_edition("missing")

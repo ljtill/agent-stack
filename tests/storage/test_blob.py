@@ -10,18 +10,23 @@ from agent_stack.storage.blob import BlobStorageClient
 
 @pytest.mark.unit
 class TestBlobStorageClient:
+    """Test the Blob Storage Client."""
+
     @pytest.fixture
-    def config(self):
+    def config(self) -> StorageConfig:
+        """Create a config for testing."""
         return StorageConfig(
             connection_string="DefaultEndpointsProtocol=https;AccountName=test",
             container="$web",
         )
 
     @pytest.fixture
-    def client(self, config):
+    def client(self, config: StorageConfig) -> BlobStorageClient:
+        """Create a mock client."""
         return BlobStorageClient(config)
 
-    async def test_initialize_creates_service_client(self, client):
+    async def test_initialize_creates_service_client(self, client: BlobStorageClient) -> None:
+        """Verify initialize creates service client."""
         with patch("agent_stack.storage.blob.BlobServiceClient") as MockBSC:
             mock_service = MagicMock()
             mock_container = AsyncMock()
@@ -34,7 +39,8 @@ class TestBlobStorageClient:
             MockBSC.from_connection_string.assert_called_once()
             mock_container.exists.assert_awaited_once()
 
-    async def test_initialize_creates_container_if_missing(self, client):
+    async def test_initialize_creates_container_if_missing(self, client: BlobStorageClient) -> None:
+        """Verify initialize creates container if missing."""
         with patch("agent_stack.storage.blob.BlobServiceClient") as MockBSC:
             mock_service = MagicMock()
             mock_container = AsyncMock()
@@ -46,7 +52,8 @@ class TestBlobStorageClient:
 
             mock_container.create_container.assert_awaited_once()
 
-    async def test_close_closes_client(self, client):
+    async def test_close_closes_client(self, client: BlobStorageClient) -> None:
+        """Verify close closes client."""
         mock_service = AsyncMock()
         client._service_client = mock_service
 
@@ -55,14 +62,17 @@ class TestBlobStorageClient:
         mock_service.close.assert_awaited_once()
         assert client._service_client is None
 
-    async def test_close_noop_when_not_initialized(self, client):
+    async def test_close_noop_when_not_initialized(self, client: BlobStorageClient) -> None:
+        """Verify close noop when not initialized."""
         await client.close()  # Should not raise
 
-    def test_get_container_raises_when_not_initialized(self, client):
+    def test_get_container_raises_when_not_initialized(self, client: BlobStorageClient) -> None:
+        """Verify get container raises when not initialized."""
         with pytest.raises(RuntimeError, match="not initialized"):
             client._get_container()
 
-    async def test_upload_html(self, client):
+    async def test_upload_html(self, client: BlobStorageClient) -> None:
+        """Verify upload html."""
         mock_service = MagicMock()
         mock_container = MagicMock()
         mock_blob = AsyncMock()
@@ -77,7 +87,8 @@ class TestBlobStorageClient:
         assert call_args[0][0] == b"<html>Test</html>"
         assert call_args[1]["overwrite"] is True
 
-    async def test_upload_css(self, client):
+    async def test_upload_css(self, client: BlobStorageClient) -> None:
+        """Verify upload css."""
         mock_service = MagicMock()
         mock_container = MagicMock()
         mock_blob = AsyncMock()

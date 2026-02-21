@@ -22,6 +22,7 @@ class StaticSiteRenderer:
     """Renders newsletter editions as static HTML and uploads to Azure Storage."""
 
     def __init__(self, editions_repo: EditionRepository, storage: BlobStorageClient) -> None:
+        """Initialize the renderer with edition repository and storage client."""
         self._editions_repo = editions_repo
         self._storage = storage
         self._env = Environment(loader=FileSystemLoader(str(NEWSLETTER_TEMPLATES)), autoescape=True)
