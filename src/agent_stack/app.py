@@ -13,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 
 from agent_stack.config import load_settings
 from agent_stack.database.client import CosmosClient
+from agent_stack.routes.agent_runs import router as agent_runs_router
 from agent_stack.routes.auth import router as auth_router
 from agent_stack.routes.dashboard import router as dashboard_router
 from agent_stack.routes.editions import router as editions_router
@@ -66,6 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(editions_router)
     app.include_router(feedback_router)
     app.include_router(events_router)
+    app.include_router(agent_runs_router)
 
     return app
 

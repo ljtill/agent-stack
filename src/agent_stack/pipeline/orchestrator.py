@@ -17,6 +17,7 @@ from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.database.repositories.feedback import FeedbackRepository
 from agent_stack.database.repositories.links import LinkRepository
+from agent_stack.events import EventManager
 from agent_stack.models.agent_run import AgentRun, AgentRunStatus, AgentStage
 from agent_stack.models.link import LinkStatus
 
@@ -39,6 +40,8 @@ class PipelineOrchestrator:
         self._editions_repo = editions_repo
         self._feedback_repo = feedback_repo
         self._agent_runs_repo = agent_runs_repo
+
+        self._events = EventManager.get_instance()
 
         self._fetch = FetchAgent(client, links_repo)
         self._review = ReviewAgent(client, links_repo)
@@ -72,6 +75,21 @@ class PipelineOrchestrator:
         finally:
             run.completed_at = datetime.now(UTC)
             await self._agent_runs_repo.update(run, link_id)
+            await self._publish_run_complete(run)
+
+        # Publish link-update so the links table refreshes in-place
+        updated_link = await self._links_repo.get(link_id, edition_id)
+        if updated_link:
+            await self._events.publish(
+                "link-update",
+                {
+                    "id": updated_link.id,
+                    "url": updated_link.url,
+                    "title": updated_link.title,
+                    "status": updated_link.status,
+                    "edition_id": updated_link.edition_id,
+                },
+            )
 
     async def handle_feedback_change(self, document: dict[str, Any]) -> None:
         """Process new feedback by triggering the edit agent."""
@@ -91,6 +109,7 @@ class PipelineOrchestrator:
         finally:
             run.completed_at = datetime.now(UTC)
             await self._agent_runs_repo.update(run, feedback_id)
+            await self._publish_run_complete(run)
 
     def _determine_stage_for_link(self, status: str) -> AgentStage | None:
         """Map link status to the next agent stage."""
@@ -119,4 +138,29 @@ class PipelineOrchestrator:
             started_at=datetime.now(UTC),
         )
         await self._agent_runs_repo.create(run)
+        await self._events.publish(
+            "agent-run-start",
+            {
+                "id": run.id,
+                "stage": run.stage,
+                "trigger_id": run.trigger_id,
+                "status": run.status,
+                "started_at": run.started_at.isoformat() if run.started_at else None,
+            },
+        )
         return run
+
+    async def _publish_run_complete(self, run: AgentRun) -> None:
+        """Publish an SSE event when an agent run completes or fails."""
+        await self._events.publish(
+            "agent-run-complete",
+            {
+                "id": run.id,
+                "stage": run.stage,
+                "trigger_id": run.trigger_id,
+                "status": run.status,
+                "output": run.output,
+                "started_at": run.started_at.isoformat() if run.started_at else None,
+                "completed_at": run.completed_at.isoformat() if run.completed_at else None,
+            },
+        )

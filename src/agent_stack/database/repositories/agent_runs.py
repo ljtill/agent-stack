@@ -26,3 +26,19 @@ class AgentRunRepository(BaseRepository[AgentRun]):
                 {"name": "@stage", "value": stage.value},
             ],
         )
+
+    async def get_by_triggers(self, trigger_ids: list[str]) -> list[AgentRun]:
+        """Fetch all runs for a list of trigger IDs."""
+        if not trigger_ids:
+            return []
+        runs: list[AgentRun] = []
+        for tid in trigger_ids:
+            runs.extend(await self.get_by_trigger(tid))
+        return sorted(runs, key=lambda r: r.started_at or r.created_at, reverse=True)
+
+    async def list_recent(self, limit: int = 20) -> list[AgentRun]:
+        """Fetch the most recent agent runs across all triggers."""
+        return await self.query(
+            "SELECT TOP @limit * FROM c WHERE NOT IS_DEFINED(c.deleted_at) ORDER BY c.started_at DESC",
+            [{"name": "@limit", "value": limit}],
+        )

@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.database.repositories.links import LinkRepository
 from agent_stack.models.link import Link
 
@@ -18,13 +19,19 @@ async def list_links(request: Request):
     cosmos = request.app.state.cosmos
     editions_repo = _get_editions_repo(cosmos)
     links_repo = LinkRepository(cosmos.database)
+    runs_repo = AgentRunRepository(cosmos.database)
 
     edition = await editions_repo.get_active()
     links = await links_repo.get_by_edition(edition.id) if edition else []
 
+    # Build a map of link_id -> agent runs for display
+    link_runs: dict[str, list] = {}
+    for link in links:
+        link_runs[link.id] = await runs_repo.get_by_trigger(link.id)
+
     return templates.TemplateResponse(
         "links.html",
-        {"request": request, "links": links, "edition": edition},
+        {"request": request, "links": links, "edition": edition, "link_runs": link_runs},
     )
 
 

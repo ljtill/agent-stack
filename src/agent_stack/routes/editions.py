@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.database.repositories.links import LinkRepository
 from agent_stack.models.edition import Edition, EditionStatus
@@ -42,13 +43,24 @@ async def edition_detail(request: Request, edition_id: str):
     cosmos = request.app.state.cosmos
     editions_repo = EditionRepository(cosmos.database)
     links_repo = LinkRepository(cosmos.database)
+    runs_repo = AgentRunRepository(cosmos.database)
 
     edition = await editions_repo.get(edition_id, edition_id)
     links = await links_repo.get_by_edition(edition_id) if edition else []
 
+    # Gather all agent runs for this edition's links and feedback
+    trigger_ids = [link.id for link in links]
+    agent_runs = await runs_repo.get_by_triggers(trigger_ids) if trigger_ids else []
+
     return templates.TemplateResponse(
         "edition_detail.html",
-        {"request": request, "edition": edition, "links": links, "editing": False},
+        {
+            "request": request,
+            "edition": edition,
+            "links": links,
+            "editing": False,
+            "agent_runs": agent_runs,
+        },
     )
 
 

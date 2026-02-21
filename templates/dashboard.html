@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/agent_activity.html" import render_activity_list %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 <h1>Dashboard</h1>
@@ -19,5 +20,13 @@
             <a href="/editions" style="color: var(--accent); text-decoration: none;">Manage →</a>
         </div>
     </div>
+</div>
+<div class="card" style="margin-top: 1rem;">
+    <h2 style="font-size: 1.1rem; margin-bottom: 0.75rem;">Recent Agent Activity</h2>
+    <div hx-ext="sse" sse-connect="/events" sse-swap="agent-run-start" hx-swap="afterbegin" hx-target="#dashboard-activity-feed">
+    </div>
+    <div hx-ext="sse" sse-connect="/events" sse-swap="agent-run-complete" hx-swap="none">
+    </div>
+    {{ render_activity_list(recent_runs) }}
 </div>
 {% endblock %}

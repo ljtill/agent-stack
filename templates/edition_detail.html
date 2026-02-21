@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/agent_activity.html" import render_activity_list %}
 {% block title %}Edition Detail{% endblock %}
 {% block content %}
 {% if edition %}
@@ -47,6 +48,13 @@
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+<div class="card">
+    <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">Agent Activity</h2>
+    <div hx-ext="sse" sse-connect="/events" sse-swap="agent-run-start" hx-swap="afterbegin" hx-target="#edition-activity-feed">
+    </div>
+    {{ render_activity_list(agent_runs) }}
 </div>
 
 <div class="card">

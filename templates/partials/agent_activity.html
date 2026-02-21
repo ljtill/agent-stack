@@ -1,0 +1,55 @@
+{% macro render_run(run) %}
+<li class="activity-item" id="run-{{ run.id }}">
+    <div class="activity-icon activity-icon-{{ run.status }}">
+        {% if run.status == 'running' %}
+        <span class="spinner">⟳</span>
+        {% elif run.status == 'completed' %}
+        ✓
+        {% else %}
+        ✗
+        {% endif %}
+    </div>
+    <div class="activity-body">
+        <div class="activity-header">
+            <span class="activity-stage stage-{{ run.stage }}">{{ run.stage }}</span>
+            <span class="badge badge-{{ run.status }}">{{ run.status }}</span>
+            <span class="activity-time">
+                {% if run.started_at %}
+                {{ run.started_at.strftime('%H:%M:%S') if run.started_at.strftime is defined else run.started_at }}
+                {% endif %}
+                {% if run.completed_at and run.started_at %}
+                · {{ ((run.completed_at - run.started_at).total_seconds() | round(1)) if run.completed_at is not string else '' }}s
+                {% endif %}
+            </span>
+        </div>
+        {% if run.trigger_id %}
+        <div class="activity-trigger">Trigger: {{ run.trigger_id[:12] }}…</div>
+        {% endif %}
+        {% if run.status == 'failed' and run.output %}
+        <div class="activity-error">{{ run.output.get('error', 'Unknown error') if run.output is mapping else run.output }}</div>
+        {% endif %}
+        {% if run.output and run.status == 'completed' %}
+        <details>
+            <summary class="activity-output-toggle">View output</summary>
+            <div class="activity-output">{{ run.output | tojson(indent=2) }}</div>
+        </details>
+        {% endif %}
+    </div>
+</li>
+{% endmacro %}
+
+{% macro render_activity_list(runs, sse_enabled=false) %}
+<ul class="activity-list"
+    {% if sse_enabled %}
+    hx-ext="sse" sse-connect="/events"
+    {% endif %}
+    id="activity-feed">
+    {% if runs %}
+        {% for run in runs %}
+        {{ render_run(run) }}
+        {% endfor %}
+    {% else %}
+    <li class="activity-empty">No agent activity yet.</li>
+    {% endif %}
+</ul>
+{% endmacro %}

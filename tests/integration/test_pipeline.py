@@ -31,7 +31,10 @@ def orchestrator(mock_repos):
         patch("agent_stack.pipeline.orchestrator.DraftAgent"),
         patch("agent_stack.pipeline.orchestrator.EditAgent"),
         patch("agent_stack.pipeline.orchestrator.PublishAgent"),
+        patch("agent_stack.pipeline.orchestrator.EventManager") as mock_events_cls,
     ):
+        mock_events = AsyncMock()
+        mock_events_cls.get_instance.return_value = mock_events
         orch = PipelineOrchestrator(client, links, editions, feedback, agent_runs)
 
     return orch
@@ -55,7 +58,8 @@ async def test_handle_link_change_submitted(orchestrator, mock_repos):
         }
     )
 
-    links.get.assert_called_once_with("link-1", "ed-1")
+    links.get.assert_called_with("link-1", "ed-1")
+    assert links.get.call_count == 2  # initial fetch + post-update fetch for SSE
     agent_runs.create.assert_called_once()
     orchestrator._fetch.run.assert_called_once_with(link)
 
