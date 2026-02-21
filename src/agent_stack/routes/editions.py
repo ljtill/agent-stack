@@ -32,7 +32,7 @@ async def create_edition(request: Request):
     repo = EditionRepository(cosmos.database)
     edition = Edition(content={"title": "", "sections": []})
     await repo.create(edition)
-    return RedirectResponse("/editions", status_code=303)
+    return RedirectResponse("/editions/", status_code=303)
 
 
 @router.get("/{edition_id}", response_class=HTMLResponse)

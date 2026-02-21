@@ -21,7 +21,7 @@ class BaseRepository[T: DocumentBase]:
 
     async def create(self, item: T) -> T:
         """Create a new document."""
-        body = item.model_dump(mode="json")
+        body = item.model_dump(mode="json", exclude_none=True)
         await self._container.create_item(body=body)
         return item
 
@@ -38,7 +38,7 @@ class BaseRepository[T: DocumentBase]:
     async def update(self, item: T, partition_key: str) -> T:
         """Replace an existing document, updating the timestamp."""
         item.updated_at = datetime.now(UTC)
-        body = item.model_dump(mode="json")
+        body = item.model_dump(mode="json", exclude_none=True)
         await self._container.replace_item(item=item.id, body=body, partition_key=partition_key)
         return item
 

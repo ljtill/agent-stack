@@ -37,11 +37,11 @@ async def submit_link(request: Request, url: str = Form(...)):
 
     edition = await editions_repo.get_active()
     if not edition:
-        return RedirectResponse("/links", status_code=303)
+        return RedirectResponse("/links/", status_code=303)
 
     link = Link(url=url, edition_id=edition.id)
     await links_repo.create(link)
-    return RedirectResponse("/links", status_code=303)
+    return RedirectResponse("/links/", status_code=303)
 
 
 def _get_editions_repo(cosmos):
