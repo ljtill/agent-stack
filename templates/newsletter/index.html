@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Agent Stack — Newsletter Archive</title>
+    <style>
+        :root {
+            --bg: #fafafa;
+            --surface: #ffffff;
+            --text: #1a1a2e;
+            --text-muted: #64748b;
+            --accent: #6366f1;
+            --border: #e2e8f0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.8;
+        }
+        .container { max-width: 680px; margin: 0 auto; padding: 2rem 1.5rem; }
+        header {
+            text-align: center;
+            padding: 3rem 0 2rem;
+            border-bottom: 2px solid var(--accent);
+            margin-bottom: 2rem;
+        }
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: -0.02em;
+        }
+        header .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+        .edition-list { list-style: none; }
+        .edition-item {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .edition-item:last-child { border-bottom: none; }
+        .edition-item a {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text);
+            text-decoration: none;
+        }
+        .edition-item a:hover { color: var(--accent); }
+        .edition-item .date {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>The Agent Stack</h1>
+            <div class="subtitle">A newsletter about Agentic Engineering</div>
+        </header>
+
+        {% if editions %}
+        <ul class="edition-list">
+            {% for edition in editions %}
+            <li class="edition-item">
+                <a href="/editions/{{ edition.id }}.html">{{ edition.content.get('title', 'Untitled Edition') or 'Untitled Edition' }}</a>
+                {% if edition.published_at %}
+                <div class="date">{{ edition.published_at.strftime('%B %d, %Y') }}</div>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p style="color: var(--text-muted); text-align: center; padding: 3rem 0;">No editions published yet.</p>
+        {% endif %}
+
+        <footer>
+            <p>The Agent Stack — Curated by agents, for engineers.</p>
+        </footer>
+    </div>
+</body>
+</html>
