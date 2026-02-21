@@ -10,7 +10,19 @@
     <div class="pipeline-hub">
         <!-- Orchestrator hub node -->
         <div class="pipeline-hub-center" onclick="toggleAgentCard('orchestrator')" style="cursor: pointer;" title="Click to view details">
-            <div class="pipeline-node pipeline-node-orchestrator">
+            <div class="pipeline-node pipeline-node-orchestrator" id="pipeline-node-orchestrator">
+                <div class="pipeline-node-status">
+                    {% set orch_agent = agents | selectattr('name', 'equalto', 'orchestrator') | first %}
+                    {% if orch_agent and orch_agent.is_running %}
+                    <span class="agent-indicator-dot agent-indicator-dot-running" title="Running"></span>
+                    {% elif orch_agent and orch_agent.last_run and orch_agent.last_run.status == 'completed' %}
+                    <span class="agent-indicator-dot agent-indicator-dot-completed" title="Last run completed"></span>
+                    {% elif orch_agent and orch_agent.last_run and orch_agent.last_run.status == 'failed' %}
+                    <span class="agent-indicator-dot agent-indicator-dot-failed" title="Last run failed"></span>
+                    {% else %}
+                    <span class="agent-indicator-dot" style="background: var(--border);" title="Idle"></span>
+                    {% endif %}
+                </div>
                 <div class="pipeline-node-icon">⚡</div>
                 <div class="pipeline-node-label">Orchestrator</div>
                 <div class="pipeline-node-sub">Pipeline Agent</div>
