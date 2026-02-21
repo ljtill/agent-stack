@@ -8,7 +8,7 @@
 <div class="card">
     <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">Submit a Link</h2>
     <form method="post" action="/links" style="display: flex; gap: 0.5rem;">
-        <select name="edition_id" style="margin-bottom: 0; min-width: 200px;" onchange="window.location.href='/links/?edition_id=' + this.value">
+        <select name="edition_id" style="margin-bottom: 0; width: auto; min-width: 200px;" onchange="window.location.href='/links/?edition_id=' + this.value">
             {% for ed in editions %}
             <option value="{{ ed.id }}" {% if edition and ed.id == edition.id %}selected{% endif %}>
                 {{ ed.content.get('title', 'Untitled') or 'Untitled' }} ({{ ed.status }})
