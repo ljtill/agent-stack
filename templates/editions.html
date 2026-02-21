@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Editions{% endblock %}
+{% block content %}
+<h1>Editions</h1>
+
+<div style="margin-bottom: 1rem;">
+    <form method="post" action="/editions" style="display: inline;">
+        <button type="submit" class="btn">New Edition</button>
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Edition</th>
+                <th>Status</th>
+                <th>Links</th>
+                <th>Created</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for edition in editions %}
+            <tr>
+                <td>{{ edition.content.get('title', 'Untitled') or 'Untitled' }}</td>
+                <td><span class="badge badge-{{ edition.status }}">{{ edition.status }}</span></td>
+                <td>{{ edition.link_ids | length }}</td>
+                <td style="color: var(--text-muted);">{{ edition.created_at.strftime('%Y-%m-%d') if edition.created_at else '—' }}</td>
+                <td><a href="/editions/{{ edition.id }}" class="btn" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">View</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

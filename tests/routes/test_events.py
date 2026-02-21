@@ -1,0 +1,26 @@
+"""Tests for the SSE event manager."""
+
+import pytest
+
+from agent_stack.events import EventManager
+
+
+@pytest.fixture(autouse=True)
+def reset_event_manager():
+    """Reset the singleton between tests."""
+    EventManager._instance = None
+    yield
+    EventManager._instance = None
+
+
+def test_get_instance_returns_singleton():
+    mgr1 = EventManager.get_instance()
+    mgr2 = EventManager.get_instance()
+    assert mgr1 is mgr2
+
+
+@pytest.mark.asyncio
+async def test_publish_to_empty_queues():
+    mgr = EventManager.get_instance()
+    # Should not raise even with no subscribers
+    await mgr.publish("test", {"key": "value"})

@@ -1,0 +1,55 @@
+"""SSE event manager for real-time dashboard updates."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+from collections.abc import AsyncGenerator
+from typing import Any
+
+from fastapi import Request
+from sse_starlette.sse import EventSourceResponse
+
+logger = logging.getLogger(__name__)
+
+
+class EventManager:
+    """Manages SSE connections and broadcasts events to all connected clients."""
+
+    _instance: EventManager | None = None
+
+    def __init__(self) -> None:
+        self._queues: list[asyncio.Queue] = []
+
+    @classmethod
+    def get_instance(cls) -> EventManager:
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    async def publish(self, event_type: str, data: dict[str, Any]) -> None:
+        """Broadcast an event to all connected SSE clients."""
+        message = {"event": event_type, "data": json.dumps(data)}
+        for queue in self._queues:
+            await queue.put(message)
+
+    async def _event_generator(self, request: Request) -> AsyncGenerator[dict[str, str]]:
+        """Generate SSE events for a single client connection."""
+        queue: asyncio.Queue = asyncio.Queue()
+        self._queues.append(queue)
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    message = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    yield message
+                except TimeoutError:
+                    yield {"event": "ping", "data": ""}
+        finally:
+            self._queues.remove(queue)
+
+    def create_response(self, request: Request) -> EventSourceResponse:
+        """Create an SSE response for a client."""
+        return EventSourceResponse(self._event_generator(request))

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Links{% endblock %}
+{% block content %}
+<h1>Links</h1>
+
+{% if edition %}
+<div class="card">
+    <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">Submit a Link</h2>
+    <form method="post" action="/links" style="display: flex; gap: 0.5rem;">
+        <input type="url" name="url" placeholder="https://example.com/article" required style="flex: 1; margin-bottom: 0;">
+        <button type="submit" class="btn">Submit</button>
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>URL</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Submitted</th>
+            </tr>
+        </thead>
+        <tbody id="links-table" hx-ext="sse" sse-connect="/events" sse-swap="link-update">
+            {% for link in links %}
+            <tr id="link-{{ link.id }}">
+                <td><a href="{{ link.url }}" target="_blank" style="color: var(--accent);">{{ link.url | truncate(50) }}</a></td>
+                <td>{{ link.title or '—' }}</td>
+                <td><span class="badge badge-{{ link.status }}">{{ link.status }}</span></td>
+                <td style="color: var(--text-muted);">{{ link.created_at.strftime('%Y-%m-%d %H:%M') if link.created_at else '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <p style="color: var(--text-muted);">No active edition. <a href="/editions" style="color: var(--accent);">Create one</a> to start submitting links.</p>
+</div>
+{% endif %}
+{% endblock %}

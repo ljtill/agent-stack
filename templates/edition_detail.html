@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Edition Detail{% endblock %}
+{% block content %}
+{% if edition %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h1>{{ edition.content.get('title', 'Untitled Edition') or 'Untitled Edition' }}</h1>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <span class="badge badge-{{ edition.status }}">{{ edition.status }}</span>
+        {% if edition.status != 'published' %}
+        <form method="post" action="/editions/{{ edition.id }}/publish" style="display: inline;">
+            <button type="submit" class="btn">Publish</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">Content</h2>
+    {% if edition.content.get('sections') %}
+        {% for section in edition.content.sections %}
+        <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);">
+            <h3 style="font-size: 0.95rem; margin-bottom: 0.5rem;">{{ section.get('title', 'Section') }}</h3>
+            <div style="color: var(--text-muted); font-size: 0.9rem;">{{ section.get('body', '') }}</div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="color: var(--text-muted);">No content yet. Submit links and let the agents draft content.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">Associated Links</h2>
+    <table>
+        <thead>
+            <tr><th>URL</th><th>Title</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+            {% for link in links %}
+            <tr>
+                <td><a href="{{ link.url }}" target="_blank" style="color: var(--accent);">{{ link.url | truncate(40) }}</a></td>
+                <td>{{ link.title or '—' }}</td>
+                <td><span class="badge badge-{{ link.status }}">{{ link.status }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">Submit Feedback</h2>
+    <form method="post" action="/editions/{{ edition.id }}/feedback">
+        <input type="text" name="section" placeholder="Section name (e.g., intro, tools)" required>
+        <textarea name="comment" placeholder="Your feedback..." rows="3" required style="resize: vertical;"></textarea>
+        <button type="submit" class="btn">Submit Feedback</button>
+    </form>
+</div>
+
+{% else %}
+<div class="card">
+    <p style="color: var(--text-muted);">Edition not found.</p>
+</div>
+{% endif %}
+{% endblock %}

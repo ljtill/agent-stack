@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="card">
+    <h2 style="font-size: 1.1rem; margin-bottom: 0.5rem;">Pipeline Overview</h2>
+    <p style="color: var(--text-muted);">Welcome to The Agent Stack editorial dashboard. Use the navigation above to manage links and editions.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+    <div class="card">
+        <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Links</div>
+        <div style="font-size: 1.5rem; font-weight: 700; margin-top: 0.25rem;">
+            <a href="/links" style="color: var(--accent); text-decoration: none;">Manage →</a>
+        </div>
+    </div>
+    <div class="card">
+        <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Editions</div>
+        <div style="font-size: 1.5rem; font-weight: 700; margin-top: 0.25rem;">
+            <a href="/editions" style="color: var(--accent); text-decoration: none;">Manage →</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
