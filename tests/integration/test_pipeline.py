@@ -190,3 +190,32 @@ async def test_handle_link_change_stale_event_skipped(
     )
 
     orchestrator.agent.run.assert_not_called()
+
+
+async def test_handle_link_change_dispatches_to_orchestrator_agent(
+    orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
+) -> None:
+    """Integration: handle_link_change creates a run and dispatches to the agent."""
+    links, _, _, runs = mock_repos
+    link = Link(
+        id="link-int",
+        url="https://example.com/article",
+        edition_id="ed-1",
+        status=LinkStatus.SUBMITTED,
+    )
+    links.get.return_value = link
+
+    response = MagicMock()
+    response.text = "pipeline complete"
+    response.usage_details = None
+    orchestrator._agent.run = AsyncMock(return_value=response)  # noqa: SLF001
+
+    await orchestrator.handle_link_change(
+        {"id": "link-int", "edition_id": "ed-1", "status": "submitted"}
+    )
+
+    orchestrator._agent.run.assert_called_once()  # noqa: SLF001
+    runs.create.assert_called_once()
+    runs.update.assert_called_once()
+    saved_run = runs.update.call_args[0][0]
+    assert saved_run.status == "completed"

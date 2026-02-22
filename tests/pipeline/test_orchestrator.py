@@ -1,13 +1,15 @@
-"""Tests for orchestrator token-usage persistence."""
+"""Tests for orchestrator token-usage persistence and pipeline logic."""
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from agent_stack.models.link import LinkStatus
 from agent_stack.pipeline.orchestrator import PipelineOrchestrator
 
 if TYPE_CHECKING:
@@ -202,3 +204,180 @@ class TestRecordStageCompleteUsage:
         assert run.usage is not None
         expected_total = 400
         assert run.usage["total_tokens"] == expected_total
+
+
+class TestClaimLink:
+    """Tests for _claim_link guard logic."""
+
+    async def test_returns_none_when_already_processing(
+        self,
+        orchestrator: PipelineOrchestrator,
+    ) -> None:
+        """Return None when the link is already being processed."""
+        orchestrator._processing_links.add("l-1")  # noqa: SLF001
+
+        result = await orchestrator._claim_link("l-1", "ed-1", "submitted")  # noqa: SLF001
+        assert result is None
+
+    async def test_returns_none_when_link_is_failed(
+        self,
+        orchestrator: PipelineOrchestrator,
+        mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
+        make_link: Callable[..., Link],
+    ) -> None:
+        """Return None when the link status is FAILED."""
+        links, *_ = mock_repos
+        links.get.return_value = make_link(id="l-1", status=LinkStatus.FAILED)
+
+        result = await orchestrator._claim_link("l-1", "ed-1", "submitted")  # noqa: SLF001
+        assert result is None
+
+    async def test_returns_none_when_status_not_submitted(
+        self,
+        orchestrator: PipelineOrchestrator,
+        mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
+        make_link: Callable[..., Link],
+    ) -> None:
+        """Return None when the event status is not SUBMITTED."""
+        links, *_ = mock_repos
+        links.get.return_value = make_link(id="l-1", status=LinkStatus.REVIEWED)
+
+        result = await orchestrator._claim_link("l-1", "ed-1", "reviewed")  # noqa: SLF001
+        assert result is None
+
+    async def test_returns_none_when_link_status_mismatches_event(
+        self,
+        orchestrator: PipelineOrchestrator,
+        mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
+        make_link: Callable[..., Link],
+    ) -> None:
+        """Return None when the link has advanced past the event status."""
+        links, *_ = mock_repos
+        links.get.return_value = make_link(id="l-1", status=LinkStatus.DRAFTED)
+
+        result = await orchestrator._claim_link("l-1", "ed-1", "submitted")  # noqa: SLF001
+        assert result is None
+
+
+class TestHandleLinkChangeRetry:
+    """Tests for handle_link_change retry logic."""
+
+    async def test_retries_on_failure_succeeds_on_second_attempt(
+        self,
+        orchestrator: PipelineOrchestrator,
+        mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
+        make_link: Callable[..., Link],
+    ) -> None:
+        """Verify retry succeeds on second attempt after first failure."""
+        links, _editions, _feedback, runs = mock_repos
+        link = make_link(id="l-retry", status="submitted")
+        links.get.return_value = link
+
+        response = MagicMock()
+        response.text = "ok"
+        response.usage_details = None
+        orchestrator._agent.run = AsyncMock(  # noqa: SLF001
+            side_effect=[RuntimeError("transient"), response],
+        )
+
+        sleep_patch = "agent_stack.pipeline.orchestrator.asyncio.sleep"
+        with patch(sleep_patch, new_callable=AsyncMock):
+            await orchestrator.handle_link_change(
+                {"id": "l-retry", "edition_id": "ed-1", "status": "submitted"}
+            )
+
+        saved_run = runs.update.call_args[0][0]
+        assert saved_run.status == "completed"
+
+    async def test_marks_failed_after_max_retries(
+        self,
+        orchestrator: PipelineOrchestrator,
+        mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
+        make_link: Callable[..., Link],
+    ) -> None:
+        """Verify the run is marked FAILED after all retries are exhausted."""
+        links, _editions, _feedback, runs = mock_repos
+        link = make_link(id="l-fail", status="submitted")
+        links.get.return_value = link
+
+        orchestrator._agent.run = AsyncMock(  # noqa: SLF001
+            side_effect=RuntimeError("persistent error"),
+        )
+
+        sleep_patch = "agent_stack.pipeline.orchestrator.asyncio.sleep"
+        with patch(sleep_patch, new_callable=AsyncMock):
+            await orchestrator.handle_link_change(
+                {"id": "l-fail", "edition_id": "ed-1", "status": "submitted"}
+            )
+
+        saved_run = runs.update.call_args[0][0]
+        assert saved_run.status == "failed"
+
+
+class TestGetEditionLock:
+    """Tests for _get_edition_lock."""
+
+    async def test_returns_same_lock_for_same_edition(
+        self,
+        orchestrator: PipelineOrchestrator,
+    ) -> None:
+        """The same lock object is returned for the same edition_id."""
+        lock1 = await orchestrator._get_edition_lock("ed-1")  # noqa: SLF001
+        lock2 = await orchestrator._get_edition_lock("ed-1")  # noqa: SLF001
+        assert lock1 is lock2
+
+
+class TestHandleFeedbackChangeLock:
+    """Tests for handle_feedback_change edition lock serialization."""
+
+    async def test_serializes_concurrent_feedback(
+        self,
+        orchestrator: PipelineOrchestrator,
+        mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
+    ) -> None:
+        """Concurrent calls for the same edition are serialized by the lock."""
+        *_, _runs = mock_repos
+        order: list[str] = []
+
+        async def _slow_run(_msg: str) -> MagicMock:
+            order.append("start")
+            await asyncio.sleep(0.05)
+            order.append("end")
+            resp = MagicMock()
+            resp.text = "done"
+            resp.usage_details = None
+            return resp
+
+        orchestrator._agent.run = AsyncMock(side_effect=_slow_run)  # noqa: SLF001
+
+        await asyncio.gather(
+            orchestrator.handle_feedback_change(
+                {"id": "fb-1", "edition_id": "ed-1", "resolved": False}
+            ),
+            orchestrator.handle_feedback_change(
+                {"id": "fb-2", "edition_id": "ed-1", "resolved": False}
+            ),
+        )
+
+        assert order == ["start", "end", "start", "end"]
+
+
+class TestHandlePublishFailure:
+    """Tests for handle_publish error handling."""
+
+    async def test_records_run_and_handles_failure(
+        self,
+        orchestrator: PipelineOrchestrator,
+        mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
+    ) -> None:
+        """Verify handle_publish records the run and sets FAILED on error."""
+        _links, _editions, _feedback, runs = mock_repos
+        orchestrator._agent.run = AsyncMock(  # noqa: SLF001
+            side_effect=RuntimeError("publish boom"),
+        )
+
+        await orchestrator.handle_publish("ed-1")
+
+        saved_run = runs.update.call_args[0][0]
+        assert saved_run.status == "failed"
+        assert saved_run.output == {"error": "Orchestrator failed"}

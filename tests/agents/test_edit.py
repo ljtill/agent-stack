@@ -99,3 +99,44 @@ async def test_resolve_feedback_not_found(
 
     result = json.loads(await edit_agent.resolve_feedback("missing", "ed-1"))
     assert "error" in result
+
+
+async def test_save_edit_invalid_json_returns_error(
+    edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]
+) -> None:
+    """Verify save_edit with invalid JSON content returns an error."""
+    editions_repo, _ = repos
+    edition = Edition(id="ed-1", content={"old": True})
+    editions_repo.get.return_value = edition
+
+    result = json.loads(await edit_agent.save_edit("ed-1", "{not valid json"))
+    assert result["error"] == "Invalid JSON content"
+    editions_repo.update.assert_not_called()
+
+
+async def test_save_edit_valid_json_succeeds(
+    edit_agent: EditAgent, repos: tuple[AsyncMock, AsyncMock]
+) -> None:
+    """Verify save_edit with valid JSON content succeeds."""
+    editions_repo, _ = repos
+    edition = Edition(id="ed-1", content={})
+    editions_repo.get.return_value = edition
+
+    content = json.dumps({"headline": "Hello World"})
+    result = json.loads(await edit_agent.save_edit("ed-1", content))
+
+    assert result["status"] == "edited"
+    assert edition.content == {"headline": "Hello World"}
+    editions_repo.update.assert_called_once()
+
+
+async def test_run_raises_on_failure(
+    edit_agent: EditAgent,
+) -> None:
+    """Verify run() re-raises exceptions from the inner agent."""
+    edit_agent._agent.run = AsyncMock(  # noqa: SLF001
+        side_effect=RuntimeError("LLM error"),
+    )
+
+    with pytest.raises(RuntimeError, match="LLM error"):
+        await edit_agent.run("ed-1")

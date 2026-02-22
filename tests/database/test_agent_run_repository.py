@@ -92,3 +92,22 @@ class TestAgentRunRepository:
         assert result == []
         call_args = repo.query.call_args
         assert "@stage" in call_args[0][0]
+
+    async def test_recover_orphaned_runs(self, repo: AgentRunRepository) -> None:
+        """Verify recover_orphaned_runs transitions RUNNING runs to FAILED."""
+        orphan = AgentRun(
+            id="run-orphan",
+            stage=AgentStage.FETCH,
+            trigger_id="link-1",
+            status=AgentRunStatus.RUNNING,
+        )
+        repo.query = AsyncMock(return_value=[orphan])
+        repo.update = AsyncMock()
+
+        count = await repo.recover_orphaned_runs()
+
+        assert count == 1
+        assert orphan.status == AgentRunStatus.FAILED
+        assert orphan.completed_at is not None
+        assert orphan.output == {"error": "Recovered after process restart"}
+        repo.update.assert_called_once_with(orphan, "link-1")
