@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from agent_stack.database.repositories.base import BaseRepository
 from agent_stack.models.link import Link, LinkStatus
 
@@ -31,3 +33,12 @@ class LinkRepository(BaseRepository[Link]):
                 {"name": "@status", "value": status.value},
             ],
         )
+
+    async def count_all(self) -> int:
+        """Return the total number of active links across all editions."""
+        total = 0
+        async for item in self._container.query_items(
+            "SELECT VALUE COUNT(1) FROM c WHERE NOT IS_DEFINED(c.deleted_at)",
+        ):
+            total = cast("int", item)
+        return total

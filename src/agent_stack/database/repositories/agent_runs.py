@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from agent_stack.database.repositories.base import BaseRepository
-from agent_stack.models.agent_run import AgentRun, AgentStage
+from agent_stack.models.agent_run import AgentRun, AgentRunStatus, AgentStage
 
 
 class AgentRunRepository(BaseRepository[AgentRun]):
@@ -60,6 +60,46 @@ class AgentRunRepository(BaseRepository[AgentRun]):
             " AND NOT IS_DEFINED(c.deleted_at) ORDER BY c.started_at DESC",
             [
                 {"name": "@stage", "value": stage.value},
+                {"name": "@limit", "value": limit},
+            ],
+        )
+
+    async def count_by_status(self, limit: int = 100) -> dict[str, int]:
+        """Return recent run counts grouped by status."""
+        counts: dict[str, int] = {}
+        async for item in self._container.query_items(
+            "SELECT TOP @limit c.status FROM c"
+            " WHERE NOT IS_DEFINED(c.deleted_at)"
+            " ORDER BY c.started_at DESC",
+            parameters=[{"name": "@limit", "value": limit}],
+        ):
+            status = item["status"]
+            counts[status] = counts.get(status, 0) + 1
+        return counts
+
+    async def aggregate_token_usage(self, limit: int = 100) -> dict[str, int]:
+        """Return total token usage across recent runs."""
+        totals = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+        async for item in self._container.query_items(
+            "SELECT TOP @limit c.usage FROM c"
+            " WHERE c.usage != null"
+            " AND NOT IS_DEFINED(c.deleted_at)"
+            " ORDER BY c.started_at DESC",
+            parameters=[{"name": "@limit", "value": limit}],
+        ):
+            usage = item.get("usage") or {}
+            totals["input_tokens"] += usage.get("input_tokens", 0)
+            totals["output_tokens"] += usage.get("output_tokens", 0)
+            totals["total_tokens"] += usage.get("total_tokens", 0)
+        return totals
+
+    async def list_recent_failures(self, limit: int = 5) -> list[AgentRun]:
+        """Fetch the most recent failed agent runs."""
+        return await self.query(
+            "SELECT TOP @limit * FROM c WHERE c.status = @status"
+            " AND NOT IS_DEFINED(c.deleted_at) ORDER BY c.started_at DESC",
+            [
+                {"name": "@status", "value": AgentRunStatus.FAILED.value},
                 {"name": "@limit", "value": limit},
             ],
         )

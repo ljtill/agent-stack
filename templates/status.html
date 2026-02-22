@@ -2,7 +2,9 @@
 {% block title %}Status{% endblock %}
 {% block content %}
 <h1>Status</h1>
-<p style="color: var(--text-muted); margin-bottom: 1.5rem;">Health of external dependencies, checked on page load.</p>
+
+<h2 style="font-size: 1rem; color: var(--text-muted); margin-top: 2rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Health Checks</h2>
+<p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.85rem;">External dependencies, probed on page load.</p>
 {% for check in checks %}
 <div class="card" style="display: flex; align-items: flex-start; gap: 1rem;">
     <div style="
@@ -38,4 +40,97 @@
     </div>
 </div>
 {% endfor %}
+
+<h2 style="font-size: 1rem; color: var(--text-muted); margin-top: 2.5rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Application</h2>
+<div class="card">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1.25rem;">
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Version</div>
+            <span class="badge badge-drafted">v{{ info.app.version }}</span>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Environment</div>
+            <span style="font-size: 0.95rem;">{{ info.app.environment }}</span>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Python</div>
+            <span style="font-size: 0.95rem;">{{ info.app.python_version }} ({{ info.app.platform }})</span>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Uptime</div>
+            <span style="font-size: 0.95rem;">{{ info.app.uptime }}</span>
+        </div>
+    </div>
+</div>
+
+<h2 style="font-size: 1rem; color: var(--text-muted); margin-top: 2.5rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Pipeline</h2>
+<div class="card">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1.25rem;">
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Editions</div>
+            <span style="font-size: 1.25rem; font-weight: 600;">{{ info.pipeline.total_editions }}</span>
+            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.35rem;">
+                {% for status, count in info.pipeline.editions_by_status.items() %}
+                <span class="badge badge-{{ status }}">{{ status | replace('_', ' ') }} {{ count }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Links</div>
+            <span style="font-size: 1.25rem; font-weight: 600;">{{ info.pipeline.total_links }}</span>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Unresolved Feedback</div>
+            <span style="font-size: 1.25rem; font-weight: 600;">{{ info.pipeline.unresolved_feedback }}</span>
+        </div>
+    </div>
+</div>
+
+<h2 style="font-size: 1rem; color: var(--text-muted); margin-top: 2.5rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Token Usage</h2>
+<div class="card">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1.25rem;">
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Input Tokens</div>
+            <span style="font-size: 1.25rem; font-weight: 600;">{{ "{:,}".format(info.tokens.input_tokens) }}</span>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Output Tokens</div>
+            <span style="font-size: 1.25rem; font-weight: 600;">{{ "{:,}".format(info.tokens.output_tokens) }}</span>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Total Tokens</div>
+            <span style="font-size: 1.25rem; font-weight: 600;">{{ "{:,}".format(info.tokens.total_tokens) }}</span>
+        </div>
+    </div>
+</div>
+
+<h2 style="font-size: 1rem; color: var(--text-muted); margin-top: 2.5rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Recent Failures</h2>
+{% if info.failures %}
+{% for run in info.failures %}
+<div class="card" style="display: flex; align-items: flex-start; gap: 1rem;">
+    <div style="
+        width: 2.5rem; height: 2.5rem; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem; flex-shrink: 0;
+        background: var(--danger-bg); color: var(--danger);
+    ">✗</div>
+    <div style="flex: 1; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span style="font-weight: 600; font-size: 1rem;">{{ run.stage }}</span>
+            <span class="badge badge-failed">failed</span>
+            {% if run.started_at %}
+            <span style="color: var(--text-muted); font-size: 0.8rem;">{{ run.started_at.strftime('%Y-%m-%d %H:%M') }} UTC</span>
+            {% endif %}
+        </div>
+        {% if run.output and run.output.error is defined %}
+        <div class="activity-error" style="margin-top: 0.5rem;">{{ run.output.error }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card" style="color: var(--text-muted); text-align: center; padding: 1.5rem;">
+    No recent failures
+</div>
+{% endif %}
 {% endblock %}

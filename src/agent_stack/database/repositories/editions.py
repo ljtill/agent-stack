@@ -52,3 +52,13 @@ class EditionRepository(BaseRepository[Edition]):
             " ORDER BY c.published_at DESC",
             [{"name": "@status", "value": EditionStatus.PUBLISHED.value}],
         )
+
+    async def count_by_status(self) -> dict[str, int]:
+        """Return the number of active editions grouped by status."""
+        counts: dict[str, int] = {}
+        async for item in self._container.query_items(
+            "SELECT c.status FROM c WHERE NOT IS_DEFINED(c.deleted_at)",
+        ):
+            status = item["status"]
+            counts[status] = counts.get(status, 0) + 1
+        return counts

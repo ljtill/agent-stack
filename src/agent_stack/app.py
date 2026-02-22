@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -103,6 +104,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     processor = ChangeFeedProcessor(cosmos.database, orchestrator)
     await processor.start()
     app.state.processor = processor
+    app.state.start_time = datetime.now(UTC)
     logger.info("Application started")
 
     yield

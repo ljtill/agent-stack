@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from agent_stack.database.repositories.base import BaseRepository
 from agent_stack.models.feedback import Feedback
 
@@ -28,3 +30,13 @@ class FeedbackRepository(BaseRepository[Feedback]):
             " AND NOT IS_DEFINED(c.deleted_at)",
             [{"name": "@edition_id", "value": edition_id}],
         )
+
+    async def count_all_unresolved(self) -> int:
+        """Return the total number of unresolved feedback across all editions."""
+        total = 0
+        async for item in self._container.query_items(
+            "SELECT VALUE COUNT(1) FROM c"
+            " WHERE c.resolved = false AND NOT IS_DEFINED(c.deleted_at)",
+        ):
+            total = cast("int", item)
+        return total
