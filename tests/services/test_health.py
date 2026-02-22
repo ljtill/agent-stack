@@ -15,8 +15,6 @@ from agent_stack.services.health import (
     check_storage,
 )
 
-# --- Cosmos DB ---
-
 _cosmos_config = CosmosConfig(
     endpoint="https://localhost:8081", key="", database="agent-stack"
 )
@@ -50,8 +48,6 @@ async def test_check_cosmos_unhealthy() -> None:
     assert "Connection refused" in result.error
 
 
-# --- Azure OpenAI ---
-
 _openai_config = OpenAIConfig(
     endpoint="https://myoai.openai.azure.com", deployment="gpt-4o"
 )
@@ -83,8 +79,6 @@ async def test_check_openai_unhealthy() -> None:
     assert result.healthy is False
     assert "nodename" in result.error
 
-
-# --- Azure Storage ---
 
 _storage_config = StorageConfig(
     connection_string="DefaultEndpointsProtocol=https;AccountName=myaccount;AccountKey=secret;EndpointSuffix=core.windows.net",
@@ -118,9 +112,6 @@ async def test_check_storage_unhealthy() -> None:
 
     assert result.healthy is False
     assert "Storage unavailable" in result.error
-
-
-# --- Change Feed Processor ---
 
 
 def _make_processor(
@@ -181,9 +172,6 @@ def test_check_change_feed_task_finished_unexpectedly() -> None:
     assert "unexpectedly" in result.error
 
 
-# --- OpenAI treated healthy on max_tokens error ---
-
-
 async def test_check_openai_healthy_on_max_tokens_error() -> None:
     """Verify OpenAI is marked healthy when error mentions max_tokens."""
     client = AsyncMock()
@@ -192,9 +180,6 @@ async def test_check_openai_healthy_on_max_tokens_error() -> None:
     result = await check_openai(client, _openai_config)
 
     assert result.healthy is True
-
-
-# --- _clean_openai_error helpers ---
 
 
 def test_clean_openai_error_connection_error() -> None:
@@ -235,9 +220,6 @@ def test_clean_openai_error_passthrough() -> None:
     assert result == raw
 
 
-# --- _storage_account_name ---
-
-
 def test_storage_account_name_extracts_name() -> None:
     """Verify account name is extracted from connection string."""
     conn = "DefaultEndpointsProtocol=https;AccountName=mystore;AccountKey=key"
@@ -248,9 +230,6 @@ def test_storage_account_name_extracts_name() -> None:
 def test_storage_account_name_unknown_fallback() -> None:
     """Verify 'unknown' is returned when account name is not found."""
     assert _storage_account_name("SomeOtherFormat=value") == "unknown"
-
-
-# --- check_all aggregation ---
 
 
 async def test_check_all_without_storage() -> None:

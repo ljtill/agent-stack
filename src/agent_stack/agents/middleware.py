@@ -61,7 +61,6 @@ class TokenTrackingMiddleware(ChatMiddleware):
             elapsed_ms,
         )
 
-        # Stash usage on context metadata for upstream consumers
         meta = cast("dict[str, Any]", context.metadata)
         meta["usage"] = {
             "input_tokens": input_tokens,
@@ -131,7 +130,6 @@ class RateLimitMiddleware(ChatMiddleware):
                 if total_tokens < self._tpm_limit and total_requests < self._rpm_limit:
                     return
 
-            # Back off briefly before retrying
             await asyncio.sleep(0.1)
 
     async def _record_usage(self, context: ChatContext) -> None:

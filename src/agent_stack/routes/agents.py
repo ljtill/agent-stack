@@ -23,7 +23,6 @@ async def agents_page(request: Request) -> HTMLResponse:
 
     runs_repo = AgentRunRepository(cosmos.database)
 
-    # Fetch recent runs per stage
     stages = [
         AgentStage.ORCHESTRATOR,
         AgentStage.FETCH,
@@ -40,7 +39,6 @@ async def agents_page(request: Request) -> HTMLResponse:
         if any(r.status == "running" for r in stage_runs):
             running_stages.add(stage.value)
 
-    # Attach run info to agent metadata
     for agent in agent_metadata:
         stage = agent["name"]
         stage_runs = runs_by_stage.get(stage, [])

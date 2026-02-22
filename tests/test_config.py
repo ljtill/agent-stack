@@ -82,7 +82,6 @@ def test_storage_config_default_container(monkeypatch: pytest.MonkeyPatch) -> No
 
 def test_settings_creates_all_sub_configs(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify settings creates all sub configs."""
-    # Set minimum required env vars
     for key in [
         "COSMOS_ENDPOINT",
         "COSMOS_KEY",

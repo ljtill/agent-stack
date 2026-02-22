@@ -32,7 +32,7 @@ def test_utcnow_returns_utc() -> None:
 def test_document_base_defaults() -> None:
     """Verify document base defaults."""
     doc = DocumentBase()
-    assert doc.id  # non-empty
+    assert doc.id
     assert doc.created_at is not None
     assert doc.updated_at is not None
     assert doc.deleted_at is None
@@ -53,7 +53,7 @@ def test_link_defaults() -> None:
     assert link.content is None
     assert link.review is None
     assert link.deleted_at is None
-    assert link.id  # auto-generated
+    assert link.id
 
 
 def test_edition_defaults() -> None:

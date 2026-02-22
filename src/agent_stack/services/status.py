@@ -89,7 +89,6 @@ async def collect_stats(
     links_repo = LinkRepository(database)
     feedback_repo = FeedbackRepository(database)
 
-    # Gather data concurrently
     (
         edition_counts,
         _run_counts,

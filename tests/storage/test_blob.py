@@ -69,7 +69,7 @@ class TestBlobStorageClient:
         self, client: BlobStorageClient
     ) -> None:
         """Verify close noop when not initialized."""
-        await client.close()  # Should not raise
+        await client.close()
 
     def test_get_container_raises_when_not_initialized(
         self, client: BlobStorageClient

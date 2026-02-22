@@ -19,7 +19,7 @@ async def protected_view(_request: MagicMock) -> None:
 async def test_require_auth_raises_401_when_no_session() -> None:
     """Verify require auth raises 401 when no session."""
     request = MagicMock()
-    del request.session  # no session attribute
+    del request.session
     with pytest.raises(HTTPException) as exc_info:
         await protected_view(request)
     assert exc_info.value.status_code == _EXPECTED_UNAUTHORIZED_STATUS

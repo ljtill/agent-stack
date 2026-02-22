@@ -121,7 +121,6 @@ class DraftAgent:
             edition.link_ids.append(link_id)
         await self._editions_repo.update(edition, edition_id)
 
-        # Transition link status
         link = await self._links_repo.get(link_id, edition_id)
         if link:
             link.status = LinkStatus.DRAFTED

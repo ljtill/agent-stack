@@ -73,7 +73,6 @@ async def test_process_feed_delegates_to_handler(
     handler = AsyncMock()
 
     await processor.process_feed(container, None, handler)
-    # Handlers are dispatched as background tasks — let them complete
     await asyncio.sleep(0)
 
     assert handler.call_count == _EXPECTED_HANDLER_CALL_COUNT
@@ -129,9 +128,7 @@ async def test_process_feed_handles_handler_error(
     container.query_items_change_feed = _mock_change_feed([items])
     handler = AsyncMock(side_effect=[RuntimeError("fail"), None])
 
-    # Should not raise — errors are caught per item
     await processor.process_feed(container, None, handler)
-    # Handlers are dispatched as background tasks — let them complete
     await asyncio.sleep(0)
     assert handler.call_count == _EXPECTED_HANDLER_CALL_COUNT
 

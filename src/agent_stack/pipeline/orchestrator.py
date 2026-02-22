@@ -110,7 +110,6 @@ class PipelineOrchestrator:
 
         self._events = EventManager.get_instance()
 
-        # Prevent concurrent orchestrator runs for the same link
         self._processing_links: set[str] = set()
         self._link_lock = asyncio.Lock()
 
@@ -135,7 +134,6 @@ class PipelineOrchestrator:
             rate_limiter=rate_limiter,
         )
 
-        # Build the orchestrator agent with sub-agents as tools + custom tools
         self._agent = Agent(
             client=client,
             instructions=load_prompt("orchestrator"),
@@ -146,7 +144,6 @@ class PipelineOrchestrator:
                 "and gated publishing."
             ),
             tools=[
-                # Sub-agents via as_tool()
                 self.fetch.agent.as_tool(
                     name="fetch",
                     description="Fetch and extract content from a submitted URL",
@@ -176,7 +173,6 @@ class PipelineOrchestrator:
                     arg_name="task",
                     arg_description="Instructions including the edition ID",
                 ),
-                # Custom tools for state inspection and run tracking
                 self.get_link_status,
                 self.get_edition_status,
                 self.record_stage_start,
@@ -193,8 +189,6 @@ class PipelineOrchestrator:
     def agent(self) -> Agent:
         """Return the inner Agent framework instance."""
         return self._agent  # ty: ignore[invalid-return-type]
-
-    # -- Custom tools for state inspection and run tracking --
 
     @tool(name="draft")
     async def _draft_tool(
@@ -313,7 +307,6 @@ class PipelineOrchestrator:
             },
         )
 
-        # Publish link-update for real-time UI
         link = await self._links_repo.get(trigger_id, "")
         if link:
             runs = await self._agent_runs_repo.get_by_trigger(trigger_id)
@@ -327,20 +320,16 @@ class PipelineOrchestrator:
             }
         )
 
-    # -- Event handlers --
-
     async def handle_link_change(self, document: dict[str, Any]) -> None:
         """Process a link document change by invoking the orchestrator agent."""
         link_id = document.get("id", "")
         edition_id = document.get("edition_id", "")
         status = document.get("status", "")
 
-        # Skip if this link is already being processed by another handler
         async with self._link_lock:
             if link_id in self._processing_links:
                 logger.debug("Link %s already being processed, skipping", link_id)
                 return
-            # Only claim the link for actionable submitted status
             link = await self._links_repo.get(link_id, edition_id)
             if not link:
                 logger.warning("Link %s not found, skipping", link_id)
@@ -401,9 +390,6 @@ class PipelineOrchestrator:
                 elapsed_ms,
             )
 
-        # If the link hasn't advanced past its original status, mark it
-        # as failed so the change feed doesn't retry indefinitely.
-        # The user can click Retry in the UI to try again.
         updated_link = await self._links_repo.get(link_id, edition_id)
         if updated_link and updated_link.status == status:
             updated_link.status = LinkStatus.FAILED

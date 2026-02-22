@@ -62,13 +62,11 @@ class StaticSiteRenderer:
             logger.error("Edition %s not found", edition_id)
             return
 
-        # Get all published editions (sorted by published_at desc) for navigation
         published = await self.editions_repo.list_published()
         edition_idx = next(
             (i for i, e in enumerate(published) if e.id == edition_id), None
         )
 
-        # Determine prev/next (list is newest-first)
         prev_edition = (
             published[edition_idx - 1] if edition_idx and edition_idx > 0 else None
         )
@@ -78,11 +76,9 @@ class StaticSiteRenderer:
             else None
         )
 
-        # Render and upload the edition page
         edition_html = await self.render_edition(edition, prev_edition, next_edition)
         await self.storage.upload_html(f"editions/{edition_id}.html", edition_html)
 
-        # Re-render adjacent editions so their prev/next links update
         if prev_edition:
             prev_prev = (
                 published[edition_idx - 2] if edition_idx and edition_idx > 1 else None
@@ -103,7 +99,6 @@ class StaticSiteRenderer:
                 f"editions/{next_edition.id}.html", next_html
             )
 
-        # Render and upload the updated index page
         index_html = await self.render_index(published)
         await self.storage.upload_html("index.html", index_html)
 

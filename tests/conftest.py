@@ -14,10 +14,6 @@ from agent_stack.models.link import Link, LinkStatus
 
 _TEST_CLIENT_SECRET = "test-secret"  # noqa: S105
 
-# ---------------------------------------------------------------------------
-# Mock repository fixtures
-# ---------------------------------------------------------------------------
-
 
 @pytest.fixture
 def mock_links_repo() -> AsyncMock:
@@ -41,11 +37,6 @@ def mock_feedback_repo() -> AsyncMock:
 def mock_agent_runs_repo() -> AsyncMock:
     """Create a mock agent runs repo for testing."""
     return AsyncMock()
-
-
-# ---------------------------------------------------------------------------
-# Model factory fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -111,11 +102,6 @@ def make_agent_run() -> Callable[..., AgentRun]:
     return _make
 
 
-# ---------------------------------------------------------------------------
-# Configuration fixtures
-# ---------------------------------------------------------------------------
-
-
 @pytest.fixture
 def cosmos_config() -> tuple[CosmosConfig, object, object]:
     """Create a cosmos config for testing."""
@@ -147,11 +133,6 @@ def entra_config() -> EntraConfig:
         client_id="test-client",
         client_secret=_TEST_CLIENT_SECRET,
     )
-
-
-# ---------------------------------------------------------------------------
-# Mock Cosmos container fixture
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture

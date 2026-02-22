@@ -6,7 +6,6 @@
 {% set stages = latest | rejectattr('stage', 'equalto', 'orchestrator') | list %}
 {% set orch = latest | selectattr('stage', 'equalto', 'orchestrator') | first %}
 
-{# Overall status indicator #}
 {% set failed_stages = stages | selectattr('status', 'equalto', 'failed') | list %}
 {% set running_stages = stages | selectattr('status', 'equalto', 'running') | list %}
 {% if running_stages %}
@@ -26,7 +25,6 @@
 </span>
 {% endif %}
 
-{# Horizontal step indicator #}
 {% if stages %}
 <div class="pipeline-steps">
     {% for run in stages %}
@@ -41,14 +39,12 @@
 </div>
 {% endif %}
 
-{# Error message for failed stage #}
 {% for run in stages %}
 {% if run.status == 'failed' and run.output %}
 <div class="pipeline-step-error">{{ run.output.get('error', 'Unknown error') if run.output is mapping else run.output }}</div>
 {% endif %}
 {% endfor %}
 
-{# Previous invocations #}
 {% if groups | length > 1 %}
 <details>
     <summary class="pipeline-prev-summary">{{ groups | length - 1 }} previous run{{ 's' if groups | length - 1 != 1 else '' }}</summary>

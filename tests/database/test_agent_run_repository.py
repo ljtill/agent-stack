@@ -71,7 +71,6 @@ class TestAgentRunRepository:
         result = await repo.get_by_triggers(["link-1", "link-2"])
 
         assert len(result) == _EXPECTED_TRIGGER_COUNT
-        # Sorted by started_at descending
         assert result[0].trigger_id == "link-2"
 
     async def test_list_recent(self, repo: AgentRunRepository) -> None:

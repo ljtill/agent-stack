@@ -8,7 +8,7 @@ from agent_stack.auth.middleware import get_user
 def test_get_user_returns_none_without_session() -> None:
     """Verify get user returns none without session."""
     request = MagicMock()
-    del request.session  # Simulate no session attribute
+    del request.session
     assert get_user(request) is None
 
 

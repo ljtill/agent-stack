@@ -12,7 +12,6 @@ param baseName string = 'agentstack'
 @description('Container image tag')
 param imageTag string = 'latest'
 
-// Managed Identity
 module identity 'modules/managed-identity.bicep' = {
   name: 'identity'
   params: {
@@ -21,7 +20,6 @@ module identity 'modules/managed-identity.bicep' = {
   }
 }
 
-// Cosmos DB
 module cosmosDb 'modules/cosmos-db.bicep' = {
   name: 'cosmos-db'
   params: {
@@ -31,7 +29,6 @@ module cosmosDb 'modules/cosmos-db.bicep' = {
   }
 }
 
-// Storage Account
 module storage 'modules/storage-account.bicep' = {
   name: 'storage-account'
   params: {
@@ -41,7 +38,6 @@ module storage 'modules/storage-account.bicep' = {
   }
 }
 
-// App Configuration
 module appConfig 'modules/app-configuration.bicep' = {
   name: 'app-configuration'
   params: {
@@ -55,7 +51,6 @@ module appConfig 'modules/app-configuration.bicep' = {
   }
 }
 
-// Container Registry
 module acr 'modules/container-registry.bicep' = {
   name: 'container-registry'
   params: {
@@ -65,7 +60,6 @@ module acr 'modules/container-registry.bicep' = {
   }
 }
 
-// Container Apps
 module containerApps 'modules/container-apps.bicep' = {
   name: 'container-apps'
   params: {
@@ -81,7 +75,6 @@ module containerApps 'modules/container-apps.bicep' = {
   }
 }
 
-// Static Web Apps
 module staticWebApp 'modules/static-web-apps.bicep' = {
   name: 'static-web-apps'
   params: {
@@ -90,7 +83,6 @@ module staticWebApp 'modules/static-web-apps.bicep' = {
   }
 }
 
-// Log Analytics
 module logAnalytics 'modules/log-analytics.bicep' = {
   name: 'log-analytics'
   params: {
@@ -99,7 +91,6 @@ module logAnalytics 'modules/log-analytics.bicep' = {
   }
 }
 
-// Application Insights
 module appInsights 'modules/app-insights.bicep' = {
   name: 'app-insights'
   params: {
@@ -109,7 +100,6 @@ module appInsights 'modules/app-insights.bicep' = {
   }
 }
 
-// Outputs
 output cosmosEndpoint string = cosmosDb.outputs.endpoint
 output storageAccountName string = storage.outputs.name
 output acrLoginServer string = acr.outputs.loginServer

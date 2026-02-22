@@ -80,33 +80,24 @@ async def test_render_edition_produces_html() -> None:
 
     html = template.render(edition=edition)
     assert "<!DOCTYPE html>" in html
-    # Header
     assert "Test Edition Title" in html
     assert "Issue #1" in html
     assert "Feb 20, 2026" in html
-    # Editor's note
     assert "first issue" in html
-    # Signals
     assert "Signal One Headline" in html
     assert "Signal Two Headline" in html
     assert "ExampleCo" in html
     assert "tag-lab" in html
     assert "tag-protocol" in html
-    # Deep dive
     assert "Deep Dive Title" in html
     assert "First paragraph." in html
     assert "Key Insight" in html
-    # Toolkit
     assert "Tool One (v1.0)" in html
-    # One more thing
     assert "closing thought" in html
-    # Design elements
     assert "IBM Plex" in html
     assert "DM Serif Display" in html
     assert "--signal-green" in html
-    # Relative links point to parent directory
     assert "../index.html" in html
-    # No prev/next nav when not provided
     assert "Previous Issue" not in html
     assert "Next Issue" not in html
 

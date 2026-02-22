@@ -43,7 +43,6 @@ def orchestrator(
         mock_events.publish = AsyncMock()
         mock_events_cls.get_instance.return_value = mock_events
         orch = PipelineOrchestrator(client, links, editions, feedback, agent_runs)
-        # Mock the inner agent so it doesn't make real LLM calls
         orch._agent = MagicMock()  # noqa: SLF001
         orch._agent.run = AsyncMock(  # noqa: SLF001
             return_value=MagicMock(text="done")
@@ -74,7 +73,6 @@ async def test_handle_link_change_submitted(
 
     links.get.assert_called_with("link-1", "ed-1")
     orchestrator.agent.run.assert_called_once()
-    # Verify the message contains the link details
     call_args = orchestrator.agent.run.call_args[0][0]
     assert "link-1" in call_args
     assert "ed-1" in call_args

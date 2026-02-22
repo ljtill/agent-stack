@@ -38,7 +38,6 @@ async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> Service
     start = time.monotonic()
     try:
         container = database.get_container_client("editions")
-        # Read container properties as a minimal round-trip
         await container.read()
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(
@@ -102,7 +101,6 @@ def _clean_openai_error(raw: str) -> str:
     if "Connection error" in raw:
         return "Connection error — check AZURE_OPENAI_ENDPOINT is reachable"
 
-    # Strip the Python class repr prefix (e.g. "<class '...'>  service failed ...")
     if raw.startswith("<class "):
         idx = raw.find(">")
         if idx != -1:
@@ -113,7 +111,6 @@ def _clean_openai_error(raw: str) -> str:
                 .strip()
             )
 
-    # Try to pull the nested message from the error dict
     if "'message':" in raw:
         match = re.search(r"'message':\s*'([^']+)'", raw)
         if match:

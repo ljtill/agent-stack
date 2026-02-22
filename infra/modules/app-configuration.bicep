@@ -29,7 +29,6 @@ resource appConfig 'Microsoft.AppConfiguration/configurationStores@2023-03-01' =
   }
 }
 
-// App Configuration Data Reader role assignment
 resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(appConfig.id, principalId, '516239f1-63e1-4d78-a4de-a74fb236a071')
   scope: appConfig

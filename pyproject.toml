@@ -46,13 +46,13 @@ src = ["src"]
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "COM812",  # conflicts with ruff formatter
-    "D203",    # conflicts with D211
-    "D213",    # conflicts with D212
+    "COM812",
+    "D203",
+    "D213",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["S101"]  # pytest requires assert
+"tests/**/*.py" = ["S101"]
 
 [tool.ruff.lint.flake8-annotations]
 allow-star-arg-any = true

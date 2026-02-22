@@ -13,7 +13,7 @@ from agent_stack.models.link import Link, LinkStatus
 @pytest.fixture
 def repos() -> tuple[AsyncMock, AsyncMock, object]:
     """Create mock repository instances."""
-    return AsyncMock(), AsyncMock()  # links_repo, editions_repo
+    return AsyncMock(), AsyncMock()
 
 
 @pytest.fixture
@@ -92,7 +92,6 @@ async def test_save_draft_deduplicates_link_ids(
 
     await draft_agent.save_draft("ed-1", "link-1", json.dumps({}))
 
-    # link-1 should not be duplicated
     assert edition.link_ids.count("link-1") == 1
 
 
@@ -133,7 +132,6 @@ async def test_run_retries_when_save_draft_not_called(
         nonlocal call_count
         call_count += 1
         if call_count == _EXPECTED_RETRY_COUNT:
-            # Simulate save_draft being called on retry
             draft_agent._draft_saved = True  # noqa: SLF001
         return mock_response
 

@@ -120,7 +120,6 @@ async def test_save_review_raises_after_max_retries(
     links_repo.get.return_value = link
     links_repo.update.side_effect = Exception("Cosmos DB error")
 
-    # Exhaust retries
     for _ in range(2):
         await review_agent.save_review(
             "link-1", "ed-1", [], "AI/ML", _EXPECTED_RELEVANCE_SCORE, "Good"

@@ -39,8 +39,6 @@ class ChangeFeedProcessor:
         self._running = False
         self._task: asyncio.Task | None = None
         self._handler_tasks: set[asyncio.Task] = set()
-        # Track etags per container to avoid re-dispatching unchanged items
-        # (the Cosmos DB emulator may not advance continuation tokens correctly)
         self._seen_etags: dict[str, dict[str, str]] = {}
 
     @property
@@ -71,7 +69,6 @@ class ChangeFeedProcessor:
             self._task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._task
-        # Cancel any in-flight handler tasks
         for task in list(self._handler_tasks):
             task.cancel()
         if self._handler_tasks:
@@ -86,7 +83,6 @@ class ChangeFeedProcessor:
             "feedback"
         )
 
-        # Track continuation tokens per container
         links_token: str | None = None
         feedback_token: str | None = None
 
@@ -177,12 +173,8 @@ class ChangeFeedProcessor:
                     self._handler_tasks.add(task)
                     task.add_done_callback(self._handler_tasks.discard)
         except ServiceResponseError as exc:
-            # The Cosmos DB vnext-preview emulator returns malformed HTTP responses
-            # for the change feed endpoint when there are no changes, causing aiohttp
-            # to fail parsing. Treat as "no changes" and keep the current token.
             if "Expected HTTP/" in str(exc):
                 return continuation_token
             raise
 
-        # AsyncPageIterator has continuation_token at runtime; type stub is imprecise.
         return page_iterator.continuation_token or continuation_token  # type: ignore[union-attr]

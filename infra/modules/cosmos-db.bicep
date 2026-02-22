@@ -98,7 +98,6 @@ resource agentRunsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/
   }
 }
 
-// Cosmos DB Data Contributor role assignment
 resource roleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-11-15' = {
   parent: account
   name: guid(account.id, principalId, '00000000-0000-0000-0000-000000000002')

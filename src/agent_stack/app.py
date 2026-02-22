@@ -61,7 +61,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.settings = settings
     app.state.templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
-    # Start the agent pipeline
     chat_client = create_chat_client(settings.openai)
     editions_repo = EditionRepository(cosmos.database)
 
@@ -162,8 +161,6 @@ def main() -> None:
     logging.getLogger("sse_starlette").setLevel(logging.WARNING)
     logging.getLogger("openai").setLevel(logging.WARNING)
 
-    # The Cosmos SDK logs a noisy INFO message on the root logger every change
-    # feed poll ("'feed_range' empty. Using full range by default.").  Suppress it.
     class _FeedRangeFilter(logging.Filter):
         def filter(self, record: logging.LogRecord) -> bool:
             return "'feed_range' empty" not in record.getMessage()

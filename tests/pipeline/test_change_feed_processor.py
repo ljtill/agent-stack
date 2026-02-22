@@ -72,7 +72,6 @@ class TestChangeFeedProcessor:
         self, processor: ChangeFeedProcessor
     ) -> None:
         """Verify start creates background task."""
-        # Prevent the actual poll loop from running
         with patch.object(processor, "_poll_loop", new_callable=AsyncMock):
             await processor.start()
 
@@ -107,7 +106,6 @@ class TestChangeFeedProcessor:
 
         handler = AsyncMock()
         result = await processor.process_feed(mock_container, None, handler)
-        # Handlers are dispatched as background tasks
         await asyncio.sleep(0)
 
         handler.assert_awaited_once_with(item)
@@ -198,7 +196,6 @@ class TestChangeFeedProcessor:
         async def _fake_process_feed(*_args: object, **_kwargs: object) -> str | None:
             nonlocal call_count
             call_count += 1
-            # Stop the loop after one full iteration
             if call_count >= 2:  # noqa: PLR2004
                 processor._running = False  # noqa: SLF001
             return None
@@ -223,7 +220,6 @@ class TestChangeFeedProcessor:
             if call_count == 1:
                 msg = "links feed error"
                 raise RuntimeError(msg)
-            # Stop after processing feedback
             processor._running = False  # noqa: SLF001
             return None
 
@@ -234,7 +230,6 @@ class TestChangeFeedProcessor:
             processor._running = True  # noqa: SLF001
             await processor._poll_loop()  # noqa: SLF001
 
-        # Both links (errored) and feedback (ok) were attempted
         assert call_count == 2  # noqa: PLR2004
 
     async def test_poll_loop_backoff_on_consecutive_errors(
@@ -264,6 +259,5 @@ class TestChangeFeedProcessor:
             processor._running = True  # noqa: SLF001
             await processor._poll_loop()  # noqa: SLF001
 
-        # Should have backoff values (2.0, 4.0, ...) capped at 30.0
         assert len(sleep_values) > 0
         assert sleep_values[0] > 1.0

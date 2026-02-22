@@ -41,7 +41,6 @@ class TestStatusRoute:
         request.app.state.settings = MagicMock()
         request.app.state.processor = MagicMock()
         request.app.state.storage = None
-        # getattr with default should return None
         del request.app.state.storage
         request.app.state.templates = MagicMock()
 

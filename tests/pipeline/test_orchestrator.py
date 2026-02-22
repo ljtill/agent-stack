@@ -17,11 +17,6 @@ if TYPE_CHECKING:
     from agent_stack.models.link import Link
 
 
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
-
-
 @pytest.fixture
 def mock_repos() -> tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock]:
     """Return (links, editions, feedback, agent_runs) mock repos."""
@@ -45,11 +40,6 @@ def orchestrator(
         patch("agent_stack.pipeline.orchestrator.load_prompt", return_value=""),
     ):
         return PipelineOrchestrator(client, links, editions, feedback, runs)
-
-
-# ---------------------------------------------------------------------------
-# _normalize_usage
-# ---------------------------------------------------------------------------
 
 
 class TestNormalizeUsage:
@@ -81,11 +71,6 @@ class TestNormalizeUsage:
         assert result is not None
         expected_total = 100
         assert result["total_tokens"] == expected_total
-
-
-# ---------------------------------------------------------------------------
-# handle_link_change — orchestrator run captures usage
-# ---------------------------------------------------------------------------
 
 
 class TestHandleLinkChangeUsage:
@@ -142,11 +127,6 @@ class TestHandleLinkChangeUsage:
 
         saved_run = runs.update.call_args[0][0]
         assert saved_run.usage is None
-
-
-# ---------------------------------------------------------------------------
-# record_stage_complete — sub-agent runs capture usage
-# ---------------------------------------------------------------------------
 
 
 class TestRecordStageCompleteUsage:

@@ -60,7 +60,7 @@ class TestCosmosClient:
 
     async def test_close_noop_when_not_initialized(self, client: CosmosClient) -> None:
         """Verify close noop when not initialized."""
-        await client.close()  # Should not raise
+        await client.close()
 
     def test_database_property_raises_when_not_initialized(
         self, client: CosmosClient

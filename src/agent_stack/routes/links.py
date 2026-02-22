@@ -32,7 +32,6 @@ async def list_links(
 
     editions = await editions_repo.list_unpublished()
 
-    # Resolve selected edition: use query param if valid, else default to first
     edition = None
     if editions:
         if edition_id:
@@ -42,7 +41,6 @@ async def list_links(
 
     links = await links_repo.get_by_edition(edition.id) if edition else []
 
-    # Build a map of link_id -> pipeline invocation groups for display
     link_run_groups: dict[str, list[list]] = {}
     for link in links:
         runs = await runs_repo.get_by_trigger(link.id)
@@ -123,14 +121,11 @@ async def delete_link(
 
     await links_repo.soft_delete(link, edition_id)
 
-    # Regenerate edition content if this link was already drafted into it
     if link_id in edition.link_ids:
         edition.link_ids.remove(link_id)
         edition.content = {}
         await editions_repo.update(edition, edition_id)
 
-        # Reset remaining drafted links to REVIEWED so the change feed
-        # re-triggers the Draft agent for each, rebuilding edition content.
         remaining = await links_repo.get_by_status(edition_id, LinkStatus.DRAFTED)
         for remaining_link in remaining:
             remaining_link.status = LinkStatus.REVIEWED

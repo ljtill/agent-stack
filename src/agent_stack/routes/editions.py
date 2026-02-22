@@ -58,7 +58,6 @@ async def edition_detail(request: Request, edition_id: str) -> HTMLResponse:
     edition = await editions_repo.get(edition_id, edition_id)
     links = await links_repo.get_by_edition(edition_id) if edition else []
 
-    # Gather all agent runs for this edition's links and feedback
     trigger_ids = [link.id for link in links]
     agent_runs = await runs_repo.get_by_triggers(trigger_ids) if trigger_ids else []
     links_by_id = {link.id: link for link in links}

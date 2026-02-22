@@ -35,7 +35,6 @@ class TestStaticSiteRendererPublish:
 
         renderer.editions_repo.get.assert_called_once_with("ed-1", "ed-1")
         assert renderer.storage.upload_html.call_count == _EXPECTED_SINGLE_UPLOAD_COUNT
-        # First call: edition page, second call: index page
         calls = renderer.storage.upload_html.call_args_list
         assert calls[0][0][0] == "editions/ed-1.html"
         assert calls[1][0][0] == "index.html"

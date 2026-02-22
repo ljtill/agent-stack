@@ -13,7 +13,7 @@ from agent_stack.models.feedback import Feedback
 @pytest.fixture
 def repos() -> tuple[AsyncMock, AsyncMock, object]:
     """Create mock repository instances."""
-    return AsyncMock(), AsyncMock()  # editions_repo, feedback_repo
+    return AsyncMock(), AsyncMock()
 
 
 @pytest.fixture

@@ -14,7 +14,7 @@ from agent_stack.agents.registry import (
 
 LONG_INSTRUCTIONS_LENGTH = 300
 PREVIEW_MAX_LENGTH = 200
-EXPECTED_PREVIEW_LENGTH = 201  # 200 chars + ellipsis character
+EXPECTED_PREVIEW_LENGTH = 201
 EXPECTED_AGENT_COUNT = 6
 EXPECTED_PARTIAL_AGENT_COUNT = 2
 EXPECTED_TEMPERATURE = 0.7
@@ -174,7 +174,6 @@ class TestGetAgentMetadata:
     def test_returns_metadata_for_registered_agents(self) -> None:
         """Verify metadata is returned for all registered agents."""
         orchestrator = MagicMock()
-        # Set up minimal agents
         for attr in ("fetch", "review", "draft", "edit", "publish"):
             agent = _make_agent_obj(
                 _tools=[],

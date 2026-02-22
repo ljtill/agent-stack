@@ -266,13 +266,11 @@ async def test_delete_link_triggers_regeneration() -> None:
 
         await delete_link(request, link_id="link-1", edition_id="ed-1")
 
-        # Edition content cleared, link_id removed
         assert edition.content == {}
         assert "link-1" not in edition.link_ids
         assert "link-2" in edition.link_ids
         editions_repo.update.assert_called_once_with(edition, "ed-1")
 
-        # Remaining drafted link reset to REVIEWED
         assert remaining.status == LinkStatus.REVIEWED
         links_repo.update.assert_called_once_with(remaining, "ed-1")
 

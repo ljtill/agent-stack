@@ -20,7 +20,6 @@ def _extract_tools(agent_obj: object) -> list[dict[str, str]]:
     if inner is None:
         return []
     tools = getattr(inner, "_tools", None) or getattr(inner, "tools", None) or []
-    # Agent Framework stores tools in default_options["tools"]
     if not tools:
         opts = getattr(inner, "default_options", None)
         if isinstance(opts, dict):
@@ -53,7 +52,6 @@ def _extract_options(agent_obj: object) -> dict[str, Any]:
     )
     if opts is None:
         return {}
-    # Agent Framework stores options as a flat dict in default_options
     if isinstance(opts, dict):
         result: dict[str, Any] = {}
         for attr in ("temperature", "max_tokens", "top_p", "response_format"):
@@ -75,7 +73,6 @@ def _extract_middleware(agent_obj: object) -> list[str]:
     if inner is None:
         return []
     mw = getattr(inner, "_middleware", None) or getattr(inner, "middleware", None) or []
-    # Agent Framework may store middleware in default_options["middleware"]
     if not mw:
         opts = getattr(inner, "default_options", None)
         if isinstance(opts, dict):
@@ -93,7 +90,6 @@ def _extract_instructions(agent_obj: object, max_length: int = 200) -> dict[str,
         or getattr(inner, "instructions", None)
         or ""
     )
-    # Agent Framework may store instructions in default_options["instructions"]
     if not instructions:
         opts = getattr(inner, "default_options", None)
         if isinstance(opts, dict):

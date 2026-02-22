@@ -39,7 +39,6 @@ resource webContainer 'Microsoft.Storage/storageAccounts/blobServices/containers
   }
 }
 
-// Storage Blob Data Contributor role assignment
 resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(storageAccount.id, principalId, 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
   scope: storageAccount

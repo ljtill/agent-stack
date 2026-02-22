@@ -80,7 +80,6 @@ class TestEventManagerEventGenerator:
         """Verify timeout doesn't yield; loop rechecks disconnect."""
         manager = EventManager.get_instance()
         request = MagicMock()
-        # First is_disconnected returns False (timeout pass), second True (exit)
         request.is_disconnected = AsyncMock(side_effect=[False, True])
 
         gen = manager.event_generator(request)

@@ -1,5 +1,5 @@
 services:
-  cosmos-emulator:
+  cosmos:
     image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
     ports:
       - "8081:8081"
