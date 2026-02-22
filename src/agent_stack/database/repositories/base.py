@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -11,6 +12,8 @@ from agent_stack.models.base import DocumentBase
 
 if TYPE_CHECKING:
     from azure.cosmos.aio import ContainerProxy, DatabaseProxy
+
+logger = logging.getLogger(__name__)
 
 
 class BaseRepository[T: DocumentBase]:
@@ -29,6 +32,9 @@ class BaseRepository[T: DocumentBase]:
         """Create a new document."""
         body = item.model_dump(mode="json", exclude_none=True)
         await self._container.create_item(body=body)
+        logger.debug(
+            "Document created — container=%s id=%s", self.container_name, item.id
+        )
         return item
 
     async def get(self, item_id: str, partition_key: str) -> T | None:
@@ -53,10 +59,16 @@ class BaseRepository[T: DocumentBase]:
         # The SDK extracts the partition key from the document body automatically;
         # passing it as a kwarg leaks it through the HTTP pipeline to aiohttp.
         await self._container.replace_item(item=item.id, body=body)
+        logger.debug(
+            "Document updated — container=%s id=%s", self.container_name, item.id
+        )
         return item
 
     async def soft_delete(self, item: T, partition_key: str) -> T:
         """Soft-delete a document by setting deleted_at."""
+        logger.debug(
+            "Document soft-deleted — container=%s id=%s", self.container_name, item.id
+        )
         item.deleted_at = datetime.now(UTC)
         return await self.update(item, partition_key)
 

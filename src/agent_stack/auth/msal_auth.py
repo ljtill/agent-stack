@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import msal
 
 if TYPE_CHECKING:
     from agent_stack.config import EntraConfig
+
+logger = logging.getLogger(__name__)
 
 
 class MSALAuth:
@@ -38,6 +41,7 @@ class MSALAuth:
 
         Returns the full flow dict (for session storage).
         """
+        logger.info("Auth flow started")
         return self._app.initiate_auth_code_flow(
             scopes=self.SCOPE,
             redirect_uri=self._config.redirect_uri,
@@ -53,5 +57,7 @@ class MSALAuth:
         """
         result = self._app.acquire_token_by_auth_code_flow(flow, auth_response)
         if "error" in result:
+            logger.warning("Auth flow failed — error=%s", result.get("error"))
             return None
+        logger.info("Auth flow completed")
         return result

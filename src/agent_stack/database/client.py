@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, ClassVar, cast
 
 from azure.cosmos import PartitionKey
@@ -11,6 +12,8 @@ from azure.identity.aio import DefaultAzureCredential
 
 if TYPE_CHECKING:
     from agent_stack.config import CosmosConfig
+
+logger = logging.getLogger(__name__)
 
 
 class CosmosClient:
@@ -46,6 +49,11 @@ class CosmosClient:
                 id=name, partition_key=PartitionKey(path=partition_key)
             )
         self._database = db
+        logger.info(
+            "Cosmos DB initialized — endpoint=%s database=%s",
+            self._config.endpoint,
+            self._config.database,
+        )
 
     async def close(self) -> None:
         """Close the underlying client."""
@@ -56,6 +64,7 @@ class CosmosClient:
         if self._credential:
             await self._credential.close()
             self._credential = None
+        logger.info("Cosmos DB client closed")
 
     @property
     def database(self) -> DatabaseProxy:

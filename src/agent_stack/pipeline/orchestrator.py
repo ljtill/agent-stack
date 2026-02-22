@@ -376,6 +376,7 @@ class PipelineOrchestrator:
 
         logger.info("Orchestrator processing link=%s status=%s", link_id, status)
         run = await self._create_orchestrator_run(link_id, {"status": status})
+        pipeline_run_id = run.id
         t0 = time.monotonic()
         last_error: Exception | None = None
         for attempt in range(1, _MAX_STAGE_RETRIES + 1):
@@ -403,20 +404,23 @@ class PipelineOrchestrator:
                     delay = _RETRY_BASE_DELAY * (2 ** (attempt - 1))
                     logger.warning(
                         "Orchestrator attempt %d/%d failed for link %s, "
-                        "retrying in %.1fs: %s",
+                        "retrying in %.1fs — pipeline_run_id=%s: %s",
                         attempt,
                         _MAX_STAGE_RETRIES,
                         link_id,
                         delay,
+                        pipeline_run_id,
                         exc,
                     )
                     await asyncio.sleep(delay)
 
         if last_error is not None:
             logger.exception(
-                "Orchestrator failed for link %s after %d attempts",
+                "Orchestrator failed for link %s after %d attempts"
+                " — pipeline_run_id=%s",
                 link_id,
                 _MAX_STAGE_RETRIES,
+                pipeline_run_id,
                 exc_info=last_error,
             )
             run.status = AgentRunStatus.FAILED
@@ -431,9 +435,10 @@ class PipelineOrchestrator:
             self._processing_links.discard(link_id)
         elapsed_ms = (time.monotonic() - t0) * 1000
         logger.info(
-            "Orchestrator completed link=%s duration_ms=%.0f",
+            "Orchestrator completed link=%s duration_ms=%.0f pipeline_run_id=%s",
             link_id,
             elapsed_ms,
+            pipeline_run_id,
         )
 
         updated_link = await self._links_repo.get(link_id, edition_id)
@@ -464,6 +469,7 @@ class PipelineOrchestrator:
             run = await self._create_orchestrator_run(
                 feedback_id, {"edition_id": edition_id}
             )
+            pipeline_run_id = run.id
             t0 = time.monotonic()
             try:
                 message = (
@@ -481,7 +487,11 @@ class PipelineOrchestrator:
                     else None
                 )
             except Exception:
-                logger.exception("Orchestrator failed for feedback %s", feedback_id)
+                logger.exception(
+                    "Orchestrator failed for feedback %s — pipeline_run_id=%s",
+                    feedback_id,
+                    pipeline_run_id,
+                )
                 run.status = AgentRunStatus.FAILED
                 run.output = {"error": "Orchestrator failed"}
             finally:
@@ -490,9 +500,11 @@ class PipelineOrchestrator:
                 await self._publish_run_event(run)
                 elapsed_ms = (time.monotonic() - t0) * 1000
                 logger.info(
-                    "Orchestrator completed feedback=%s duration_ms=%.0f",
+                    "Orchestrator completed feedback=%s duration_ms=%.0f"
+                    " pipeline_run_id=%s",
                     feedback_id,
                     elapsed_ms,
+                    pipeline_run_id,
                 )
 
     async def handle_publish(self, edition_id: str) -> None:
@@ -501,6 +513,7 @@ class PipelineOrchestrator:
         run = await self._create_orchestrator_run(
             edition_id, {"edition_id": edition_id}
         )
+        pipeline_run_id = run.id
         t0 = time.monotonic()
         try:
             message = (
@@ -517,7 +530,11 @@ class PipelineOrchestrator:
                 else None
             )
         except Exception:
-            logger.exception("Orchestrator failed for publish edition=%s", edition_id)
+            logger.exception(
+                "Orchestrator failed for publish edition=%s — pipeline_run_id=%s",
+                edition_id,
+                pipeline_run_id,
+            )
             run.status = AgentRunStatus.FAILED
             run.output = {"error": "Orchestrator failed"}
         finally:
@@ -526,9 +543,11 @@ class PipelineOrchestrator:
             await self._publish_run_event(run)
             elapsed_ms = (time.monotonic() - t0) * 1000
             logger.info(
-                "Orchestrator completed publish edition=%s duration_ms=%.0f",
+                "Orchestrator completed publish edition=%s duration_ms=%.0f"
+                " pipeline_run_id=%s",
                 edition_id,
                 elapsed_ms,
+                pipeline_run_id,
             )
 
     async def _create_orchestrator_run(

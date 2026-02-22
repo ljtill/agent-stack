@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from agent_stack.agents.draft import DraftAgent
@@ -12,6 +13,8 @@ from agent_stack.agents.review import ReviewAgent
 
 if TYPE_CHECKING:
     from agent_stack.pipeline.orchestrator import PipelineOrchestrator
+
+logger = logging.getLogger(__name__)
 
 
 def _extract_tools(agent_obj: object) -> list[dict[str, str]]:
@@ -152,4 +155,5 @@ def get_agent_metadata(orchestrator: PipelineOrchestrator) -> list[dict[str, Any
                 "instructions": _extract_instructions(agent_obj),
             }
         )
+    logger.debug("Agent metadata retrieved — agents=%d", len(result))
     return result

@@ -151,7 +151,7 @@ class DraftAgent:
 
     async def run(self, link: Link) -> dict:
         """Execute the draft agent for a reviewed link."""
-        logger.debug(
+        logger.info(
             "Draft agent started — link=%s edition=%s", link.id, link.edition_id
         )
         t0 = time.monotonic()
@@ -184,7 +184,7 @@ class DraftAgent:
             )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.debug(
+        logger.info(
             "Draft agent completed — link=%s edition=%s duration_ms=%.0f",
             link.id,
             link.edition_id,

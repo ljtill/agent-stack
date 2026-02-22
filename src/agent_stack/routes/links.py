@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Form, Query, Request
@@ -16,6 +17,8 @@ if TYPE_CHECKING:
     from agent_stack.database.client import CosmosClient
 
 router = APIRouter(prefix="/links", tags=["links"])
+
+logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -71,6 +74,12 @@ async def submit_link(
     link = await link_svc.submit_link(url, edition_id, links_repo, editions_repo)
     if not link:
         return RedirectResponse("/links/", status_code=303)
+    logger.info(
+        "Link submitted — link=%s edition=%s url=%s",
+        link.id,
+        link.edition_id,
+        url,
+    )
     return RedirectResponse(f"/links/?edition_id={link.edition_id}", status_code=303)
 
 
@@ -88,6 +97,7 @@ async def retry_link(request: Request, link_id: str) -> RedirectResponse:
     success = await link_svc.retry_link(link_id, edition.id, links_repo)
     if not success:
         return RedirectResponse("/links/", status_code=303)
+    logger.info("Link retried — link=%s edition=%s", link_id, edition.id)
     return RedirectResponse("/links/", status_code=303)
 
 
@@ -105,6 +115,7 @@ async def delete_link(
     result = await link_svc.delete_link(link_id, edition_id, links_repo, editions_repo)
     if result is None:
         return RedirectResponse("/links/", status_code=303)
+    logger.info("Link deleted — link=%s edition=%s", link_id, edition_id)
     return RedirectResponse(f"/links/?edition_id={edition_id}", status_code=303)
 
 

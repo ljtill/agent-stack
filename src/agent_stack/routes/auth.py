@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
 
 from agent_stack.auth.msal_auth import MSALAuth
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+logger = logging.getLogger(__name__)
 
 
 @router.get("/login")
@@ -29,7 +33,9 @@ async def callback(request: Request) -> RedirectResponse:
     result = auth.complete_auth(flow, dict(request.query_params))
     if result:
         request.session["user"] = result.get("id_token_claims", {})
+        logger.info("User logged in")
         return RedirectResponse("/")
+    logger.warning("Auth callback failed")
     return RedirectResponse("/auth/login")
 
 
@@ -37,4 +43,5 @@ async def callback(request: Request) -> RedirectResponse:
 async def logout(request: Request) -> RedirectResponse:
     """Clear the session and redirect to the login page."""
     request.session.clear()
+    logger.info("User logged out")
     return RedirectResponse("/auth/login")

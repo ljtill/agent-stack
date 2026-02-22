@@ -130,7 +130,7 @@ class ReviewAgent:
 
     async def run(self, link: Link) -> dict:
         """Execute the review agent for a fetched link."""
-        logger.debug("Review agent started — link=%s", link.id)
+        logger.info("Review agent started — link=%s", link.id)
         t0 = time.monotonic()
         self.save_failures = 0
         message = (
@@ -146,7 +146,7 @@ class ReviewAgent:
             )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.debug(
+        logger.info(
             "Review agent completed — link=%s duration_ms=%.0f", link.id, elapsed_ms
         )
         return {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Form, Request
@@ -14,6 +15,8 @@ from agent_stack.database.repositories.links import LinkRepository
 from agent_stack.services import editions as edition_svc
 
 router = APIRouter(prefix="/editions", tags=["editions"])
+
+logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -35,6 +38,7 @@ async def create_edition(request: Request) -> RedirectResponse:
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
     await edition_svc.create_edition(repo)
+    logger.info("Edition created")
     return RedirectResponse("/editions/", status_code=303)
 
 
@@ -73,6 +77,7 @@ async def preview_edition(request: Request, edition_id: str) -> HTMLResponse:
 @router.post("/{edition_id}/publish")
 async def publish_edition(request: Request, edition_id: str) -> RedirectResponse:
     """Trigger the publish pipeline for an edition via the orchestrator agent."""
+    logger.info("Publish requested — edition=%s", edition_id)
     orchestrator = request.app.state.processor.orchestrator
     task = asyncio.create_task(edition_svc.publish_edition(edition_id, orchestrator))
     if not hasattr(request.app.state, "background_tasks"):
@@ -87,6 +92,7 @@ async def delete_edition(request: Request, edition_id: str) -> RedirectResponse:
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
     await edition_svc.delete_edition(edition_id, repo)
+    logger.info("Edition deleted — edition=%s", edition_id)
     return RedirectResponse("/editions/", status_code=303)
 
 
@@ -125,6 +131,7 @@ async def update_title(
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
     edition = await edition_svc.update_title(edition_id, title, repo)
+    logger.info("Edition title updated — edition=%s", edition_id)
     return templates.TemplateResponse(
         "partials/edition_title.html",
         {"request": request, "edition": edition, "editing": False},

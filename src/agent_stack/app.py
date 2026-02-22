@@ -175,6 +175,8 @@ def main() -> None:
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("sse_starlette").setLevel(logging.WARNING)
     logging.getLogger("openai").setLevel(logging.WARNING)
+    logging.getLogger("agent_framework").setLevel(logging.WARNING)
+    logging.getLogger("python_multipart").setLevel(logging.WARNING)
 
     class _FeedRangeFilter(logging.Filter):
         def filter(self, record: logging.LogRecord) -> bool:

@@ -52,8 +52,8 @@ class TokenTrackingMiddleware(ChatMiddleware):
         output_tokens = usage.get("output_token_count", 0) or 0
         total_tokens = usage.get("total_token_count", 0) or input_tokens + output_tokens
 
-        logger.debug(
-            "LLM call: input_tokens=%d output_tokens=%d "
+        logger.info(
+            "LLM call completed — input_tokens=%d output_tokens=%d "
             "total_tokens=%d latency_ms=%.0f",
             input_tokens,
             output_tokens,

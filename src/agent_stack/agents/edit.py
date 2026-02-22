@@ -133,7 +133,7 @@ class EditAgent:
 
     async def run(self, edition_id: str) -> dict:
         """Execute the edit agent for an edition."""
-        logger.debug("Edit agent started — edition=%s", edition_id)
+        logger.info("Edit agent started — edition=%s", edition_id)
         t0 = time.monotonic()
         message = (
             "Edit and refine the current edition. "
@@ -151,7 +151,7 @@ class EditAgent:
             )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.debug(
+        logger.info(
             "Edit agent completed — edition=%s duration_ms=%.0f", edition_id, elapsed_ms
         )
         return {

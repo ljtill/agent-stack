@@ -142,7 +142,7 @@ class FetchAgent:
 
     async def run(self, link: Link) -> dict:
         """Execute the fetch agent for a given link."""
-        logger.debug("Fetch agent started — link=%s url=%s", link.id, link.url)
+        logger.info("Fetch agent started — link=%s url=%s", link.id, link.url)
         t0 = time.monotonic()
         message = (
             f"Fetch and extract the content from this URL: {link.url}\n"
@@ -157,7 +157,7 @@ class FetchAgent:
             )
             raise
         elapsed_ms = (time.monotonic() - t0) * 1000
-        logger.debug(
+        logger.info(
             "Fetch agent completed — link=%s duration_ms=%.0f", link.id, elapsed_ms
         )
         return {
