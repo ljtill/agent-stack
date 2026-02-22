@@ -30,13 +30,18 @@ async def list_editions(request: Request) -> HTMLResponse:
 
 
 @router.post("/")
-async def create_edition(
-    request: Request, title: Annotated[str, Form()] = ""
-) -> RedirectResponse:
-    """Create a new edition."""
+async def create_edition(request: Request) -> RedirectResponse:
+    """Create a new edition with an auto-generated issue number and title."""
     cosmos = request.app.state.cosmos
     repo = EditionRepository(cosmos.database)
-    edition = Edition(content={"title": title.strip(), "sections": []})
+    issue_number = await repo.next_issue_number()
+    edition = Edition(
+        content={
+            "title": f"Issue #{issue_number}",
+            "issue_number": issue_number,
+            "sections": [],
+        }
+    )
     await repo.create(edition)
     return RedirectResponse("/editions/", status_code=303)
 

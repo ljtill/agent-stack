@@ -26,51 +26,23 @@ def _make_request(_app_state: object | None = None) -> MagicMock:
     return request
 
 
-async def test_create_edition_with_title() -> None:
-    """Creating an edition with a title stores it in content."""
+async def test_create_edition_auto_numbers() -> None:
+    """Creating an edition auto-generates title and issue_number."""
     request = _make_request()
 
     with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
         repo = AsyncMock()
         mock_repo_cls.return_value = repo
         repo.create.return_value = None
+        repo.next_issue_number.return_value = 3
 
-        await create_edition(request, title="Weekly Roundup #1")
+        await create_edition(request)
 
         repo.create.assert_called_once()
         created_edition = repo.create.call_args[0][0]
-        assert created_edition.content["title"] == "Weekly Roundup #1"
+        assert created_edition.content["title"] == "Issue #3"
+        assert created_edition.content["issue_number"] == 3
         assert created_edition.content["sections"] == []
-
-
-async def test_create_edition_with_empty_title() -> None:
-    """Creating an edition without a title stores empty string."""
-    request = _make_request()
-
-    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
-        repo = AsyncMock()
-        mock_repo_cls.return_value = repo
-        repo.create.return_value = None
-
-        await create_edition(request, title="")
-
-        created_edition = repo.create.call_args[0][0]
-        assert created_edition.content["title"] == ""
-
-
-async def test_create_edition_strips_whitespace() -> None:
-    """Title whitespace is stripped on creation."""
-    request = _make_request()
-
-    with patch("agent_stack.routes.editions.EditionRepository") as mock_repo_cls:
-        repo = AsyncMock()
-        mock_repo_cls.return_value = repo
-        repo.create.return_value = None
-
-        await create_edition(request, title="  Padded Title  ")
-
-        created_edition = repo.create.call_args[0][0]
-        assert created_edition.content["title"] == "Padded Title"
 
 
 async def test_update_title() -> None:

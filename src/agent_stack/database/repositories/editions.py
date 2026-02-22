@@ -53,6 +53,18 @@ class EditionRepository(BaseRepository[Edition]):
             [{"name": "@status", "value": EditionStatus.PUBLISHED.value}],
         )
 
+    async def next_issue_number(self) -> int:
+        """Return the next sequential issue number for a new edition."""
+        current_max = 0
+        async for value in self._container.query_items(
+            "SELECT VALUE MAX(c.content.issue_number) FROM c"
+            " WHERE NOT IS_DEFINED(c.deleted_at)"
+            " AND IS_NUMBER(c.content.issue_number)",
+        ):
+            if value is not None:
+                current_max = int(value)  # ty: ignore[invalid-argument-type]
+        return current_max + 1
+
     async def count_by_status(self) -> dict[str, int]:
         """Return the number of active editions grouped by status."""
         counts: dict[str, int] = {}
