@@ -40,7 +40,7 @@
 
 - **Package layout**: `src/agent_stack/` — standard `src/` layout for an application package.
 - **Process model**: Single process — the FastAPI application runs the Cosmos DB change feed processor as a background task within the same process via FastAPI's lifespan events.
-- **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible) and Azurite (Azure Storage emulator) via Docker for offline development.
+- **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible) and Azurite (Azure Storage emulator) via Docker for offline development. [Microsoft Foundry Local](https://github.com/microsoft/foundry-local) provides optional on-device LLM inference, eliminating the need for an Azure subscription during local development (`FOUNDRY_PROVIDER=local`).
 
 ---
 

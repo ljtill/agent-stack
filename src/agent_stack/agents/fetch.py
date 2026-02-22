@@ -15,7 +15,7 @@ from agent_stack.agents.prompts import load_prompt
 from agent_stack.models.link import Link, LinkStatus
 
 if TYPE_CHECKING:
-    from agent_framework.azure import AzureOpenAIChatClient
+    from agent_framework import BaseChatClient
 
     from agent_stack.database.repositories.links import LinkRepository
 
@@ -27,7 +27,7 @@ class FetchAgent:
 
     def __init__(
         self,
-        client: AzureOpenAIChatClient,
+        client: BaseChatClient,
         links_repo: LinkRepository,
     ) -> None:
         """Initialize the fetch agent with LLM client and link repository."""

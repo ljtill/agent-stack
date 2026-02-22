@@ -31,6 +31,15 @@ class FoundryConfig:
         default_factory=lambda: _env("FOUNDRY_PROJECT_ENDPOINT")
     )
     model: str = field(default_factory=lambda: _env("FOUNDRY_MODEL"))
+    provider: str = field(default_factory=lambda: _env("FOUNDRY_PROVIDER", "cloud"))
+    local_model: str = field(
+        default_factory=lambda: _env("FOUNDRY_LOCAL_MODEL", "phi-4-mini")
+    )
+
+    @property
+    def is_local(self) -> bool:
+        """Return True when using Foundry Local for on-device inference."""
+        return self.provider == "local"
 
 
 @dataclass(frozen=True)

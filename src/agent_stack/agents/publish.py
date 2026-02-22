@@ -17,7 +17,7 @@ from agent_stack.models.edition import EditionStatus
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    from agent_framework.azure import AzureOpenAIChatClient
+    from agent_framework import BaseChatClient
 
     from agent_stack.database.repositories.editions import EditionRepository
     from agent_stack.models.edition import Edition
@@ -30,7 +30,7 @@ class PublishAgent:
 
     def __init__(
         self,
-        client: AzureOpenAIChatClient,
+        client: BaseChatClient,
         editions_repo: EditionRepository,
         render_fn: Callable[[Edition], Awaitable[str]] | None = None,
         upload_fn: Callable[[str, str], Awaitable[None]] | None = None,

@@ -13,6 +13,7 @@ from agent_framework.exceptions import ChatClientException
 from azure.core.exceptions import AzureError
 
 if TYPE_CHECKING:
+    from agent_framework import BaseChatClient
     from agent_framework.azure import AzureOpenAIChatClient
     from azure.cosmos.aio import DatabaseProxy
 
@@ -58,7 +59,7 @@ async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> Service
 
 
 async def check_openai(
-    client: AzureOpenAIChatClient, config: FoundryConfig
+    client: AzureOpenAIChatClient | BaseChatClient, config: FoundryConfig
 ) -> ServiceHealth:
     """Probe Microsoft Foundry with a minimal completion request."""
     detail = f"{config.project_endpoint} · {config.model}"
@@ -188,7 +189,7 @@ class StorageHealthConfig:
 
 async def check_all(
     database: DatabaseProxy,
-    openai_client: AzureOpenAIChatClient | None,
+    openai_client: BaseChatClient | None,
     processor: ChangeFeedProcessor | None,
     cosmos_config: CosmosConfig,
     foundry_config: FoundryConfig,

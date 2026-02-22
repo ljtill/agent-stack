@@ -205,7 +205,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: PLR0915
     app.state.templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
     chat_client = None
-    if settings.foundry.project_endpoint:
+    if settings.foundry.is_local:
+        chat_client = create_chat_client(settings.foundry)
+        logger.info("Using Foundry Local — model=%s", settings.foundry.local_model)
+    elif settings.foundry.project_endpoint:
         chat_client = create_chat_client(settings.foundry)
     else:
         logger.warning(
@@ -222,10 +225,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: PLR0915
     upload_fn = storage.upload_html
     logger.info("Blob storage configured")
 
-    # Initialize Foundry Memory (optional — gracefully disabled when unconfigured)
+    # Initialize Foundry Memory (disabled when using Foundry Local)
     context_providers: list | None = None
     memory_service: MemoryService | None = None
-    if settings.foundry.project_endpoint and settings.memory.enabled:
+    if (
+        not settings.foundry.is_local
+        and settings.foundry.project_endpoint
+        and settings.memory.enabled
+    ):
         try:
             from azure.ai.projects import AIProjectClient  # noqa: PLC0415
             from azure.identity import DefaultAzureCredential  # noqa: PLC0415

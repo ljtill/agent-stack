@@ -29,7 +29,7 @@ from agent_stack.models.link import LinkStatus
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    from agent_framework.azure import AzureOpenAIChatClient
+    from agent_framework import BaseChatClient
 
     from agent_stack.database.repositories.agent_runs import AgentRunRepository
     from agent_stack.database.repositories.editions import EditionRepository
@@ -93,7 +93,7 @@ class PipelineOrchestrator:
 
     def __init__(
         self,
-        client: AzureOpenAIChatClient,
+        client: BaseChatClient,
         links_repo: LinkRepository,
         editions_repo: EditionRepository,
         feedback_repo: FeedbackRepository,

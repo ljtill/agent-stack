@@ -14,7 +14,7 @@ from agent_stack.agents.prompts import load_prompt
 from agent_stack.models.link import Link, LinkStatus
 
 if TYPE_CHECKING:
-    from agent_framework.azure import AzureOpenAIChatClient
+    from agent_framework import BaseChatClient
 
     from agent_stack.database.repositories.editions import EditionRepository
     from agent_stack.database.repositories.links import LinkRepository
@@ -27,7 +27,7 @@ class DraftAgent:
 
     def __init__(
         self,
-        client: AzureOpenAIChatClient,
+        client: BaseChatClient,
         links_repo: LinkRepository,
         editions_repo: EditionRepository,
         *,

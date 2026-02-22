@@ -18,6 +18,7 @@ graph TB
         Orchestrator["Pipeline<br/>Orchestrator"]
         Agents["Agent Pipeline<br/>(Fetch → Review → Draft → Edit → Publish)"]
         LLM["Microsoft Foundry<br/>(LLM Provider)"]
+        LocalLLM["Foundry Local<br/>(On-Device, Optional)"]
         Storage["Azure Storage<br/>(Static Assets)"]
         StaticSite["Static Web Apps<br/>(Public Site)"]
     end
@@ -28,6 +29,7 @@ graph TB
     ChangeFeed -->|delegates| Orchestrator
     Orchestrator -->|coordinates| Agents
     Agents -->|LLM calls| LLM
+    Agents -.->|LLM calls<br/>(FOUNDRY_PROVIDER=local)| LocalLLM
     Agents -->|reads/writes| CosmosDB
     Agents -->|uploads HTML| Storage
     Storage -->|serves| StaticSite

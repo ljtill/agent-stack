@@ -110,10 +110,19 @@ def cosmos_config() -> tuple[CosmosConfig, object, object]:
 
 @pytest.fixture
 def foundry_config() -> FoundryConfig:
-    """Create a Foundry config for testing."""
+    """Create a Foundry config for testing (cloud provider)."""
     return FoundryConfig(
         project_endpoint="https://test.services.ai.azure.com/api/projects/test",
         model="gpt-test",
+    )
+
+
+@pytest.fixture
+def foundry_local_config() -> FoundryConfig:
+    """Create a Foundry config for testing (local provider)."""
+    return FoundryConfig(
+        provider="local",
+        local_model="phi-4-mini",
     )
 
 

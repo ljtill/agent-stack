@@ -13,7 +13,7 @@ from agent_stack.agents.middleware import TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
 
 if TYPE_CHECKING:
-    from agent_framework.azure import AzureOpenAIChatClient
+    from agent_framework import BaseChatClient
 
     from agent_stack.database.repositories.editions import EditionRepository
     from agent_stack.database.repositories.feedback import FeedbackRepository
@@ -26,7 +26,7 @@ class EditAgent:
 
     def __init__(
         self,
-        client: AzureOpenAIChatClient,
+        client: BaseChatClient,
         editions_repo: EditionRepository,
         feedback_repo: FeedbackRepository,
         *,
