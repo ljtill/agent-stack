@@ -33,25 +33,3 @@ class TestStatusRoute:
         call_args = request.app.state.templates.TemplateResponse.call_args
         assert call_args[0][0] == "status.html"
         assert call_args[0][1]["checks"] == mock_results
-
-    async def test_handles_missing_storage(self) -> None:
-        """Verify handles missing storage."""
-        request = MagicMock()
-        request.app.state.cosmos = MagicMock()
-        request.app.state.settings = MagicMock()
-        request.app.state.processor = MagicMock()
-        request.app.state.storage = None
-        del request.app.state.storage
-        request.app.state.templates = MagicMock()
-
-        with (
-            patch("agent_stack.routes.status.create_chat_client"),
-            patch(
-                "agent_stack.routes.status.check_all",
-                new_callable=AsyncMock,
-                return_value=[],
-            ),
-        ):
-            await status(request)
-
-        request.app.state.templates.TemplateResponse.assert_called_once()

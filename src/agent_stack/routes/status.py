@@ -20,7 +20,7 @@ async def status(request: Request) -> HTMLResponse:
     cosmos = request.app.state.cosmos
     settings = request.app.state.settings
     processor = request.app.state.processor
-    storage = getattr(request.app.state, "storage", None)
+    storage = request.app.state.storage
     start_time = request.app.state.start_time
     chat_client = create_chat_client(settings.openai)
 
@@ -30,9 +30,7 @@ async def status(request: Request) -> HTMLResponse:
         processor,
         cosmos_config=settings.cosmos,
         openai_config=settings.openai,
-        storage_health=StorageHealthConfig(client=storage, config=settings.storage)
-        if storage
-        else None,
+        storage_health=StorageHealthConfig(client=storage, config=settings.storage),
     )
     stats_coro = collect_stats(
         cosmos.database,

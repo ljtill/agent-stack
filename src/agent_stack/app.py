@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 
 import httpx
 import uvicorn
-from azure.core.exceptions import AzureError, HttpResponseError
+from azure.core.exceptions import HttpResponseError
 from azure.monitor.opentelemetry import configure_azure_monitor
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -99,30 +99,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     chat_client = create_chat_client(settings.openai)
     editions_repo = EditionRepository(cosmos.database)
 
-    render_fn = None
-    upload_fn = None
-    storage: BlobStorageClient | None = None
+    storage = BlobStorageClient(settings.storage)
+    await storage.initialize()
+    app.state.storage = storage
 
-    if settings.storage.account_url:
-        try:
-            storage = BlobStorageClient(settings.storage)
-            await storage.initialize()
-            app.state.storage = storage
-
-            renderer = StaticSiteRenderer(editions_repo, storage)
-            render_fn = renderer.render_edition
-            upload_fn = storage.upload_html
-            logger.info("Blob storage configured")
-        except (AzureError, OSError, ValueError):
-            logger.warning(
-                "Failed to connect to blob storage — publish uploads disabled",
-                exc_info=True,
-            )
-            if storage:
-                await storage.close()
-            storage = None
-    else:
-        logger.warning("AZURE_STORAGE_ACCOUNT_URL not set — publish uploads disabled")
+    renderer = StaticSiteRenderer(editions_repo, storage)
+    render_fn = renderer.render_edition
+    upload_fn = storage.upload_html
+    logger.info("Blob storage configured")
 
     orchestrator = PipelineOrchestrator(
         client=chat_client,
@@ -148,8 +132,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
     await processor.stop()
-    if storage:
-        await storage.close()
+    await storage.close()
     await cosmos.close()
     logger.info("Application shutdown")
 
