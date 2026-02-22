@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -108,6 +109,10 @@ class PipelineOrchestrator:
         self._agent_runs_repo = agent_runs_repo
 
         self._events = EventManager.get_instance()
+
+        # Prevent concurrent orchestrator runs for the same link
+        self._processing_links: set[str] = set()
+        self._link_lock = asyncio.Lock()
 
         rate_limiter = RateLimitMiddleware(
             tpm_limit=int(os.environ.get("OPENAI_TPM_LIMIT", "800000")),
@@ -318,34 +323,35 @@ class PipelineOrchestrator:
         edition_id = document.get("edition_id", "")
         status = document.get("status", "")
 
-        link = await self._links_repo.get(link_id, edition_id)
-        if not link:
-            logger.warning("Link %s not found, skipping", link_id)
-            return
-
-        # Skip failed links — user must click Retry to reprocess
-        if link.status == LinkStatus.FAILED:
-            logger.debug("Link %s is failed, skipping (use Retry)", link_id)
-            return
-
-        # Only process links with actionable statuses
-        if status not in (
-            LinkStatus.SUBMITTED,
-            LinkStatus.FETCHING,
-            LinkStatus.REVIEWED,
-        ):
-            logger.debug("No action needed for link %s with status %s", link_id, status)
-            return
-
-        # Skip stale/replayed events — the link has already advanced past this status
-        if link.status != status:
-            logger.debug(
-                "Link %s already at status %s, skipping stale event (feed status: %s)",
-                link_id,
-                link.status,
-                status,
-            )
-            return
+        # Skip if this link is already being processed by another handler
+        async with self._link_lock:
+            if link_id in self._processing_links:
+                logger.debug("Link %s already being processed, skipping", link_id)
+                return
+            # Only claim the link for actionable submitted status
+            link = await self._links_repo.get(link_id, edition_id)
+            if not link:
+                logger.warning("Link %s not found, skipping", link_id)
+                return
+            if link.status == LinkStatus.FAILED:
+                logger.debug("Link %s is failed, skipping (use Retry)", link_id)
+                return
+            if status != LinkStatus.SUBMITTED:
+                logger.debug(
+                    "Link %s status %s not actionable, skipping",
+                    link_id,
+                    status,
+                )
+                return
+            if link.status != status:
+                logger.debug(
+                    "Link %s already at %s, skipping stale event (%s)",
+                    link_id,
+                    link.status,
+                    status,
+                )
+                return
+            self._processing_links.add(link_id)
 
         logger.info("Orchestrator processing link=%s status=%s", link_id, status)
         run = await self._create_orchestrator_run(link_id, {"status": status})
@@ -369,6 +375,8 @@ class PipelineOrchestrator:
             run.completed_at = datetime.now(UTC)
             await self._agent_runs_repo.update(run, link_id)
             await self._publish_run_event(run)
+            async with self._link_lock:
+                self._processing_links.discard(link_id)
             elapsed_ms = (time.monotonic() - t0) * 1000
             logger.info(
                 "Orchestrator completed link=%s duration_ms=%.0f",
