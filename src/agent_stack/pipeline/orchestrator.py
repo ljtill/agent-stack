@@ -163,12 +163,7 @@ class PipelineOrchestrator:
                     arg_name="task",
                     arg_description="Instructions including the link ID and edition ID",
                 ),
-                self.draft.agent.as_tool(
-                    name="draft",
-                    description="Compose newsletter content from reviewed material",
-                    arg_name="task",
-                    arg_description="Instructions including the link ID and edition ID",
-                ),
+                self._draft_tool,
                 self.edit.agent.as_tool(
                     name="edit",
                     description="Refine edition content and address editor feedback",
@@ -200,6 +195,14 @@ class PipelineOrchestrator:
         return self._agent  # ty: ignore[invalid-return-type]
 
     # -- Custom tools for state inspection and run tracking --
+
+    @tool(name="draft")
+    async def _draft_tool(
+        self,
+        task: Annotated[str, "Instructions including the link ID and edition ID"],
+    ) -> str:
+        """Compose newsletter content from reviewed material."""
+        return await self.draft.run_with_guardrail(task)
 
     @tool
     async def get_link_status(
