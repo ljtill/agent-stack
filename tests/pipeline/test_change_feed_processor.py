@@ -1,5 +1,6 @@
 """Tests for the ChangeFeedProcessor — poll loop and feed processing."""
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -106,6 +107,8 @@ class TestChangeFeedProcessor:
 
         handler = AsyncMock()
         result = await processor.process_feed(mock_container, None, handler)
+        # Handlers are dispatched as background tasks
+        await asyncio.sleep(0)
 
         handler.assert_awaited_once_with(item)
         assert result == _TEST_CONTINUATION_TOKEN
