@@ -48,7 +48,7 @@ class EventManager:
         queue: asyncio.Queue = asyncio.Queue()
         self.queues.append(queue)
         client = request.client.host if request.client else "unknown"
-        logger.info(
+        logger.debug(
             "SSE client connected — client=%s active_connections=%d",
             client,
             len(self.queues),
@@ -64,7 +64,7 @@ class EventManager:
                     pass
         finally:
             self.queues.remove(queue)
-            logger.info(
+            logger.debug(
                 "SSE client disconnected — client=%s active_connections=%d",
                 client,
                 len(self.queues),
