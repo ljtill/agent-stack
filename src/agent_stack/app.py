@@ -55,7 +55,11 @@ async def _check_emulators(settings: Settings) -> bool:
     failures: list[str] = []
     async with httpx.AsyncClient(timeout=3) as client:
         cosmos_url = settings.cosmos.endpoint
-        if not cosmos_url.startswith("https://"):
+        if not cosmos_url:
+            failures.append(
+                "COSMOS_ENDPOINT is not set — add it to .env (see .env.example)"
+            )
+        elif not cosmos_url.startswith("https://"):
             try:
                 await client.get(f"{cosmos_url.rstrip('/')}/")
             except httpx.ConnectError:
@@ -63,7 +67,12 @@ async def _check_emulators(settings: Settings) -> bool:
                 failures.append(f"Cosmos DB emulator is not running at {parsed.netloc}")
 
         storage_url = settings.storage.account_url
-        if storage_url and not storage_url.startswith("https://"):
+        if not storage_url:
+            failures.append(
+                "AZURE_STORAGE_ACCOUNT_URL is not set — add it to .env "
+                "(see .env.example)"
+            )
+        elif not storage_url.startswith("https://"):
             try:
                 parsed = urlparse(storage_url)
                 await client.get(f"{parsed.scheme}://{parsed.netloc}/")
@@ -194,6 +203,7 @@ def main() -> None:
     logging.getLogger("openai").setLevel(logging.WARNING)
     logging.getLogger("agent_framework").setLevel(logging.WARNING)
     logging.getLogger("python_multipart").setLevel(logging.WARNING)
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
 
     class _FeedRangeFilter(logging.Filter):
         def filter(self, record: logging.LogRecord) -> bool:
