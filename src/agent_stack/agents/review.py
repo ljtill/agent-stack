@@ -90,7 +90,9 @@ class ReviewAgent:
         """Persist the review output to the link document."""
         try:
             parsed_insights: list | str = (
-                json.loads(insights) if isinstance(insights, str) else insights
+                json.loads(insights, strict=False)
+                if isinstance(insights, str)
+                else insights
             )
         except (json.JSONDecodeError, TypeError) as exc:
             logger.warning(

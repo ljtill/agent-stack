@@ -101,7 +101,9 @@ class DraftAgent:
         """Update the edition content with drafted material."""
         try:
             parsed_content = (
-                json.loads(content) if isinstance(content, str) else content
+                json.loads(content, strict=False)
+                if isinstance(content, str)
+                else content
             )
         except (json.JSONDecodeError, TypeError) as exc:
             logger.warning(
