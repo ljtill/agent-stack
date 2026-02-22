@@ -39,6 +39,9 @@ class EventManager:
             "event": event_type,
             "data": json.dumps(data) if isinstance(data, dict) else data,
         }
+        logger.debug(
+            "SSE publish event=%s clients=%d", event_type, len(self.queues)
+        )
         for queue in self.queues:
             await queue.put(message)
 
@@ -46,6 +49,12 @@ class EventManager:
         """Generate SSE events for a single client connection."""
         queue: asyncio.Queue = asyncio.Queue()
         self.queues.append(queue)
+        client = request.client.host if request.client else "unknown"
+        logger.info(
+            "SSE client connected — client=%s active_connections=%d",
+            client,
+            len(self.queues),
+        )
         try:
             while True:
                 if await request.is_disconnected():
@@ -57,10 +66,16 @@ class EventManager:
                     pass
         finally:
             self.queues.remove(queue)
+            logger.info(
+                "SSE client disconnected — client=%s active_connections=%d",
+                client,
+                len(self.queues),
+            )
 
     def create_response(self, request: Request) -> EventSourceResponse:
         """Create an SSE response for a client."""
         return EventSourceResponse(
             self.event_generator(request),
-            ping=15,
+            ping=5,
+            send_timeout=5,
         )
