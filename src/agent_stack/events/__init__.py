@@ -39,9 +39,7 @@ class EventManager:
             "event": event_type,
             "data": json.dumps(data) if isinstance(data, dict) else data,
         }
-        logger.debug(
-            "SSE publish event=%s clients=%d", event_type, len(self.queues)
-        )
+        logger.debug("SSE publish event=%s clients=%d", event_type, len(self.queues))
         for queue in self.queues:
             await queue.put(message)
 
