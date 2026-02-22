@@ -27,6 +27,8 @@ cp .env.example .env
 uv run uvicorn agent_stack.app:create_app --factory --reload --reload-dir src
 ```
 
+When `APP_ENV=development`, dashboard authentication is bypassed automatically for local use, so Microsoft Entra credentials are optional during local iteration.
+
 ## Fully Local Development (Foundry Local)
 
 To run entirely locally without an Azure subscription, install [Foundry Local](https://github.com/microsoft/foundry-local) and set `FOUNDRY_PROVIDER=local` in your `.env`:

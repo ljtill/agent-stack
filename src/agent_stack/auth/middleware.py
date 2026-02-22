@@ -16,15 +16,29 @@ def get_user(request: Request) -> dict[str, Any] | None:
     return request.session.get("user") if hasattr(request, "session") else None
 
 
+def _is_development_request(request: Request) -> bool:
+    """Return True when this request is running in the local dev environment."""
+    settings = getattr(getattr(request.app, "state", None), "settings", None)
+    app_settings = getattr(settings, "app", None)
+    return getattr(app_settings, "is_development", False) is True
+
+
 def require_authenticated_user(request: Request) -> dict[str, Any]:
     """Return the authenticated user or raise HTTP 401."""
     user = get_user(request)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
-        )
-    return user
+    if user:
+        return user
+    if _is_development_request(request):
+        local_user = {
+            "name": "Local Developer",
+            "preferred_username": "local@localhost",
+        }
+        request.session["user"] = local_user
+        return local_user
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authentication required",
+    )
 
 
 def require_auth(

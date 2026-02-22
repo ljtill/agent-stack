@@ -57,3 +57,15 @@ def test_require_authenticated_user_raises_when_missing() -> None:
     with pytest.raises(HTTPException) as exc_info:
         require_authenticated_user(request)
     assert exc_info.value.status_code == _EXPECTED_UNAUTHORIZED_STATUS
+
+
+def test_require_authenticated_user_bypasses_auth_in_development() -> None:
+    """Verify local development bypasses Entra auth."""
+    request = MagicMock()
+    request.session = {}
+    request.app.state.settings.app.is_development = True
+
+    user = require_authenticated_user(request)
+
+    assert user["name"] == "Local Developer"
+    assert request.session["user"] == user
