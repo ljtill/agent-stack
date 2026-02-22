@@ -6,8 +6,20 @@
     <title>{% block title %}The Agent Stack{% endblock %} — Editorial Dashboard</title>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+    <script>
+        (function() {
+            var saved = localStorage.getItem('theme');
+            if (saved === 'light' || saved === 'dark') {
+                document.documentElement.setAttribute('data-theme', saved);
+            } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
     <style>
-        :root {
+        :root, [data-theme="dark"] {
             --bg: #0f1117;
             --surface: #1a1d27;
             --border: #2a2d3a;
@@ -18,6 +30,34 @@
             --success: #22c55e;
             --warning: #f59e0b;
             --danger: #ef4444;
+            --info-bg: #1e3a5f;
+            --info-text: #60a5fa;
+            --success-bg: #1a3329;
+            --warning-bg: #3b2f1a;
+            --danger-bg: #3b1a1a;
+            --error-bg: #2d1515;
+            --error-border: #5c2020;
+            --error-text: #fca5a5;
+        }
+        [data-theme="light"] {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --info-bg: #eff6ff;
+            --info-text: #2563eb;
+            --success-bg: #f0fdf4;
+            --warning-bg: #fffbeb;
+            --danger-bg: #fef2f2;
+            --error-bg: #fef2f2;
+            --error-border: #fecaca;
+            --error-text: #dc2626;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -82,13 +122,13 @@
             text-transform: uppercase;
         }
         .badge-submitted { background: var(--border); color: var(--text-muted); }
-        .badge-fetching { background: #1e3a5f; color: #60a5fa; }
-        .badge-reviewed { background: #1a3329; color: var(--success); }
-        .badge-drafted { background: #3b2f1a; color: var(--warning); }
+        .badge-fetching { background: var(--info-bg); color: var(--info-text); }
+        .badge-reviewed { background: var(--success-bg); color: var(--success); }
+        .badge-drafted { background: var(--warning-bg); color: var(--warning); }
         .badge-created { background: var(--border); color: var(--text-muted); }
-        .badge-drafting { background: #1e3a5f; color: #60a5fa; }
-        .badge-in_review { background: #3b2f1a; color: var(--warning); }
-        .badge-published { background: #1a3329; color: var(--success); }
+        .badge-drafting { background: var(--info-bg); color: var(--info-text); }
+        .badge-in_review { background: var(--warning-bg); color: var(--warning); }
+        .badge-published { background: var(--success-bg); color: var(--success); }
         input[type="text"], input[type="url"], textarea, select {
             width: 100%;
             padding: 0.5rem 0.75rem;
@@ -115,15 +155,15 @@
         }
         th { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
         /* Agent run status badges */
-        .badge-running { background: #1e3a5f; color: #60a5fa; }
-        .badge-completed { background: #1a3329; color: var(--success); }
-        .badge-failed { background: #3b1a1a; color: var(--danger); }
+        .badge-running { background: var(--info-bg); color: var(--info-text); }
+        .badge-completed { background: var(--success-bg); color: var(--success); }
+        .badge-failed { background: var(--danger-bg); color: var(--danger); }
         /* Stage-specific colors */
-        .stage-fetch { color: #60a5fa; }
+        .stage-fetch { color: var(--info-text); }
         .stage-review { color: var(--success); }
         .stage-draft { color: var(--warning); }
         .stage-edit { color: #a78bfa; }
-        .stage-publish { color: #34d399; }
+        .stage-publish { color: var(--success); }
         /* Activity timeline */
         .activity-list { list-style: none; }
         .activity-item {
@@ -144,9 +184,9 @@
             font-size: 0.75rem;
             flex-shrink: 0;
         }
-        .activity-icon-running { background: #1e3a5f; color: #60a5fa; }
-        .activity-icon-completed { background: #1a3329; color: var(--success); }
-        .activity-icon-failed { background: #3b1a1a; color: var(--danger); }
+        .activity-icon-running { background: var(--info-bg); color: var(--info-text); }
+        .activity-icon-completed { background: var(--success-bg); color: var(--success); }
+        .activity-icon-failed { background: var(--danger-bg); color: var(--danger); }
         .activity-body { flex: 1; min-width: 0; }
         .activity-header { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
         .activity-stage { font-weight: 600; font-size: 0.85rem; text-transform: capitalize; }
@@ -155,10 +195,10 @@
         .activity-error {
             margin-top: 0.5rem;
             padding: 0.5rem 0.75rem;
-            background: #2d1515;
-            border: 1px solid #5c2020;
+            background: var(--error-bg);
+            border: 1px solid var(--error-border);
             border-radius: 4px;
-            color: #fca5a5;
+            color: var(--error-text);
             font-size: 0.8rem;
             font-family: monospace;
         }
@@ -202,9 +242,21 @@
             border-radius: 50%;
             display: inline-block;
         }
-        .agent-indicator-dot-running { background: #60a5fa; animation: pulse 1.5s ease-in-out infinite; }
+        .agent-indicator-dot-running { background: var(--info-text); animation: pulse 1.5s ease-in-out infinite; }
         .agent-indicator-dot-completed { background: var(--success); }
         .agent-indicator-dot-failed { background: var(--danger); }
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            padding: 0.3rem 0.5rem;
+            font-size: 1rem;
+            line-height: 1;
+            color: var(--text-muted);
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .theme-toggle:hover { color: var(--text); border-color: var(--text-muted); }
         /* Compact pipeline step indicator (links table) */
         .pipeline-steps {
             display: flex;
@@ -229,9 +281,9 @@
             font-size: 0.6rem;
             flex-shrink: 0;
         }
-        .pipeline-step-icon-completed { background: #1a3329; color: var(--success); }
-        .pipeline-step-icon-failed { background: #3b1a1a; color: var(--danger); }
-        .pipeline-step-icon-running { background: #1e3a5f; color: #60a5fa; }
+        .pipeline-step-icon-completed { background: var(--success-bg); color: var(--success); }
+        .pipeline-step-icon-failed { background: var(--danger-bg); color: var(--danger); }
+        .pipeline-step-icon-running { background: var(--info-bg); color: var(--info-text); }
         .pipeline-step-arrow {
             color: var(--text-muted);
             font-size: 0.7rem;
@@ -240,10 +292,10 @@
         .pipeline-step-error {
             margin-top: 0.35rem;
             padding: 0.35rem 0.6rem;
-            background: #2d1515;
-            border: 1px solid #5c2020;
+            background: var(--error-bg);
+            border: 1px solid var(--error-border);
             border-radius: 4px;
-            color: #fca5a5;
+            color: var(--error-text);
             font-size: 0.75rem;
             font-family: monospace;
         }
@@ -272,12 +324,30 @@
         <a href="/editions">Editions</a>
         <a href="/agents">Agents</a>
         <a href="/status">Status</a>
-        <a href="/auth/logout" style="margin-left: auto;">Logout</a>
+        <button class="theme-toggle" id="theme-toggle" type="button" title="Toggle theme" aria-label="Toggle theme" style="margin-left: auto;"></button>
+        <a href="/auth/logout">Logout</a>
     </nav>
     <main>
         {% block content %}{% endblock %}
     </main>
     <script>
+        // Theme toggle
+        (function() {
+            var btn = document.getElementById('theme-toggle');
+            function updateIcon() {
+                var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+                btn.textContent = isDark ? '\u2600' : '\u263E';
+            }
+            updateIcon();
+            btn.addEventListener('click', function() {
+                var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+                var next = isDark ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('theme', next);
+                updateIcon();
+            });
+        })();
+
         // Handle agent run SSE events for live UI updates
         document.addEventListener('htmx:sseMessage', function(event) {
             var eventType = event.detail.type;
