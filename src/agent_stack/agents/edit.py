@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Annotated
 
 from agent_framework import Agent, tool
 
-from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
+from agent_stack.agents.middleware import TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
 
 if TYPE_CHECKING:
@@ -30,7 +30,6 @@ class EditAgent:
         editions_repo: EditionRepository,
         feedback_repo: FeedbackRepository,
         *,
-        rate_limiter: RateLimitMiddleware | None = None,
         context_providers: list | None = None,
     ) -> None:
         """Initialize the edit agent with LLM client and repositories."""
@@ -38,7 +37,6 @@ class EditAgent:
         self._feedback_repo = feedback_repo
         middleware = [
             TokenTrackingMiddleware(),
-            *([] if rate_limiter is None else [rate_limiter]),
         ]
         self._agent = Agent(
             client=client,

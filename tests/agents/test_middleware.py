@@ -1,16 +1,14 @@
-"""Tests for agent middleware — token tracking and rate limiting."""
+"""Tests for agent middleware — token tracking."""
 
-import time
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
+from agent_stack.agents.middleware import TokenTrackingMiddleware
 
 _EXPECTED_INPUT_TOKENS = 100
 _EXPECTED_OUTPUT_TOKENS = 50
 _EXPECTED_TOTAL_TOKENS = 150
-_EXPECTED_USAGE_TOKENS = 500
 
 
 class TestTokenTrackingMiddleware:
@@ -69,62 +67,3 @@ class TestTokenTrackingMiddleware:
 
         assert context.metadata["usage"]["input_tokens"] == 0
         assert context.metadata["usage"]["total_tokens"] == 0
-
-
-class TestRateLimitMiddleware:
-    """Test the Rate Limit Middleware."""
-
-    @pytest.fixture
-    def middleware(self) -> tuple[RateLimitMiddleware, object]:
-        """Create a middleware for testing."""
-        return RateLimitMiddleware(tpm_limit=1000, rpm_limit=10)
-
-    async def test_passes_through_when_under_limit(
-        self, middleware: RateLimitMiddleware
-    ) -> None:
-        """Verify passes through when under limit."""
-        context = MagicMock()
-        context.result = None
-        call_next = AsyncMock()
-
-        await middleware.process(context, call_next)
-
-        call_next.assert_awaited_once()
-
-    async def test_records_usage_after_call(
-        self, middleware: RateLimitMiddleware
-    ) -> None:
-        """Verify records usage after call."""
-        context = MagicMock()
-        context.result = MagicMock()
-        context.result.usage_details = {"total_token_count": _EXPECTED_USAGE_TOKENS}
-
-        await middleware.process(context, AsyncMock())
-
-        assert len(middleware.token_window) == 1
-        assert len(middleware.request_window) == 1
-        assert middleware.token_window[0][1] == _EXPECTED_USAGE_TOKENS
-
-    async def test_prune_removes_old_entries(
-        self, middleware: RateLimitMiddleware
-    ) -> None:
-        """Verify prune removes old entries."""
-        old_time = time.monotonic() - 120
-        middleware.token_window = [(old_time, 500)]
-        middleware.request_window = [old_time]
-
-        middleware.prune(time.monotonic())
-
-        assert len(middleware.token_window) == 0
-        assert len(middleware.request_window) == 0
-
-    async def test_records_zero_tokens_when_no_usage(
-        self, middleware: RateLimitMiddleware
-    ) -> None:
-        """Verify records zero tokens when no usage."""
-        context = MagicMock()
-        context.result = None
-
-        await middleware.process(context, AsyncMock())
-
-        assert middleware.token_window[0][1] == 0

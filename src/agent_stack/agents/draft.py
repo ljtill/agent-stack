@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Annotated
 
 from agent_framework import Agent, tool
 
-from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
+from agent_stack.agents.middleware import TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
 from agent_stack.models.link import Link, LinkStatus
 
@@ -31,7 +31,6 @@ class DraftAgent:
         links_repo: LinkRepository,
         editions_repo: EditionRepository,
         *,
-        rate_limiter: RateLimitMiddleware | None = None,
         context_providers: list | None = None,
     ) -> None:
         """Initialize the draft agent with LLM client and repositories."""
@@ -40,7 +39,6 @@ class DraftAgent:
         self._draft_saved = False
         middleware = [
             TokenTrackingMiddleware(),
-            *([] if rate_limiter is None else [rate_limiter]),
         ]
         self._agent = Agent(
             client=client,

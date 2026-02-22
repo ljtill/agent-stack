@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Annotated
 import httpx
 from agent_framework import Agent, tool
 
-from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
+from agent_stack.agents.middleware import TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
 from agent_stack.models.link import Link, LinkStatus
 
@@ -29,14 +29,11 @@ class FetchAgent:
         self,
         client: AzureOpenAIChatClient,
         links_repo: LinkRepository,
-        *,
-        rate_limiter: RateLimitMiddleware | None = None,
     ) -> None:
         """Initialize the fetch agent with LLM client and link repository."""
         self._links_repo = links_repo
         middleware = [
             TokenTrackingMiddleware(),
-            *([] if rate_limiter is None else [rate_limiter]),
         ]
         self._agent = Agent(
             client=client,

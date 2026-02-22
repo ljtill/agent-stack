@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Annotated
 
 from agent_framework import Agent, tool
 
-from agent_stack.agents.middleware import RateLimitMiddleware, TokenTrackingMiddleware
+from agent_stack.agents.middleware import TokenTrackingMiddleware
 from agent_stack.agents.prompts import load_prompt
 from agent_stack.models.edition import EditionStatus
 
@@ -34,8 +34,6 @@ class PublishAgent:
         editions_repo: EditionRepository,
         render_fn: Callable[[Edition], Awaitable[str]] | None = None,
         upload_fn: Callable[[str, str], Awaitable[None]] | None = None,
-        *,
-        rate_limiter: RateLimitMiddleware | None = None,
     ) -> None:
         """Initialize the publish agent with LLM client and rendering hooks."""
         self._editions_repo = editions_repo
@@ -43,7 +41,6 @@ class PublishAgent:
         self._upload_fn = upload_fn
         middleware = [
             TokenTrackingMiddleware(),
-            *([] if rate_limiter is None else [rate_limiter]),
         ]
         self._agent = Agent(
             client=client,

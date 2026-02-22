@@ -62,7 +62,7 @@ uv add agent-framework-core --prerelease=allow
 | `AzureOpenAIChatClient`  | LLM provider integration with Microsoft Foundry, authenticated via managed identity             |
 | `tool`                   | Decorator for typed Python functions registered on agents for structured operations (Cosmos DB reads/writes, HTTP fetches, HTML rendering) |
 | `ChatOptions`            | Per-invocation LLM configuration (temperature, response format) passed to agent `run()` calls                  |
-| `ChatMiddleware`         | Request/response pipeline hooks — used for token usage tracking (`TokenTrackingMiddleware`) and rate limiting (`RateLimitMiddleware`) |
+| `ChatMiddleware`         | Request/response pipeline hooks — used for token usage tracking (`TokenTrackingMiddleware`) |
 | `FunctionMiddleware`     | Tool execution pipeline hooks — used for tool invocation logging (`ToolLoggingMiddleware`)                                            |
 
 **Agent registry:** An introspection layer (`agents/registry.py`) extracts metadata from live agent instances — registered tools, default options, middleware, and system prompt previews — for display on the Agents dashboard page.
@@ -85,7 +85,7 @@ Links are submitted through the Editorial Dashboard (Links view). Submitting a l
 
 Event-driven and continuously iterating. Agents react to changes — new links, editor feedback — and refine the current edition. The pipeline is triggered via the Cosmos DB change feed, consumed by a dedicated change feed processor running within the Container App.
 
-**Orchestration layer:** An explicit `PipelineOrchestrator` handles agent-to-agent flow control. The change feed processor delegates incoming events to the orchestrator, which determines the appropriate agent stage based on document type and status, manages transitions between stages, and handles error/retry logic. Links are processed sequentially (one at a time) to avoid race conditions on the edition document. Rate limiting is enforced via `ChatMiddleware` (token-bucket for TPM/RPM).
+**Orchestration layer:** An explicit `PipelineOrchestrator` handles agent-to-agent flow control. The change feed processor delegates incoming events to the orchestrator, which determines the appropriate agent stage based on document type and status, manages transitions between stages, and handles error/retry logic. Links are processed sequentially (one at a time) to avoid race conditions on the edition document.
 
 **Agent design:** Each pipeline stage is implemented as a separate Agent class using the Microsoft Agent Framework. Agent prompts and system messages are stored as Markdown files in a `prompts/` directory, loaded at runtime. LLM calls to Microsoft Foundry are authenticated via managed identity in Azure.
 

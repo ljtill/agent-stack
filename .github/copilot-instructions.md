@@ -36,7 +36,7 @@ This is an event-driven editorial pipeline for a newsletter. The system has thre
 
 **Event flow**: Editor submits link → Cosmos DB → change feed processor → pipeline orchestrator → sub-agents (Fetch → Review → Draft) → Cosmos DB updates → SSE to dashboard. Feedback and publish follow similar event-driven paths. No external message broker — Cosmos DB's change feed is the sole event source.
 
-**Agent architecture**: Five specialized agents (Fetch, Review, Draft, Edit, Publish) are coordinated by a `PipelineOrchestrator` agent. Each agent wraps a Microsoft Agent Framework `Agent` instance, exposes `@tool`-decorated methods as LLM-callable functions, and is registered on the orchestrator via `.as_tool()`. Middleware (rate limiting, token tracking, tool logging) stacks on each agent.
+**Agent architecture**: Five specialized agents (Fetch, Review, Draft, Edit, Publish) are coordinated by a `PipelineOrchestrator` agent. Each agent wraps a Microsoft Agent Framework `Agent` instance, exposes `@tool`-decorated methods as LLM-callable functions, and is registered on the orchestrator via `.as_tool()`. Middleware (token tracking, tool logging) stacks on each agent.
 
 **App wiring**: `app.py` uses a lifespan context manager to initialize Cosmos client → repositories → agents → orchestrator → change feed processor, stashing everything in `app.state`. Routes access dependencies via `request.app.state`.
 

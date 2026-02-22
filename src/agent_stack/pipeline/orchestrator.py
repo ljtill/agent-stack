@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import time
 from datetime import UTC, datetime
 from html import escape
@@ -17,7 +16,6 @@ from agent_stack.agents.draft import DraftAgent
 from agent_stack.agents.edit import EditAgent
 from agent_stack.agents.fetch import FetchAgent
 from agent_stack.agents.middleware import (
-    RateLimitMiddleware,
     TokenTrackingMiddleware,
     ToolLoggingMiddleware,
 )
@@ -118,25 +116,18 @@ class PipelineOrchestrator:
         self._edition_locks: dict[str, asyncio.Lock] = {}
         self._edition_locks_guard = asyncio.Lock()
 
-        rate_limiter = RateLimitMiddleware(
-            tpm_limit=int(os.environ.get("OPENAI_TPM_LIMIT", "800000")),
-            rpm_limit=int(os.environ.get("OPENAI_RPM_LIMIT", "8000")),
-        )
-
-        self.fetch = FetchAgent(client, links_repo, rate_limiter=rate_limiter)
-        self.review = ReviewAgent(client, links_repo, rate_limiter=rate_limiter)
+        self.fetch = FetchAgent(client, links_repo)
+        self.review = ReviewAgent(client, links_repo)
         self.draft = DraftAgent(
             client,
             links_repo,
             editions_repo,
-            rate_limiter=rate_limiter,
             context_providers=context_providers,
         )
         self.edit = EditAgent(
             client,
             editions_repo,
             feedback_repo,
-            rate_limiter=rate_limiter,
             context_providers=context_providers,
         )
         self.publish = PublishAgent(
@@ -144,7 +135,6 @@ class PipelineOrchestrator:
             editions_repo,
             render_fn=render_fn,
             upload_fn=upload_fn,
-            rate_limiter=rate_limiter,
         )
 
         self._agent = Agent(
@@ -193,7 +183,6 @@ class PipelineOrchestrator:
             ],
             middleware=[
                 TokenTrackingMiddleware(),
-                rate_limiter,
                 ToolLoggingMiddleware(),
             ],
         )

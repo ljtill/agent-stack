@@ -83,7 +83,7 @@ graph TB
 
 ## Agent Pipeline
 
-The pipeline is orchestrated by a central `PipelineOrchestrator` — itself an Agent Framework agent — that coordinates five specialised sub-agents via tool calls. When a link is submitted, it flows sequentially through Fetch (extract content), Review (evaluate relevance), and Draft (compose newsletter copy). The Edit stage runs when an editor provides feedback on an edition, and Publish renders the final HTML and uploads it to storage. Each sub-agent has its own system prompt, registered tools, and middleware (rate limiting, token tracking).
+The pipeline is orchestrated by a central `PipelineOrchestrator` — itself an Agent Framework agent — that coordinates five specialised sub-agents via tool calls. When a link is submitted, it flows sequentially through Fetch (extract content), Review (evaluate relevance), and Draft (compose newsletter copy). The Edit stage runs when an editor provides feedback on an edition, and Publish renders the final HTML and uploads it to storage. Each sub-agent has its own system prompt, registered tools, and middleware (token tracking).
 
 ```mermaid
 graph LR
@@ -107,7 +107,6 @@ graph LR
     Publish -->|upload HTML| Storage["Azure Storage"]
 
     subgraph Middleware["Shared Middleware"]
-        RL["Rate Limiter<br/>(TPM/RPM)"]
         TT["Token Tracking"]
         TL["Tool Logging"]
     end
