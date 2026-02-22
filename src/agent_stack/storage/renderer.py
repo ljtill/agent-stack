@@ -36,10 +36,19 @@ class StaticSiteRenderer:
             loader=FileSystemLoader(str(NEWSLETTER_TEMPLATES)), autoescape=True
         )
 
-    async def render_edition(self, edition: Edition) -> str:
+    async def render_edition(
+        self,
+        edition: Edition,
+        prev_edition: Edition | None = None,
+        next_edition: Edition | None = None,
+    ) -> str:
         """Render a single edition to HTML."""
         template = self._env.get_template("edition.html")
-        return template.render(edition=edition)
+        return template.render(
+            edition=edition,
+            prev_edition=prev_edition,
+            next_edition=next_edition,
+        )
 
     async def render_index(self, editions: list[Edition]) -> str:
         """Render the index/archive page listing all published editions."""
@@ -53,12 +62,48 @@ class StaticSiteRenderer:
             logger.error("Edition %s not found", edition_id)
             return
 
+        # Get all published editions (sorted by published_at desc) for navigation
+        published = await self.editions_repo.list_published()
+        edition_idx = next(
+            (i for i, e in enumerate(published) if e.id == edition_id), None
+        )
+
+        # Determine prev/next (list is newest-first)
+        prev_edition = (
+            published[edition_idx - 1] if edition_idx and edition_idx > 0 else None
+        )
+        next_edition = (
+            published[edition_idx + 1]
+            if edition_idx is not None and edition_idx < len(published) - 1
+            else None
+        )
+
         # Render and upload the edition page
-        edition_html = await self.render_edition(edition)
+        edition_html = await self.render_edition(edition, prev_edition, next_edition)
         await self.storage.upload_html(f"editions/{edition_id}.html", edition_html)
 
+        # Re-render adjacent editions so their prev/next links update
+        if prev_edition:
+            prev_prev = (
+                published[edition_idx - 2] if edition_idx and edition_idx > 1 else None
+            )
+            prev_html = await self.render_edition(prev_edition, prev_prev, edition)
+            await self.storage.upload_html(
+                f"editions/{prev_edition.id}.html", prev_html
+            )
+
+        if next_edition:
+            next_next = (
+                published[edition_idx + 2]
+                if edition_idx is not None and edition_idx < len(published) - 2
+                else None
+            )
+            next_html = await self.render_edition(next_edition, edition, next_next)
+            await self.storage.upload_html(
+                f"editions/{next_edition.id}.html", next_html
+            )
+
         # Render and upload the updated index page
-        published = await self.editions_repo.list_published()
         index_html = await self.render_index(published)
         await self.storage.upload_html("index.html", index_html)
 

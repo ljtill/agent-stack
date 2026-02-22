@@ -7,7 +7,8 @@ import pytest
 from agent_stack.models.edition import Edition, EditionStatus
 from agent_stack.storage.renderer import StaticSiteRenderer
 
-_EXPECTED_UPLOAD_COUNT = 2
+_EXPECTED_ADJACENT_UPLOAD_COUNT = 4
+_EXPECTED_SINGLE_UPLOAD_COUNT = 2
 
 
 class TestStaticSiteRendererPublish:
@@ -33,11 +34,45 @@ class TestStaticSiteRendererPublish:
         await renderer.publish_edition("ed-1")
 
         renderer.editions_repo.get.assert_called_once_with("ed-1", "ed-1")
-        assert renderer.storage.upload_html.call_count == _EXPECTED_UPLOAD_COUNT
+        assert renderer.storage.upload_html.call_count == _EXPECTED_SINGLE_UPLOAD_COUNT
         # First call: edition page, second call: index page
         calls = renderer.storage.upload_html.call_args_list
         assert calls[0][0][0] == "editions/ed-1.html"
         assert calls[1][0][0] == "index.html"
+
+    async def test_publish_edition_rerenders_adjacent(
+        self, renderer: StaticSiteRenderer
+    ) -> None:
+        """Verify publish re-renders adjacent editions for prev/next nav."""
+        editions = [
+            Edition(
+                id="ed-3",
+                content={"title": "Newest"},
+                status=EditionStatus.PUBLISHED,
+            ),
+            Edition(
+                id="ed-2",
+                content={"title": "Middle"},
+                status=EditionStatus.PUBLISHED,
+            ),
+            Edition(
+                id="ed-1",
+                content={"title": "Oldest"},
+                status=EditionStatus.PUBLISHED,
+            ),
+        ]
+        renderer.editions_repo.get.return_value = editions[1]
+        renderer.editions_repo.list_published.return_value = editions
+
+        await renderer.publish_edition("ed-2")
+
+        upload_count = renderer.storage.upload_html.call_count
+        assert upload_count == _EXPECTED_ADJACENT_UPLOAD_COUNT
+        blob_names = [c[0][0] for c in renderer.storage.upload_html.call_args_list]
+        assert "editions/ed-2.html" in blob_names
+        assert "editions/ed-3.html" in blob_names
+        assert "editions/ed-1.html" in blob_names
+        assert "index.html" in blob_names
 
     async def test_publish_edition_not_found_does_nothing(
         self, renderer: StaticSiteRenderer

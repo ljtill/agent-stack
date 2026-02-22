@@ -104,6 +104,48 @@ async def test_render_edition_produces_html() -> None:
     assert "IBM Plex" in html
     assert "DM Serif Display" in html
     assert "--signal-green" in html
+    # Relative links point to parent directory
+    assert "../index.html" in html
+    # No prev/next nav when not provided
+    assert "Previous Issue" not in html
+    assert "Next Issue" not in html
+
+
+async def test_render_edition_with_prev_next_nav() -> None:
+    """Test that edition rendering includes prev/next navigation when provided."""
+    env = Environment(
+        loader=FileSystemLoader(str(NEWSLETTER_TEMPLATES)), autoescape=True
+    )
+    template = env.get_template("edition.html")
+
+    edition = Edition(
+        id="ed-2",
+        status=EditionStatus.PUBLISHED,
+        content={**_sample_content(), "issue_number": 2, "title": "Current Issue"},
+        published_at=datetime(2026, 2, 20, tzinfo=UTC),
+    )
+    prev_edition = Edition(
+        id="ed-3",
+        status=EditionStatus.PUBLISHED,
+        content={"title": "Newer Issue", "issue_number": 3},
+        published_at=datetime(2026, 3, 1, tzinfo=UTC),
+    )
+    next_edition = Edition(
+        id="ed-1",
+        status=EditionStatus.PUBLISHED,
+        content={"title": "Older Issue", "issue_number": 1},
+        published_at=datetime(2026, 1, 10, tzinfo=UTC),
+    )
+
+    html = template.render(
+        edition=edition, prev_edition=prev_edition, next_edition=next_edition
+    )
+    assert "Previous Issue" in html
+    assert "Next Issue" in html
+    assert "Newer Issue" in html
+    assert "Older Issue" in html
+    assert "ed-3.html" in html
+    assert "ed-1.html" in html
 
 
 async def test_render_index_produces_html() -> None:
