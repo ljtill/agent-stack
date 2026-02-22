@@ -277,6 +277,9 @@ class PipelineOrchestrator:
         trigger_id: Annotated[str, "ID of the document that triggered this run"],
         status: Annotated[str, "Completion status: completed or failed"],
         error: Annotated[str, "Error message if failed, empty if completed"] = "",
+        input_tokens: Annotated[int, "Input tokens consumed by this stage"] = 0,
+        output_tokens: Annotated[int, "Output tokens consumed by this stage"] = 0,
+        total_tokens: Annotated[int, "Total tokens consumed by this stage"] = 0,
     ) -> str:
         """Record the completion of a pipeline stage."""
         run = await self._agent_runs_repo.get(run_id, trigger_id)
@@ -288,6 +291,12 @@ class PipelineOrchestrator:
         run.completed_at = datetime.now(UTC)
         if error:
             run.output = {"error": error}
+        if input_tokens or output_tokens or total_tokens:
+            run.usage = {
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": total_tokens or input_tokens + output_tokens,
+            }
         await self._agent_runs_repo.update(run, trigger_id)
         await self._events.publish(
             "agent-run-complete",
@@ -370,6 +379,11 @@ class PipelineOrchestrator:
             response = await self._agent.run(message)
             run.status = AgentRunStatus.COMPLETED
             run.output = {"content": response.text if response else None}
+            run.usage = self._normalize_usage(
+                dict(response.usage_details)
+                if response and response.usage_details
+                else None
+            )
         except Exception:
             logger.exception("Orchestrator failed for link %s", link_id)
             run.status = AgentRunStatus.FAILED
@@ -427,6 +441,11 @@ class PipelineOrchestrator:
             response = await self._agent.run(message)
             run.status = AgentRunStatus.COMPLETED
             run.output = {"content": response.text if response else None}
+            run.usage = self._normalize_usage(
+                dict(response.usage_details)
+                if response and response.usage_details
+                else None
+            )
         except Exception:
             logger.exception("Orchestrator failed for feedback %s", feedback_id)
             run.status = AgentRunStatus.FAILED
@@ -458,6 +477,11 @@ class PipelineOrchestrator:
             response = await self._agent.run(message)
             run.status = AgentRunStatus.COMPLETED
             run.output = {"content": response.text if response else None}
+            run.usage = self._normalize_usage(
+                dict(response.usage_details)
+                if response and response.usage_details
+                else None
+            )
         except Exception:
             logger.exception("Orchestrator failed for publish edition=%s", edition_id)
             run.status = AgentRunStatus.FAILED
