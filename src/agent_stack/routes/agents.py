@@ -5,13 +5,14 @@ from __future__ import annotations
 import logging
 import time
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
+from agent_stack.auth.middleware import require_authenticated_user
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.services.agent_runs import get_agents_page_data
 
-router = APIRouter(tags=["agents"])
+router = APIRouter(tags=["agents"], dependencies=[Depends(require_authenticated_user)])
 logger = logging.getLogger(__name__)
 
 

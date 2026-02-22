@@ -66,12 +66,17 @@ class TestAgentRunRepository:
             status=AgentRunStatus.COMPLETED,
             started_at=datetime(2025, 1, 2, tzinfo=UTC),
         )
-        repo.query = AsyncMock(side_effect=[[run1], [run2]])
+        repo.query = AsyncMock(return_value=[run1, run2])
 
         result = await repo.get_by_triggers(["link-1", "link-2"])
 
         assert len(result) == _EXPECTED_TRIGGER_COUNT
         assert result[0].trigger_id == "link-2"
+        repo.query.assert_awaited_once()
+        query, params = repo.query.call_args.args
+        assert "ARRAY_CONTAINS" in query
+        assert params[0]["name"] == "@trigger_ids"
+        assert params[0]["value"] == ["link-1", "link-2"]
 
     async def test_list_recent(self, repo: AgentRunRepository) -> None:
         """Verify list recent."""

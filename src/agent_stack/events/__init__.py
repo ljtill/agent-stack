@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 from typing import TYPE_CHECKING, Any
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
     from fastapi import Request
 
 logger = logging.getLogger(__name__)
+_QUEUE_MAXSIZE = 200
 
 
 class EventManager:
@@ -41,11 +43,18 @@ class EventManager:
         }
         logger.debug("SSE publish event=%s clients=%d", event_type, len(self.queues))
         for queue in self.queues:
-            await queue.put(message)
+            try:
+                queue.put_nowait(message)
+            except asyncio.QueueFull:
+                with contextlib.suppress(asyncio.QueueEmpty):
+                    queue.get_nowait()
+                with contextlib.suppress(asyncio.QueueFull):
+                    queue.put_nowait(message)
+                logger.warning("SSE queue full, dropping oldest event")
 
     async def event_generator(self, request: Request) -> AsyncGenerator[dict[str, str]]:
         """Generate SSE events for a single client connection."""
-        queue: asyncio.Queue = asyncio.Queue()
+        queue: asyncio.Queue = asyncio.Queue(maxsize=_QUEUE_MAXSIZE)
         self.queues.append(queue)
         client = request.client.host if request.client else "unknown"
         logger.debug(

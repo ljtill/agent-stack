@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi import HTTPException
 
-from agent_stack.auth.middleware import require_auth
+from agent_stack.auth.middleware import require_auth, require_authenticated_user
 
 _EXPECTED_UNAUTHORIZED_STATUS = 401
 
@@ -40,3 +40,20 @@ async def test_require_auth_passes_when_user_present() -> None:
     request.session = {"user": {"name": "Test User"}}
     result = await protected_view(request)
     assert result == {"user": "authenticated"}
+
+
+def test_require_authenticated_user_returns_user() -> None:
+    """Verify dependency helper returns user when authenticated."""
+    request = MagicMock()
+    user = {"name": "Test User"}
+    request.session = {"user": user}
+    assert require_authenticated_user(request) == user
+
+
+def test_require_authenticated_user_raises_when_missing() -> None:
+    """Verify dependency helper raises 401 when unauthenticated."""
+    request = MagicMock()
+    request.session = {}
+    with pytest.raises(HTTPException) as exc_info:
+        require_authenticated_user(request)
+    assert exc_info.value.status_code == _EXPECTED_UNAUTHORIZED_STATUS

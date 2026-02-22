@@ -5,15 +5,20 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+import agent_stack.services.editions as edition_svc
+from agent_stack.auth.middleware import require_authenticated_user
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.database.repositories.links import LinkRepository
-from agent_stack.services import editions as edition_svc
 
-router = APIRouter(prefix="/editions", tags=["editions"])
+router = APIRouter(
+    prefix="/editions",
+    tags=["editions"],
+    dependencies=[Depends(require_authenticated_user)],
+)
 
 logger = logging.getLogger(__name__)
 

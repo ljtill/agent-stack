@@ -20,6 +20,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware import Middleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from agent_stack.config import Settings, load_settings
 from agent_stack.database.repositories.editions import EditionRepository
@@ -200,6 +202,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
     chat_client = init_chat_client(settings)
+    app.state.chat_client = chat_client
     editions_repo = EditionRepository(cosmos.database)
 
     storage_components = await init_storage(settings, editions_repo)
@@ -236,9 +239,28 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     settings = load_settings()
     _configure_logging(settings, include_file_handler=False)
+    session_secret = settings.app.secret_key.strip()
+    if not session_secret:
+        if settings.app.is_development:
+            session_secret = uuid.uuid4().hex
+            logger.warning(
+                "APP_SECRET_KEY is not set — using an ephemeral development session key"
+            )
+        else:
+            msg = "APP_SECRET_KEY must be set in non-development environments"
+            raise RuntimeError(msg)
+    middleware = [
+        Middleware(
+            SessionMiddleware,  # ty: ignore[invalid-argument-type]
+            secret_key=session_secret,
+            same_site="lax",
+            https_only=not settings.app.is_development,
+        )
+    ]
     app = FastAPI(
         title="The Agent Stack — Editorial Dashboard",
         lifespan=lifespan,
+        middleware=middleware,
     )
     _install_request_diagnostics_middleware(app, settings)
 

@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
+from agent_stack.auth.middleware import require_authenticated_user
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
 
-router = APIRouter(prefix="/runs", tags=["agent-runs"])
+router = APIRouter(
+    prefix="/runs",
+    tags=["agent-runs"],
+    dependencies=[Depends(require_authenticated_user)],
+)
 
 
 @router.get("/recent", response_class=HTMLResponse)

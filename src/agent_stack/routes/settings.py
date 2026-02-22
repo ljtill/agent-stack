@@ -5,12 +5,14 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 
-from agent_stack.auth.middleware import get_user
+from agent_stack.auth.middleware import get_user, require_authenticated_user
 
-router = APIRouter(tags=["settings"])
+router = APIRouter(
+    tags=["settings"], dependencies=[Depends(require_authenticated_user)]
+)
 
 logger = logging.getLogger(__name__)
 

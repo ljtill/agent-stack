@@ -5,13 +5,16 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 
+import agent_stack.services.feedback as feedback_svc
+from agent_stack.auth.middleware import require_authenticated_user
 from agent_stack.database.repositories.feedback import FeedbackRepository
-from agent_stack.services import feedback as feedback_svc
 
-router = APIRouter(tags=["feedback"])
+router = APIRouter(
+    tags=["feedback"], dependencies=[Depends(require_authenticated_user)]
+)
 
 logger = logging.getLogger(__name__)
 

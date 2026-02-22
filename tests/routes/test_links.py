@@ -26,6 +26,7 @@ async def test_list_links_with_editions() -> None:
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
         patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
+        patch("agent_stack.routes.links.AgentRunRepository") as mock_runs_repo_cls,
     ):
         editions_repo = AsyncMock()
         editions_repo.list_unpublished.return_value = [edition]
@@ -34,9 +35,13 @@ async def test_list_links_with_editions() -> None:
         links_repo = AsyncMock()
         links_repo.get_by_edition.return_value = links
         mock_links_repo_cls.return_value = links_repo
+        runs_repo = AsyncMock()
+        runs_repo.get_by_triggers.return_value = []
+        mock_runs_repo_cls.return_value = runs_repo
 
         await list_links(request)
 
+        runs_repo.get_by_triggers.assert_called_once_with(["link-1"])
         request.app.state.templates.TemplateResponse.assert_called_once()
         ctx = request.app.state.templates.TemplateResponse.call_args[0][1]
         assert ctx["links"] == links
@@ -53,6 +58,7 @@ async def test_list_links_selects_edition_by_query_param() -> None:
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
         patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
+        patch("agent_stack.routes.links.AgentRunRepository") as mock_runs_repo_cls,
     ):
         editions_repo = AsyncMock()
         editions_repo.list_unpublished.return_value = [ed1, ed2]
@@ -61,6 +67,9 @@ async def test_list_links_selects_edition_by_query_param() -> None:
         links_repo = AsyncMock()
         links_repo.get_by_edition.return_value = []
         mock_links_repo_cls.return_value = links_repo
+        runs_repo = AsyncMock()
+        runs_repo.get_by_triggers.return_value = []
+        mock_runs_repo_cls.return_value = runs_repo
 
         await list_links(request, edition_id="ed-2")
 
@@ -75,11 +84,15 @@ async def test_list_links_without_editions() -> None:
     with (
         patch("agent_stack.routes.links._get_editions_repo") as mock_get_repo,
         patch("agent_stack.routes.links.LinkRepository") as mock_links_repo_cls,
+        patch("agent_stack.routes.links.AgentRunRepository") as mock_runs_repo_cls,
     ):
         editions_repo = AsyncMock()
         editions_repo.list_unpublished.return_value = []
         mock_get_repo.return_value = editions_repo
         mock_links_repo_cls.return_value = AsyncMock()
+        runs_repo = AsyncMock()
+        runs_repo.get_by_triggers.return_value = []
+        mock_runs_repo_cls.return_value = runs_repo
 
         await list_links(request)
 

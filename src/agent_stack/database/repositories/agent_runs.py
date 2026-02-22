@@ -39,9 +39,11 @@ class AgentRunRepository(BaseRepository[AgentRun]):
         """Fetch all runs for a list of trigger IDs."""
         if not trigger_ids:
             return []
-        runs: list[AgentRun] = []
-        for tid in trigger_ids:
-            runs.extend(await self.get_by_trigger(tid))
+        runs = await self.query(
+            "SELECT * FROM c WHERE ARRAY_CONTAINS(@trigger_ids, c.trigger_id)"
+            " AND NOT IS_DEFINED(c.deleted_at)",
+            [{"name": "@trigger_ids", "value": trigger_ids}],
+        )
         return sorted(runs, key=lambda r: r.started_at or r.created_at, reverse=True)
 
     async def list_recent(self, limit: int = 20) -> list[AgentRun]:

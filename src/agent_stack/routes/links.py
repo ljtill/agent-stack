@@ -6,19 +6,24 @@ import logging
 import time
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import APIRouter, Form, Query, Request
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+import agent_stack.services.links as link_svc
+from agent_stack.auth.middleware import require_authenticated_user
 from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.database.repositories.editions import EditionRepository
 from agent_stack.database.repositories.links import LinkRepository
-from agent_stack.services import links as link_svc
 from agent_stack.services.agent_runs import group_runs_by_invocation
 
 if TYPE_CHECKING:
     from agent_stack.database.client import CosmosClient
 
-router = APIRouter(prefix="/links", tags=["links"])
+router = APIRouter(
+    prefix="/links",
+    tags=["links"],
+    dependencies=[Depends(require_authenticated_user)],
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +51,15 @@ async def list_links(
 
     links = await links_repo.get_by_edition(edition.id) if edition else []
 
-    link_run_groups: dict[str, list[list]] = {}
-    for link in links:
-        runs = await runs_repo.get_by_trigger(link.id)
-        link_run_groups[link.id] = group_runs_by_invocation(runs)
+    runs = await runs_repo.get_by_triggers([link.id for link in links])
+    runs_by_trigger: dict[str, list] = {}
+    for run in runs:
+        runs_by_trigger.setdefault(run.trigger_id, []).append(run)
+
+    link_run_groups = {
+        link.id: group_runs_by_invocation(runs_by_trigger.get(link.id, []))
+        for link in links
+    }
 
     logger.info(
         "Links page loaded — requested_edition=%s selected_edition=%s "

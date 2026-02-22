@@ -16,6 +16,17 @@ def get_user(request: Request) -> dict[str, Any] | None:
     return request.session.get("user") if hasattr(request, "session") else None
 
 
+def require_authenticated_user(request: Request) -> dict[str, Any]:
+    """Return the authenticated user or raise HTTP 401."""
+    user = get_user(request)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+    return user
+
+
 def require_auth(
     func: Callable[..., Coroutine[object, object, object]],
 ) -> Callable[..., Coroutine[object, object, object]]:
@@ -23,12 +34,7 @@ def require_auth(
 
     @wraps(func)
     async def wrapper(request: Request, *args: object, **kwargs: object) -> object:
-        user = get_user(request)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required",
-            )
+        require_authenticated_user(request)
         return await func(request, *args, **kwargs)
 
     return wrapper

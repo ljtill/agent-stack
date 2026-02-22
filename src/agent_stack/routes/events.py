@@ -4,14 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
+from agent_stack.auth.middleware import require_authenticated_user
 from agent_stack.events import EventManager
 
 if TYPE_CHECKING:
     from sse_starlette.sse import EventSourceResponse
 
-router = APIRouter(tags=["events"])
+router = APIRouter(tags=["events"], dependencies=[Depends(require_authenticated_user)])
 
 
 @router.get("/events")

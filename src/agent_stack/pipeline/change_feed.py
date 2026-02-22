@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from agent_stack.pipeline.orchestrator import PipelineOrchestrator
 
 logger = logging.getLogger(__name__)
+_MAX_CONCURRENT_HANDLERS = 25
 
 
 class ChangeFeedProcessor:
@@ -39,6 +40,7 @@ class ChangeFeedProcessor:
         self._running = False
         self._task: asyncio.Task | None = None
         self._handler_tasks: set[asyncio.Task] = set()
+        self._handler_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_HANDLERS)
         self._metadata: ContainerProxy | None = None
 
     @property
@@ -160,7 +162,8 @@ class ChangeFeedProcessor:
     ) -> None:
         """Run a handler in a background task with error logging."""
         try:
-            await handler(item)
+            async with self._handler_semaphore:
+                await handler(item)
         except Exception:
             logger.exception("Failed to process change feed item %s", item_id)
 
