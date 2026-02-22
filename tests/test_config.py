@@ -54,8 +54,8 @@ def test_app_config_is_development_false() -> None:
 
 def test_cosmos_config_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify cosmos config defaults."""
-    monkeypatch.setenv("COSMOS_ENDPOINT", "https://cosmos.example.com")
-    monkeypatch.delenv("COSMOS_DATABASE", raising=False)
+    monkeypatch.setenv("AZURE_COSMOS_ENDPOINT", "https://cosmos.example.com")
+    monkeypatch.delenv("AZURE_COSMOS_DATABASE", raising=False)
     config = CosmosConfig()
     assert config.endpoint == "https://cosmos.example.com"
     assert config.database == "agent-stack"
@@ -83,7 +83,7 @@ def test_storage_config_default_container(monkeypatch: pytest.MonkeyPatch) -> No
 def test_settings_creates_all_sub_configs(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify settings creates all sub configs."""
     for key in [
-        "COSMOS_ENDPOINT",
+        "AZURE_COSMOS_ENDPOINT",
         "FOUNDRY_PROJECT_ENDPOINT",
         "FOUNDRY_MODEL",
         "AZURE_STORAGE_ACCOUNT_URL",

@@ -86,7 +86,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-07-01' = {
           }
           env: [
             {
-              name: 'APP_CONFIG_ENDPOINT'
+              name: 'AZURE_APP_CONFIG_ENDPOINT'
               value: appConfigEndpoint
             }
             {
@@ -94,7 +94,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-07-01' = {
               value: 'production'
             }
             {
-              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+              name: 'AZURE_APPLICATIONINSIGHTS_CONNECTION_STRING'
               value: appInsightsConnectionString
             }
             {

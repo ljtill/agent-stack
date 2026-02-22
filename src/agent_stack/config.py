@@ -17,9 +17,9 @@ def _env(key: str, default: str = "") -> str:
 class CosmosConfig:
     """Hold Azure Cosmos DB connection settings."""
 
-    endpoint: str = field(default_factory=lambda: _env("COSMOS_ENDPOINT"))
+    endpoint: str = field(default_factory=lambda: _env("AZURE_COSMOS_ENDPOINT"))
     database: str = field(
-        default_factory=lambda: _env("COSMOS_DATABASE", "agent-stack")
+        default_factory=lambda: _env("AZURE_COSMOS_DATABASE", "agent-stack")
     )
 
 
@@ -67,7 +67,7 @@ class MonitorConfig:
     """Hold Application Insights connection settings."""
 
     connection_string: str = field(
-        default_factory=lambda: _env("APPLICATIONINSIGHTS_CONNECTION_STRING")
+        default_factory=lambda: _env("AZURE_APPLICATIONINSIGHTS_CONNECTION_STRING")
     )
 
 
@@ -101,7 +101,7 @@ class AppConfig:
     env: str = field(default_factory=lambda: _env("APP_ENV", "development"))
     secret_key: str = field(default_factory=lambda: _env("APP_SECRET_KEY"))
     app_config_endpoint: str = field(
-        default_factory=lambda: _env("APP_CONFIG_ENDPOINT")
+        default_factory=lambda: _env("AZURE_APP_CONFIG_ENDPOINT")
     )
     log_level: str = field(default_factory=lambda: _env("LOG_LEVEL", "INFO"))
     slow_request_ms: int = field(

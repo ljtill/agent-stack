@@ -40,7 +40,7 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 
 resource cosmosEndpointKv 'Microsoft.AppConfiguration/configurationStores/keyValues@2023-03-01' = {
   parent: appConfig
-  name: 'COSMOS_ENDPOINT'
+  name: 'AZURE_COSMOS_ENDPOINT'
   properties: {
     value: cosmosEndpoint
   }
@@ -48,7 +48,7 @@ resource cosmosEndpointKv 'Microsoft.AppConfiguration/configurationStores/keyVal
 
 resource cosmosDatabaseKv 'Microsoft.AppConfiguration/configurationStores/keyValues@2023-03-01' = {
   parent: appConfig
-  name: 'COSMOS_DATABASE'
+  name: 'AZURE_COSMOS_DATABASE'
   properties: {
     value: cosmosDatabase
   }
@@ -64,7 +64,7 @@ resource storageAccountUrlKv 'Microsoft.AppConfiguration/configurationStores/key
 
 resource appInsightsConnectionKv 'Microsoft.AppConfiguration/configurationStores/keyValues@2023-03-01' = {
   parent: appConfig
-  name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+  name: 'AZURE_APPLICATIONINSIGHTS_CONNECTION_STRING'
   properties: {
     value: appInsightsConnectionString
   }

@@ -54,7 +54,6 @@ TEMPLATES_DIR = Path(__file__).resolve().parent.parent.parent / "templates"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 _DEFAULT_HOST = "0.0.0.0"  # noqa: S104
 _REQUEST_ID_HEADER = "x-request-id"
-_FEED_RANGE_FILTER_ADDED = False
 
 
 class _FeedRangeFilter(logging.Filter):
@@ -64,8 +63,6 @@ class _FeedRangeFilter(logging.Filter):
 
 def _configure_logging(settings: Settings, *, include_file_handler: bool) -> None:
     """Configure logging for both factory and CLI startup modes."""
-    global _FEED_RANGE_FILTER_ADDED
-
     log_level = getattr(logging, settings.app.log_level.upper(), logging.INFO)
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
@@ -100,9 +97,10 @@ def _configure_logging(settings: Settings, *, include_file_handler: bool) -> Non
     logging.getLogger("python_multipart").setLevel(logging.WARNING)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
 
-    if not _FEED_RANGE_FILTER_ADDED:
+    if not any(
+        isinstance(filter_, _FeedRangeFilter) for filter_ in root_logger.filters
+    ):
         root_logger.addFilter(_FeedRangeFilter())
-        _FEED_RANGE_FILTER_ADDED = True
 
 
 def _install_request_diagnostics_middleware(app: FastAPI, settings: Settings) -> None:
@@ -156,7 +154,7 @@ async def _check_emulators(settings: Settings) -> bool:
         cosmos_url = settings.cosmos.endpoint
         if not cosmos_url:
             failures.append(
-                "COSMOS_ENDPOINT is not set — add it to .env (see .env.example)"
+                "AZURE_COSMOS_ENDPOINT is not set — add it to .env (see .env.example)"
             )
         elif not cosmos_url.startswith("https://"):
             try:
