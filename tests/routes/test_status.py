@@ -44,7 +44,7 @@ class TestStatusRoute:
         request.app.state.storage = MagicMock()
         request.app.state.templates = MagicMock()
 
-        mock_results = [{"name": "Azure OpenAI", "healthy": False}]
+        mock_results = [{"name": "Foundry", "healthy": False}]
 
         with (
             patch("agent_stack.routes.status.create_chat_client") as mock_create_client,

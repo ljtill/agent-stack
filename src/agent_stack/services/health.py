@@ -41,7 +41,7 @@ async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> Service
         await container.read()
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(
-            name="Azure Cosmos DB",
+            name="Cosmos DB",
             healthy=True,
             latency_ms=round(latency, 1),
             detail=detail,
@@ -49,7 +49,7 @@ async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> Service
     except (AzureError, OSError, RuntimeError) as exc:
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(
-            name="Azure Cosmos DB",
+            name="Cosmos DB",
             healthy=False,
             latency_ms=round(latency, 1),
             error=str(exc),
@@ -60,7 +60,7 @@ async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> Service
 async def check_openai(
     client: AzureOpenAIChatClient, config: FoundryConfig
 ) -> ServiceHealth:
-    """Probe Azure OpenAI with a minimal completion request."""
+    """Probe Microsoft Foundry with a minimal completion request."""
     detail = f"{config.project_endpoint} · {config.model}"
     start = time.monotonic()
     try:
@@ -70,7 +70,7 @@ async def check_openai(
         )
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(
-            name="Azure OpenAI",
+            name="Foundry",
             healthy=True,
             latency_ms=round(latency, 1),
             detail=detail,
@@ -80,7 +80,7 @@ async def check_openai(
         raw = str(exc)
         if "max_tokens" in raw or "model output limit" in raw:
             return ServiceHealth(
-                name="Azure OpenAI",
+                name="Foundry",
                 healthy=True,
                 latency_ms=round(latency, 1),
                 detail=detail,
@@ -88,7 +88,7 @@ async def check_openai(
 
         message = _clean_openai_error(raw)
         return ServiceHealth(
-            name="Azure OpenAI",
+            name="Foundry",
             healthy=False,
             latency_ms=round(latency, 1),
             error=message,
@@ -97,7 +97,7 @@ async def check_openai(
 
 
 def _clean_openai_error(raw: str) -> str:
-    """Extract a human-readable message from an Azure OpenAI exception."""
+    """Extract a human-readable message from a Microsoft Foundry exception."""
     if "Connection error" in raw:
         return "Connection error — check FOUNDRY_PROJECT_ENDPOINT is reachable"
 
@@ -139,7 +139,7 @@ def _storage_account_name(account_url: str) -> str:
 async def check_storage(
     storage: BlobStorageClient, config: StorageConfig
 ) -> ServiceHealth:
-    """Probe Azure Storage with a lightweight container existence check."""
+    """Probe Microsoft Azure Storage with a lightweight container existence check."""
     account = _storage_account_name(config.account_url)
     detail = f"{account} · {config.container}"
     start = time.monotonic()
@@ -148,7 +148,7 @@ async def check_storage(
         await container.get_container_properties()
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(
-            name="Azure Storage",
+            name="Storage",
             healthy=True,
             latency_ms=round(latency, 1),
             detail=detail,
@@ -156,7 +156,7 @@ async def check_storage(
     except (AzureError, OSError, RuntimeError) as exc:
         latency = (time.monotonic() - start) * 1000
         return ServiceHealth(
-            name="Azure Storage",
+            name="Storage",
             healthy=False,
             latency_ms=round(latency, 1),
             error=str(exc),
@@ -208,7 +208,7 @@ async def check_all(
         openai_result = await check_openai(openai_client, foundry_config)
     else:
         openai_result = ServiceHealth(
-            name="Azure OpenAI",
+            name="Foundry",
             healthy=False,
             error="FOUNDRY_PROJECT_ENDPOINT is not set",
             detail=foundry_detail,

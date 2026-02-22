@@ -1,4 +1,4 @@
-"""Azure Blob Storage client for uploading static newsletter files."""
+"""Microsoft Azure Blob Storage client for uploading static newsletter files."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ _AZURITE_CONNECTION_STRING = (
 
 
 class BlobStorageClient:
-    """Uploads rendered static files to Azure Blob Storage's $web container."""
+    """Upload rendered static files to Microsoft Azure Blob Storage's $web container."""
 
     def __init__(self, config: StorageConfig) -> None:
         """Initialize the blob storage client with connection config."""

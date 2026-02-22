@@ -27,7 +27,7 @@ async def test_check_cosmos_healthy() -> None:
     result = await check_cosmos(database, _cosmos_config)
 
     assert result.healthy is True
-    assert result.name == "Azure Cosmos DB"
+    assert result.name == "Cosmos DB"
     assert result.latency_ms is not None
     assert result.error is None
     assert result.detail == "https://localhost:8081 · agent-stack"
@@ -59,7 +59,7 @@ async def test_check_openai_healthy() -> None:
     result = await check_openai(client, _foundry_config)
 
     assert result.healthy is True
-    assert result.name == "Azure OpenAI"
+    assert result.name == "Foundry"
     assert result.latency_ms is not None
     assert result.error is None
     assert result.detail == "https://myoai.openai.azure.com · gpt-4o"
@@ -93,7 +93,7 @@ async def test_check_storage_healthy() -> None:
     result = await check_storage(storage, _storage_config)
 
     assert result.healthy is True
-    assert result.name == "Azure Storage"
+    assert result.name == "Storage"
     assert result.latency_ms is not None
     assert result.error is None
     assert result.detail == "myaccount · $web"
@@ -247,10 +247,10 @@ async def test_check_all_without_storage() -> None:
     )
 
     names = [r.name for r in results]
-    assert "Azure Cosmos DB" in names
-    assert "Azure OpenAI" in names
+    assert "Cosmos DB" in names
+    assert "Foundry" in names
     assert "Change Feed Processor" in names
-    assert "Azure Storage" not in names
+    assert "Storage" not in names
 
 
 async def test_check_all_with_storage() -> None:
@@ -274,7 +274,7 @@ async def test_check_all_with_storage() -> None:
     )
 
     names = [r.name for r in results]
-    assert "Azure Storage" in names
+    assert "Storage" in names
 
 
 async def test_check_all_with_pipeline_unconfigured() -> None:
@@ -292,9 +292,7 @@ async def test_check_all_with_pipeline_unconfigured() -> None:
     )
 
     by_name = {result.name: result for result in results}
-    assert by_name["Azure OpenAI"].healthy is False
-    assert "FOUNDRY_PROJECT_ENDPOINT is not set" in (
-        by_name["Azure OpenAI"].error or ""
-    )
+    assert by_name["Foundry"].healthy is False
+    assert "FOUNDRY_PROJECT_ENDPOINT is not set" in (by_name["Foundry"].error or "")
     assert by_name["Change Feed Processor"].healthy is False
     assert "unavailable" in (by_name["Change Feed Processor"].error or "")

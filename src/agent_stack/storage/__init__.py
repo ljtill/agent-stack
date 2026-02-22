@@ -1,4 +1,4 @@
-"""Azure Blob Storage client for static file uploads."""
+"""Microsoft Azure Blob Storage client for static file uploads."""
 
 from agent_stack.storage.blob import BlobStorageClient
 

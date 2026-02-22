@@ -24,7 +24,7 @@ NEWSLETTER_TEMPLATES = (
 
 
 class StaticSiteRenderer:
-    """Renders newsletter editions as static HTML and uploads to Azure Storage."""
+    """Render editions as static HTML and upload to Microsoft Azure Storage."""
 
     def __init__(
         self, editions_repo: EditionRepository, storage: BlobStorageClient

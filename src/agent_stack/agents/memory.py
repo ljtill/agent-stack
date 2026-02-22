@@ -1,7 +1,7 @@
 """Foundry Memory context provider for persistent agent memory.
 
 Implements the Agent Framework's BaseContextProvider interface, backed by
-Azure AI Foundry's managed Memory service.  Before each agent run the
+Microsoft Foundry's managed Memory service.  Before each agent run the
 provider searches the memory store for relevant context and injects it as
 additional instructions.  After each run the conversation is sent to the
 memory store for automatic extraction of preferences and decisions.
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class FoundryMemoryProvider(BaseContextProvider):
-    """Context provider that uses Azure AI Foundry Memory for persistent agent memory.
+    """Context provider that uses Microsoft Foundry Memory for persistent agent memory.
 
     Memories are scoped via the ``scope`` parameter which can represent a
     project-wide editorial voice, a per-user preference set, or per-edition

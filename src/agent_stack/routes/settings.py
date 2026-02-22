@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def _get_user_scope(request: Request) -> str | None:
-    """Derive a per-user memory scope from the Entra ID claims."""
+    """Derive a per-user memory scope from the Microsoft Entra ID claims."""
     user = get_user(request)
     if not user:
         return None

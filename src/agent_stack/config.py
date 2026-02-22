@@ -15,7 +15,7 @@ def _env(key: str, default: str = "") -> str:
 
 @dataclass(frozen=True)
 class CosmosConfig:
-    """Hold Azure Cosmos DB connection settings."""
+    """Hold Microsoft Azure Cosmos DB connection settings."""
 
     endpoint: str = field(default_factory=lambda: _env("AZURE_COSMOS_ENDPOINT"))
     database: str = field(
@@ -35,7 +35,7 @@ class FoundryConfig:
 
 @dataclass(frozen=True)
 class StorageConfig:
-    """Hold Azure Blob Storage connection settings."""
+    """Hold Microsoft Azure Blob Storage connection settings."""
 
     account_url: str = field(default_factory=lambda: _env("AZURE_STORAGE_ACCOUNT_URL"))
     container: str = field(
@@ -45,7 +45,7 @@ class StorageConfig:
 
 @dataclass(frozen=True)
 class EntraConfig:
-    """Hold Entra ID authentication settings."""
+    """Hold Microsoft Entra ID authentication settings."""
 
     tenant_id: str = field(default_factory=lambda: _env("ENTRA_TENANT_ID"))
     client_id: str = field(default_factory=lambda: _env("ENTRA_CLIENT_ID"))
@@ -58,7 +58,7 @@ class EntraConfig:
 
     @property
     def authority(self) -> str:
-        """Return the Entra ID authority URL."""
+        """Return the Microsoft Entra ID authority URL."""
         return f"https://login.microsoftonline.com/{self.tenant_id}"
 
 
@@ -73,7 +73,7 @@ class MonitorConfig:
 
 @dataclass(frozen=True)
 class FoundryMemoryConfig:
-    """Hold Azure AI Foundry Memory settings."""
+    """Hold Microsoft Foundry Memory settings."""
 
     memory_store_name: str = field(
         default_factory=lambda: _env("FOUNDRY_MEMORY_STORE_NAME", "editorial-memory")

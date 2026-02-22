@@ -1,4 +1,4 @@
-"""Authentication middleware — protects routes behind Entra ID login."""
+"""Authentication middleware — protects routes behind Microsoft Entra ID login."""
 
 from __future__ import annotations
 

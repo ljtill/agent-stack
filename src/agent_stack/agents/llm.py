@@ -1,4 +1,4 @@
-"""Azure OpenAI / Microsoft Foundry chat client factory."""
+"""Microsoft Foundry chat client factory."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_chat_client(config: FoundryConfig) -> AzureOpenAIChatClient:
-    """Create an AzureOpenAIChatClient authenticated via DefaultAzureCredential.
+    """Create a Microsoft Foundry chat client authenticated via DefaultAzureCredential.
 
     Uses Azure CLI credentials in local development and managed identity
     in deployed environments.

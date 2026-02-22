@@ -48,7 +48,7 @@
 
 The [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) (`1.0.0rc1`) is the core agentic and workflow engine for this project. It provides the primitives for building, orchestrating, and running the multi-stage editorial pipeline.
 
-**Package & installation:** The project uses the selective install `agent-framework-core` (includes Azure OpenAI support and workflows without unnecessary extras). The `--pre` flag is required while the framework is in release candidate:
+**Package & installation:** The project uses the selective install `agent-framework-core` (includes Microsoft Foundry support and workflows without unnecessary extras). The `--pre` flag is required while the framework is in release candidate:
 
 ```
 uv add agent-framework-core --prerelease=allow
@@ -59,7 +59,7 @@ uv add agent-framework-core --prerelease=allow
 | Abstraction              | Usage in this project                                                                                          |
 |--------------------------|----------------------------------------------------------------------------------------------------------------|
 | `Agent`                  | Each pipeline stage (Fetch, Review, Draft, Edit, Publish) is an `Agent` instance with stage-specific instructions and tools |
-| `AzureOpenAIChatClient`  | LLM provider integration with Azure OpenAI / Microsoft Foundry, authenticated via managed identity             |
+| `AzureOpenAIChatClient`  | LLM provider integration with Microsoft Foundry, authenticated via managed identity             |
 | `tool`                   | Decorator for typed Python functions registered on agents for structured operations (Cosmos DB reads/writes, HTTP fetches, HTML rendering) |
 | `ChatOptions`            | Per-invocation LLM configuration (temperature, response format) passed to agent `run()` calls                  |
 | `ChatMiddleware`         | Request/response pipeline hooks — used for token usage tracking (`TokenTrackingMiddleware`) and rate limiting (`RateLimitMiddleware`) |
@@ -116,7 +116,7 @@ FastAPI + Jinja2 + HTMX server-rendered admin UI, authenticated via Microsoft En
 - **Editions** — list of all editions with status (`created` → `drafting` → `in_review` → `published`).
 - **Edition Detail** — review agent-generated content, per-section structured feedback interface for comments back to agents (bidirectional), inline title editing, newsletter preview, publish and delete actions.
 - **Agents** — read-only view of the agent pipeline topology showing each stage's configuration, registered tools, middleware, system prompt preview, and recent run history.
-- **Status** — dependency health checks (Cosmos DB, Azure OpenAI, Storage, Change Feed Processor) with latency metrics, probed on page load.
+- **Status** — dependency health checks (Cosmos DB, Foundry, Storage, Change Feed Processor) with latency metrics, probed on page load.
 
 **Edition model:** Single active edition — all submitted links feed into the current draft. The editor creates a new edition when ready to start the next one.
 
