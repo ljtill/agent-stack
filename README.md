@@ -12,13 +12,13 @@ The system implements a nested two-loop architecture — an **outer orchestrator
 
 ```mermaid
 flowchart LR
-    Editor([Editor]) -->|"submit link /\nfeedback"| CFP[Change Feed\nProcessor]
-    CFP --> ORC[Orchestrator\nLLM]
-    ORC -->|"invoke agent\nas tool call"| AGENT[Agent LLM\nFetch · Review · Draft\nEdit · Publish]
-    AGENT -->|"tool call"| TOOLS[Tools\nDB · HTTP · Render]
+    Editor([Editor]) -->|"submit link /<br/>feedback"| CFP["Change Feed<br/>Processor"]
+    CFP --> ORC["Orchestrator<br/>LLM"]
+    ORC -->|"invoke agent<br/>as tool call"| AGENT["Agent LLM<br/>Fetch · Review · Draft<br/>Edit · Publish"]
+    AGENT -->|"tool call"| TOOLS["Tools<br/>DB · HTTP · Render"]
     TOOLS -->|"result"| AGENT
     AGENT -->|"task complete"| ORC
-    ORC -->|"pipeline\ncomplete"| DB[(Cosmos DB)]
+    ORC -->|"pipeline<br/>complete"| DB[(Cosmos DB)]
     DB -.->|"change feed"| CFP
 
     classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
