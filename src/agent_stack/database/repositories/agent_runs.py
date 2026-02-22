@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from agent_stack.database.repositories.base import BaseRepository
 from agent_stack.models.agent_run import AgentRun, AgentRunStatus, AgentStage
 
@@ -92,6 +94,24 @@ class AgentRunRepository(BaseRepository[AgentRun]):
             totals["output_tokens"] += usage.get("output_tokens", 0)
             totals["total_tokens"] += usage.get("total_tokens", 0)
         return totals
+
+    async def recover_orphaned_runs(self) -> int:
+        """Transition any RUNNING runs without a completed_at to FAILED.
+
+        Called on startup to clean up runs orphaned by a prior crash.
+        """
+        orphaned = await self.query(
+            "SELECT * FROM c WHERE c.status = @status"
+            " AND NOT IS_DEFINED(c.completed_at)"
+            " AND NOT IS_DEFINED(c.deleted_at)",
+            [{"name": "@status", "value": AgentRunStatus.RUNNING.value}],
+        )
+        for run in orphaned:
+            run.status = AgentRunStatus.FAILED
+            run.completed_at = datetime.now(UTC)
+            run.output = {"error": "Recovered after process restart"}
+            await self.update(run, run.trigger_id)
+        return len(orphaned)
 
     async def list_recent_failures(self, limit: int = 5) -> list[AgentRun]:
         """Fetch the most recent failed agent runs."""

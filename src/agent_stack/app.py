@@ -100,6 +100,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         render_fn=render_fn,
         upload_fn=upload_fn,
     )
+
+    agent_runs_repo = AgentRunRepository(cosmos.database)
+    recovered = await agent_runs_repo.recover_orphaned_runs()
+    if recovered:
+        logger.info("Recovered %d orphaned agent runs from prior crash", recovered)
+
     processor = ChangeFeedProcessor(cosmos.database, orchestrator)
     await processor.start()
     app.state.processor = processor

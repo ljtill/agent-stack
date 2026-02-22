@@ -43,6 +43,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _DISPLAY_URL_MAX_LENGTH = 50
+_MAX_STAGE_RETRIES = 3
+_RETRY_BASE_DELAY = 2.0
 
 
 def _render_link_row(link: Link, runs: list) -> str:
@@ -112,6 +114,8 @@ class PipelineOrchestrator:
 
         self._processing_links: set[str] = set()
         self._link_lock = asyncio.Lock()
+        self._edition_locks: dict[str, asyncio.Lock] = {}
+        self._edition_locks_guard = asyncio.Lock()
 
         rate_limiter = RateLimitMiddleware(
             tpm_limit=int(os.environ.get("OPENAI_TPM_LIMIT", "800000")),
@@ -320,30 +324,35 @@ class PipelineOrchestrator:
             }
         )
 
-    async def handle_link_change(self, document: dict[str, Any]) -> None:
-        """Process a link document change by invoking the orchestrator agent."""
-        link_id = document.get("id", "")
-        edition_id = document.get("edition_id", "")
-        status = document.get("status", "")
+    async def _get_edition_lock(self, edition_id: str) -> asyncio.Lock:
+        """Get or create a per-edition lock for serializing feedback processing."""
+        async with self._edition_locks_guard:
+            if edition_id not in self._edition_locks:
+                self._edition_locks[edition_id] = asyncio.Lock()
+            return self._edition_locks[edition_id]
 
+    async def _claim_link(
+        self, link_id: str, edition_id: str, status: str
+    ) -> Link | None:
+        """Attempt to claim a link for processing. Returns the link or None."""
         async with self._link_lock:
             if link_id in self._processing_links:
                 logger.debug("Link %s already being processed, skipping", link_id)
-                return
+                return None
             link = await self._links_repo.get(link_id, edition_id)
             if not link:
                 logger.warning("Link %s not found, skipping", link_id)
-                return
+                return None
             if link.status == LinkStatus.FAILED:
                 logger.debug("Link %s is failed, skipping (use Retry)", link_id)
-                return
+                return None
             if status != LinkStatus.SUBMITTED:
                 logger.debug(
                     "Link %s status %s not actionable, skipping",
                     link_id,
                     status,
                 )
-                return
+                return None
             if link.status != status:
                 logger.debug(
                     "Link %s already at %s, skipping stale event (%s)",
@@ -351,44 +360,81 @@ class PipelineOrchestrator:
                     link.status,
                     status,
                 )
-                return
+                return None
             self._processing_links.add(link_id)
+            return link
+
+    async def handle_link_change(self, document: dict[str, Any]) -> None:
+        """Process a link document change by invoking the orchestrator agent."""
+        link_id = document.get("id", "")
+        edition_id = document.get("edition_id", "")
+        status = document.get("status", "")
+
+        link = await self._claim_link(link_id, edition_id, status)
+        if link is None:
+            return
 
         logger.info("Orchestrator processing link=%s status=%s", link_id, status)
         run = await self._create_orchestrator_run(link_id, {"status": status})
         t0 = time.monotonic()
-        try:
-            message = (
-                f"A link needs processing through the pipeline.\n"
-                f"Link ID: {link_id}\n"
-                f"Edition ID: {edition_id}\n"
-                f"URL: {link.url}\n"
-                f"Current status: {status}"
-            )
-            response = await self._agent.run(message)
-            run.status = AgentRunStatus.COMPLETED
-            run.output = {"content": response.text if response else None}
-            run.usage = self._normalize_usage(
-                dict(response.usage_details)
-                if response and response.usage_details
-                else None
-            )
-        except Exception:
-            logger.exception("Orchestrator failed for link %s", link_id)
-            run.status = AgentRunStatus.FAILED
-            run.output = {"error": "Orchestrator failed"}
-        finally:
-            run.completed_at = datetime.now(UTC)
-            await self._agent_runs_repo.update(run, link_id)
-            await self._publish_run_event(run)
-            async with self._link_lock:
-                self._processing_links.discard(link_id)
-            elapsed_ms = (time.monotonic() - t0) * 1000
-            logger.info(
-                "Orchestrator completed link=%s duration_ms=%.0f",
+        last_error: Exception | None = None
+        for attempt in range(1, _MAX_STAGE_RETRIES + 1):
+            try:
+                message = (
+                    f"A link needs processing through the pipeline.\n"
+                    f"Link ID: {link_id}\n"
+                    f"Edition ID: {edition_id}\n"
+                    f"URL: {link.url}\n"
+                    f"Current status: {status}"
+                )
+                response = await self._agent.run(message)
+                run.status = AgentRunStatus.COMPLETED
+                run.output = {"content": response.text if response else None}
+                run.usage = self._normalize_usage(
+                    dict(response.usage_details)
+                    if response and response.usage_details
+                    else None
+                )
+                last_error = None
+                break
+            except Exception as exc:  # noqa: BLE001
+                last_error = exc
+                if attempt < _MAX_STAGE_RETRIES:
+                    delay = _RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                    logger.warning(
+                        "Orchestrator attempt %d/%d failed for link %s, "
+                        "retrying in %.1fs: %s",
+                        attempt,
+                        _MAX_STAGE_RETRIES,
+                        link_id,
+                        delay,
+                        exc,
+                    )
+                    await asyncio.sleep(delay)
+
+        if last_error is not None:
+            logger.exception(
+                "Orchestrator failed for link %s after %d attempts",
                 link_id,
-                elapsed_ms,
+                _MAX_STAGE_RETRIES,
+                exc_info=last_error,
             )
+            run.status = AgentRunStatus.FAILED
+            run.output = {
+                "error": (f"Orchestrator failed after {_MAX_STAGE_RETRIES} attempts"),
+            }
+
+        run.completed_at = datetime.now(UTC)
+        await self._agent_runs_repo.update(run, link_id)
+        await self._publish_run_event(run)
+        async with self._link_lock:
+            self._processing_links.discard(link_id)
+        elapsed_ms = (time.monotonic() - t0) * 1000
+        logger.info(
+            "Orchestrator completed link=%s duration_ms=%.0f",
+            link_id,
+            elapsed_ms,
+        )
 
         updated_link = await self._links_repo.get(link_id, edition_id)
         if updated_link and updated_link.status == status:
@@ -408,44 +454,46 @@ class PipelineOrchestrator:
         if document.get("resolved", False):
             return
 
-        logger.info(
-            "Orchestrator processing feedback=%s edition=%s",
-            feedback_id,
-            edition_id,
-        )
-        run = await self._create_orchestrator_run(
-            feedback_id, {"edition_id": edition_id}
-        )
-        t0 = time.monotonic()
-        try:
-            message = (
-                f"Editor feedback has been submitted and needs processing.\n"
-                f"Edition ID: {edition_id}\n"
-                f"Feedback ID: {feedback_id}\n"
-                f"Run the edit stage to address the feedback."
-            )
-            response = await self._agent.run(message)
-            run.status = AgentRunStatus.COMPLETED
-            run.output = {"content": response.text if response else None}
-            run.usage = self._normalize_usage(
-                dict(response.usage_details)
-                if response and response.usage_details
-                else None
-            )
-        except Exception:
-            logger.exception("Orchestrator failed for feedback %s", feedback_id)
-            run.status = AgentRunStatus.FAILED
-            run.output = {"error": "Orchestrator failed"}
-        finally:
-            run.completed_at = datetime.now(UTC)
-            await self._agent_runs_repo.update(run, feedback_id)
-            await self._publish_run_event(run)
-            elapsed_ms = (time.monotonic() - t0) * 1000
+        edition_lock = await self._get_edition_lock(edition_id)
+        async with edition_lock:
             logger.info(
-                "Orchestrator completed feedback=%s duration_ms=%.0f",
+                "Orchestrator processing feedback=%s edition=%s",
                 feedback_id,
-                elapsed_ms,
+                edition_id,
             )
+            run = await self._create_orchestrator_run(
+                feedback_id, {"edition_id": edition_id}
+            )
+            t0 = time.monotonic()
+            try:
+                message = (
+                    f"Editor feedback has been submitted and needs processing.\n"
+                    f"Edition ID: {edition_id}\n"
+                    f"Feedback ID: {feedback_id}\n"
+                    f"Run the edit stage to address the feedback."
+                )
+                response = await self._agent.run(message)
+                run.status = AgentRunStatus.COMPLETED
+                run.output = {"content": response.text if response else None}
+                run.usage = self._normalize_usage(
+                    dict(response.usage_details)
+                    if response and response.usage_details
+                    else None
+                )
+            except Exception:
+                logger.exception("Orchestrator failed for feedback %s", feedback_id)
+                run.status = AgentRunStatus.FAILED
+                run.output = {"error": "Orchestrator failed"}
+            finally:
+                run.completed_at = datetime.now(UTC)
+                await self._agent_runs_repo.update(run, feedback_id)
+                await self._publish_run_event(run)
+                elapsed_ms = (time.monotonic() - t0) * 1000
+                logger.info(
+                    "Orchestrator completed feedback=%s duration_ms=%.0f",
+                    feedback_id,
+                    elapsed_ms,
+                )
 
     async def handle_publish(self, edition_id: str) -> None:
         """Process a publish approval by invoking the orchestrator agent."""

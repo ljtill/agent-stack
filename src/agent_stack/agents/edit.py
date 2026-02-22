@@ -100,7 +100,13 @@ class EditAgent:
         if not edition:
             logger.warning("save_edit: edition %s not found", edition_id)
             return json.dumps({"error": "Edition not found"})
-        edition.content = json.loads(content) if isinstance(content, str) else content
+        try:
+            edition.content = (
+                json.loads(content) if isinstance(content, str) else content
+            )
+        except (json.JSONDecodeError, TypeError):
+            logger.warning("save_edit: invalid content JSON — edition=%s", edition_id)
+            return json.dumps({"error": "Invalid JSON content"})
         await self._editions_repo.update(edition, edition_id)
         logger.debug("Edit saved — edition=%s", edition_id)
         return json.dumps({"status": "edited", "edition_id": edition_id})
