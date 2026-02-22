@@ -35,6 +35,16 @@ graph TB
     Storage -->|serves| StaticSite
     Reader -->|reads newsletter| StaticSite
     Dashboard -.->|SSE updates| Editor
+
+    classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
+    classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
+    classDef infra fill:#d97706,stroke:#b45309,color:#fff
+    classDef human fill:#059669,stroke:#047857,color:#fff
+
+    class Orchestrator outer
+    class Agents,LLM,LocalLLM inner
+    class Dashboard,CosmosDB,ChangeFeed,Storage,StaticSite infra
+    class Editor,Reader human
 ```
 
 ## Azure Infrastructure
@@ -81,6 +91,17 @@ graph TB
 
     ACA -->|telemetry| AppInsights
     AppInsights -->|backed by| LAW
+
+    classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
+    classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
+    classDef infra fill:#d97706,stroke:#b45309,color:#fff
+    classDef human fill:#059669,stroke:#047857,color:#fff
+
+    class ACA,ACR outer
+    class SWA inner
+    class Cosmos,SA,AppConfig infra
+    class MI human
+    class AppInsights,LAW inner
 ```
 
 ## Agent Pipeline
@@ -114,6 +135,14 @@ graph LR
     end
 
     Fetch & Review & Draft & Edit & Publish -.-> Middleware
+
+    classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
+    classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
+    classDef infra fill:#d97706,stroke:#b45309,color:#fff
+
+    class PO outer
+    class Fetch,Review,Draft,Edit,Publish,TT,TL inner
+    class CF,DB,Storage infra
 ```
 
 ## Event-Driven Data Flow
@@ -186,4 +215,13 @@ graph LR
     Build -->|workflow_run| Release["Release<br/><i>Bicep deployment<br/>(infra)</i>"]
     Release -->|workflow_run| Deploy["Deploy<br/><i>Container App update</i>"]
 
+    classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
+    classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
+    classDef infra fill:#d97706,stroke:#b45309,color:#fff
+    classDef human fill:#059669,stroke:#047857,color:#fff
+
+    class Push human
+    class Check,Test outer
+    class Build inner
+    class Release,Deploy infra
 ```
