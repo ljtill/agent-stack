@@ -26,7 +26,11 @@ async def status(request: Request) -> HTMLResponse:
     processor = request.app.state.processor
     storage = request.app.state.storage
     start_time = request.app.state.start_time
-    chat_client = create_chat_client(settings.foundry)
+    chat_client = (
+        create_chat_client(settings.foundry)
+        if settings.foundry.project_endpoint
+        else None
+    )
 
     health_coro = check_all(
         cosmos.database,
@@ -43,7 +47,15 @@ async def status(request: Request) -> HTMLResponse:
     )
 
     results, stats = await asyncio.gather(health_coro, stats_coro)
-    unhealthy_count = sum(1 for result in results if not result.healthy)
+    unhealthy_count = sum(
+        1
+        for result in results
+        if not (
+            result.healthy
+            if hasattr(result, "healthy")
+            else bool(result.get("healthy", False))
+        )
+    )
     logger.info(
         "Status page loaded — checks=%d unhealthy=%d duration_ms=%.0f",
         len(results),

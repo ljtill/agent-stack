@@ -233,3 +233,13 @@ async def test_publish_edition_redirects() -> None:
     response = await publish_edition(request, edition_id="ed-1")
 
     assert response.status_code == _EXPECTED_REDIRECT_STATUS
+
+
+async def test_publish_edition_skips_when_pipeline_unavailable() -> None:
+    """POST /editions/{id}/publish safely redirects when pipeline is unavailable."""
+    request = _make_request()
+    request.app.state.processor = None
+
+    response = await publish_edition(request, edition_id="ed-1")
+
+    assert response.status_code == _EXPECTED_REDIRECT_STATUS

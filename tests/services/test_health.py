@@ -275,3 +275,26 @@ async def test_check_all_with_storage() -> None:
 
     names = [r.name for r in results]
     assert "Azure Storage" in names
+
+
+async def test_check_all_with_pipeline_unconfigured() -> None:
+    """Verify check_all reports unconfigured Foundry and change feed."""
+    database = MagicMock()
+    database.get_container_client.return_value = AsyncMock()
+    config = FoundryConfig(project_endpoint="", model="")
+
+    results = await check_all(
+        database,
+        None,
+        None,
+        _cosmos_config,
+        config,
+    )
+
+    by_name = {result.name: result for result in results}
+    assert by_name["Azure OpenAI"].healthy is False
+    assert "FOUNDRY_PROJECT_ENDPOINT is not set" in (
+        by_name["Azure OpenAI"].error or ""
+    )
+    assert by_name["Change Feed Processor"].healthy is False
+    assert "unavailable" in (by_name["Change Feed Processor"].error or "")

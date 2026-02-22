@@ -33,3 +33,31 @@ class TestStatusRoute:
         call_args = request.app.state.templates.TemplateResponse.call_args
         assert call_args[0][0] == "status.html"
         assert call_args[0][1]["checks"] == mock_results
+
+    async def test_renders_status_page_without_foundry_config(self) -> None:
+        """Verify status renders when Foundry is not configured."""
+        request = MagicMock()
+        request.app.state.cosmos = MagicMock()
+        request.app.state.settings = MagicMock()
+        request.app.state.settings.foundry.project_endpoint = ""
+        request.app.state.processor = None
+        request.app.state.storage = MagicMock()
+        request.app.state.templates = MagicMock()
+
+        mock_results = [{"name": "Azure OpenAI", "healthy": False}]
+
+        with (
+            patch("agent_stack.routes.status.create_chat_client") as mock_create_client,
+            patch(
+                "agent_stack.routes.status.check_all",
+                new_callable=AsyncMock,
+                return_value=mock_results,
+            ),
+        ):
+            await status(request)
+
+        mock_create_client.assert_not_called()
+        request.app.state.templates.TemplateResponse.assert_called_once()
+        call_args = request.app.state.templates.TemplateResponse.call_args
+        assert call_args[0][0] == "status.html"
+        assert call_args[0][1]["checks"] == mock_results

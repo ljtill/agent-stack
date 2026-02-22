@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+import time
 from typing import TYPE_CHECKING, Any
 
 from agent_stack.models.edition import Edition
@@ -12,6 +14,8 @@ if TYPE_CHECKING:
     from agent_stack.database.repositories.links import LinkRepository
     from agent_stack.models.link import Link
     from agent_stack.pipeline.orchestrator import PipelineOrchestrator
+
+logger = logging.getLogger(__name__)
 
 
 async def create_edition(editions_repo: EditionRepository) -> Edition:
@@ -35,6 +39,7 @@ async def get_edition_detail(
     agent_runs_repo: AgentRunRepository,
 ) -> dict[str, Any]:
     """Fetch edition, links, and agent runs and assemble a detail dict."""
+    started_at = time.monotonic()
     edition = await editions_repo.get(edition_id, edition_id)
     links: list[Link] = await links_repo.get_by_edition(edition_id) if edition else []
 
@@ -43,6 +48,17 @@ async def get_edition_detail(
         await agent_runs_repo.get_by_triggers(trigger_ids) if trigger_ids else []
     )
     links_by_id = {link.id: link for link in links}
+
+    logger.info(
+        "Edition detail assembled — edition=%s exists=%s links=%d "
+        "triggers=%d runs=%d duration_ms=%.0f",
+        edition_id,
+        edition is not None,
+        len(links),
+        len(trigger_ids),
+        len(agent_runs),
+        (time.monotonic() - started_at) * 1000,
+    )
 
     return {
         "edition": edition,

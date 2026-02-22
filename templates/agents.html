@@ -3,6 +3,11 @@
 {% block content %}
 <h1>Agents</h1>
 <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Pipeline topology and agent configuration. Read-only view of the orchestrator workflow.</p>
+{% if not pipeline_available %}
+<div class="card" style="border-color: var(--warning); background: var(--warning-bg); color: var(--text); margin-bottom: 1rem;">
+    Pipeline is currently unavailable because <code>FOUNDRY_PROJECT_ENDPOINT</code> is not configured.
+</div>
+{% endif %}
 
 <!-- Pipeline Flow Diagram — Hub-and-spoke layout -->
 <div class="card" style="overflow-x: auto;">

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Form, Query, Request
@@ -26,6 +27,7 @@ async def list_links(
     request: Request, edition_id: Annotated[str | None, Query()] = None
 ) -> HTMLResponse:
     """Render the links page with edition selector and filtered links."""
+    started_at = time.monotonic()
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
     editions_repo = _get_editions_repo(cosmos)
@@ -47,6 +49,17 @@ async def list_links(
     for link in links:
         runs = await runs_repo.get_by_trigger(link.id)
         link_run_groups[link.id] = _group_runs_by_invocation(runs)
+
+    logger.info(
+        "Links page loaded — requested_edition=%s selected_edition=%s "
+        "editions=%d links=%d run_lookups=%d duration_ms=%.0f",
+        edition_id,
+        edition.id if edition else None,
+        len(editions),
+        len(links),
+        len(links),
+        (time.monotonic() - started_at) * 1000,
+    )
 
     return templates.TemplateResponse(
         "links.html",

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import logging
+import time
+
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
@@ -10,14 +13,31 @@ from agent_stack.database.repositories.agent_runs import AgentRunRepository
 from agent_stack.models.agent_run import AgentRun, AgentStage
 
 router = APIRouter(tags=["agents"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/agents", response_class=HTMLResponse)
 async def agents_page(request: Request) -> HTMLResponse:
     """Render the Agents page showing pipeline topology and agent details."""
+    started_at = time.monotonic()
     templates = request.app.state.templates
     cosmos = request.app.state.cosmos
-    orchestrator = request.app.state.processor.orchestrator
+    processor = request.app.state.processor
+    if processor is None:
+        logger.warning(
+            "Agents page requested while pipeline is unavailable "
+            "(FOUNDRY_PROJECT_ENDPOINT not configured)"
+        )
+        return templates.TemplateResponse(
+            "agents.html",
+            {
+                "request": request,
+                "agents": [],
+                "running_stages": set(),
+                "pipeline_available": False,
+            },
+        )
+    orchestrator = processor.orchestrator
 
     agent_metadata = get_agent_metadata(orchestrator)
 
@@ -46,12 +66,24 @@ async def agents_page(request: Request) -> HTMLResponse:
         agent["last_run"] = _run_to_dict(stage_runs[0]) if stage_runs else None
         agent["is_running"] = stage in running_stages
 
+    total_stage_runs = sum(len(stage_runs) for stage_runs in runs_by_stage.values())
+    logger.info(
+        "Agents page loaded — agents=%d stages=%d running_stages=%d "
+        "recent_runs=%d duration_ms=%.0f",
+        len(agent_metadata),
+        len(stages),
+        len(running_stages),
+        total_stage_runs,
+        (time.monotonic() - started_at) * 1000,
+    )
+
     return templates.TemplateResponse(
         "agents.html",
         {
             "request": request,
             "agents": agent_metadata,
             "running_stages": running_stages,
+            "pipeline_available": True,
         },
     )
 

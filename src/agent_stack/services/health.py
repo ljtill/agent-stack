@@ -188,8 +188,8 @@ class StorageHealthConfig:
 
 async def check_all(
     database: DatabaseProxy,
-    openai_client: AzureOpenAIChatClient,
-    processor: ChangeFeedProcessor,
+    openai_client: AzureOpenAIChatClient | None,
+    processor: ChangeFeedProcessor | None,
     cosmos_config: CosmosConfig,
     foundry_config: FoundryConfig,
     storage_health: StorageHealthConfig | None = None,
@@ -198,7 +198,29 @@ async def check_all(
     coros: list = [check_cosmos(database, cosmos_config)]
     if storage_health is not None:
         coros.append(check_storage(storage_health.client, storage_health.config))
-    coros.append(check_openai(openai_client, foundry_config))
     network_results = await asyncio.gather(*coros, return_exceptions=False)
-    feed_result = check_change_feed(processor)
-    return [*network_results, feed_result]
+
+    foundry_detail = (
+        f"{foundry_config.project_endpoint or 'not configured'}"
+        f" · {foundry_config.model or 'not configured'}"
+    )
+    if openai_client is not None and foundry_config.project_endpoint:
+        openai_result = await check_openai(openai_client, foundry_config)
+    else:
+        openai_result = ServiceHealth(
+            name="Azure OpenAI",
+            healthy=False,
+            error="FOUNDRY_PROJECT_ENDPOINT is not set",
+            detail=foundry_detail,
+        )
+
+    if processor is not None:
+        feed_result = check_change_feed(processor)
+    else:
+        feed_result = ServiceHealth(
+            name="Change Feed Processor",
+            healthy=False,
+            error="Disabled because Foundry pipeline is unavailable",
+            detail="editions container",
+        )
+    return [*network_results, openai_result, feed_result]

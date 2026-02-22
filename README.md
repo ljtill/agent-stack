@@ -61,6 +61,13 @@ cp .env.example .env
 uv run uvicorn agent_stack.app:create_app --factory --reload --reload-dir src
 ```
 
+For intermittent UI lock-up diagnostics in local development, run with verbose timing logs:
+
+```bash
+LOG_LEVEL=DEBUG APP_SLOW_REQUEST_MS=400 APP_SLOW_REPOSITORY_MS=150 \
+uv run uvicorn agent_stack.app:create_app --factory --reload --reload-dir src
+```
+
 ### Tests
 
 ```bash

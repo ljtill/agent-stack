@@ -47,6 +47,7 @@ async def test_agents_page_renders_template() -> None:
     assert ctx["agents"][0]["last_run"] is None
     assert ctx["agents"][0]["is_running"] is False
     assert ctx["agents"][0]["recent_runs"] == []
+    assert ctx["pipeline_available"] is True
 
 
 async def test_agents_page_with_runs() -> None:
@@ -99,3 +100,23 @@ async def test_agents_page_with_runs() -> None:
     assert agent["last_run"]["input"]["message"] == "Fetch this URL"
     assert agent["last_run"]["output"]["content"] == "I fetched the content."
     assert len(agent["recent_runs"]) == 1
+    assert ctx["pipeline_available"] is True
+
+
+async def test_agents_page_handles_unavailable_pipeline() -> None:
+    """Verify agents page renders safely when pipeline is unavailable."""
+    request = MagicMock()
+    request.app.state.templates = MagicMock()
+    request.app.state.templates.TemplateResponse = MagicMock(return_value="<html>")
+    request.app.state.cosmos = MagicMock()
+    request.app.state.cosmos.database = MagicMock()
+    request.app.state.processor = None
+
+    await agents_page(request)
+
+    call_args = request.app.state.templates.TemplateResponse.call_args
+    assert call_args[0][0] == "agents.html"
+    ctx = call_args[0][1]
+    assert ctx["agents"] == []
+    assert ctx["running_stages"] == set()
+    assert ctx["pipeline_available"] is False

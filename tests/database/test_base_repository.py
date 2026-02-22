@@ -1,7 +1,7 @@
 """Tests for BaseRepository with mocked Cosmos DB container."""
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from azure.cosmos.exceptions import CosmosHttpResponseError
@@ -144,3 +144,30 @@ async def test_query_filters_soft_deleted(
     results = await repo.query("SELECT * FROM c")
     assert len(results) == 1
     assert results[0].id == "link-1"
+
+
+async def test_query_logs_warning_when_slow(
+    mock_container: AsyncMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify slow query logs warning diagnostics."""
+    monkeypatch.setenv("APP_SLOW_REPOSITORY_MS", "0")
+    db = MagicMock()
+    db.get_container_client.return_value = mock_container
+    repo = ConcreteRepo(db)
+
+    async def mock_query_items(**_kwargs: Any) -> None:
+        yield {
+            "id": "link-1",
+            "url": "https://a.com",
+            "edition_id": "ed-1",
+            "status": "submitted",
+            "created_at": "2026-01-01T00:00:00+00:00",
+            "updated_at": "2026-01-01T00:00:00+00:00",
+        }
+
+    mock_container.query_items = mock_query_items
+
+    with patch("agent_stack.database.repositories.base.logger.warning") as mock_warning:
+        await repo.query("SELECT * FROM c")
+
+    mock_warning.assert_called_once()

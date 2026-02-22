@@ -78,7 +78,16 @@ async def preview_edition(request: Request, edition_id: str) -> HTMLResponse:
 async def publish_edition(request: Request, edition_id: str) -> RedirectResponse:
     """Trigger the publish pipeline for an edition via the orchestrator agent."""
     logger.info("Publish requested — edition=%s", edition_id)
-    orchestrator = request.app.state.processor.orchestrator
+    processor = request.app.state.processor
+    if processor is None:
+        logger.warning(
+            "Publish skipped — pipeline unavailable because FOUNDRY_PROJECT_ENDPOINT "
+            "is not configured (edition=%s)",
+            edition_id,
+        )
+        return RedirectResponse(f"/editions/{edition_id}", status_code=303)
+
+    orchestrator = processor.orchestrator
     task = asyncio.create_task(edition_svc.publish_edition(edition_id, orchestrator))
     if not hasattr(request.app.state, "background_tasks"):
         request.app.state.background_tasks = []
