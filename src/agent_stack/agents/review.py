@@ -82,23 +82,13 @@ class ReviewAgent:
         self,
         link_id: Annotated[str, "The link document ID"],
         edition_id: Annotated[str, "The edition partition key"],
-        insights: Annotated[str, "JSON array of key insights"],
+        insights: Annotated[list[str], "Key insights extracted from the content"],
         category: Annotated[str, "Content category"],
         relevance_score: Annotated[int, "Relevance score 1-10"],
         justification: Annotated[str, "Brief justification for the score"],
     ) -> str:
         """Persist the review output to the link document."""
-        try:
-            parsed_insights: list | str = (
-                json.loads(insights, strict=False)
-                if isinstance(insights, str)
-                else insights
-            )
-        except (json.JSONDecodeError, TypeError) as exc:
-            logger.warning(
-                "save_review: invalid insights JSON for link %s: %s", link_id, exc
-            )
-            return json.dumps({"error": f"insights must be a valid JSON array: {exc}"})
+        parsed_insights = insights
         link = await self._links_repo.get(link_id, edition_id)
         if not link:
             logger.warning("save_review: link %s not found", link_id)
