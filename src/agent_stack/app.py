@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -49,8 +50,8 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 _DEFAULT_HOST = "0.0.0.0"  # noqa: S104
 
 
-async def _check_emulators(settings: Settings) -> None:
-    """Verify local emulators are reachable. Exit with a clear message if not."""
+async def _check_emulators(settings: Settings) -> bool:
+    """Verify local emulators are reachable. Return False if any are down."""
     failures: list[str] = []
     async with httpx.AsyncClient(timeout=3) as client:
         cosmos_url = settings.cosmos.endpoint
@@ -73,20 +74,17 @@ async def _check_emulators(settings: Settings) -> None:
                 )
 
     if failures:
-        for msg in failures:
-            logger.error(msg)
+        for failure in failures:
+            logger.error(failure)
         logger.error("Start the emulators with: docker compose up -d")
-        msg = "Local emulators are not running"
-        raise SystemExit(msg)
+        return False
+    return True
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage application lifecycle — initialize DB, start change feed."""
     settings = load_settings()
-
-    if settings.app.is_development:
-        await _check_emulators(settings)
 
     if settings.monitor.connection_string:
         configure_azure_monitor(connection_string=settings.monitor.connection_string)
@@ -219,6 +217,9 @@ def main() -> None:
             return "'feed_range' empty" not in record.getMessage()
 
     logging.getLogger().addFilter(_FeedRangeFilter())
+
+    if settings.app.is_development and not asyncio.run(_check_emulators(settings)):
+        return
 
     app = create_app()
     uvicorn.run(app, host=_DEFAULT_HOST, port=8000, log_config=None)
