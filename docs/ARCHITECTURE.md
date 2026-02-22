@@ -38,13 +38,15 @@ graph TB
 
     classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
     classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
-    classDef infra fill:#475569,stroke:#334155,color:#fff
+    classDef infra fill:#d97706,stroke:#b45309,color:#fff
     classDef human fill:#059669,stroke:#047857,color:#fff
 
     class Orchestrator outer
     class Agents,LLM,LocalLLM inner
     class Dashboard,CosmosDB,ChangeFeed,Storage,StaticSite infra
     class Editor,Reader human
+
+    style Azure fill:#f1f5f9,stroke:#94a3b8,color:#334155
 ```
 
 ## Azure Infrastructure
@@ -94,7 +96,7 @@ graph TB
 
     classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
     classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
-    classDef infra fill:#475569,stroke:#334155,color:#fff
+    classDef infra fill:#d97706,stroke:#b45309,color:#fff
     classDef human fill:#059669,stroke:#047857,color:#fff
 
     class ACA,ACR outer
@@ -102,6 +104,12 @@ graph TB
     class Cosmos,SA,AppConfig infra
     class MI human
     class AppInsights,LAW inner
+
+    style Identity fill:#f1f5f9,stroke:#94a3b8,color:#334155
+    style Compute fill:#f1f5f9,stroke:#94a3b8,color:#334155
+    style Data fill:#f1f5f9,stroke:#94a3b8,color:#334155
+    style Web fill:#f1f5f9,stroke:#94a3b8,color:#334155
+    style Observability fill:#f1f5f9,stroke:#94a3b8,color:#334155
 ```
 
 ## Agent Pipeline
@@ -138,11 +146,14 @@ graph LR
 
     classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
     classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
-    classDef infra fill:#475569,stroke:#334155,color:#fff
+    classDef infra fill:#d97706,stroke:#b45309,color:#fff
 
     class PO outer
     class Fetch,Review,Draft,Edit,Publish,TT,TL inner
     class CF,DB,Storage infra
+
+    style Orchestrator fill:#f1f5f9,stroke:#94a3b8,color:#334155
+    style Middleware fill:#f1f5f9,stroke:#94a3b8,color:#334155
 ```
 
 ## Event-Driven Data Flow
@@ -217,11 +228,13 @@ graph LR
 
     classDef outer fill:#2563eb,stroke:#1d4ed8,color:#fff
     classDef inner fill:#7c3aed,stroke:#6d28d9,color:#fff
-    classDef infra fill:#475569,stroke:#334155,color:#fff
+    classDef infra fill:#d97706,stroke:#b45309,color:#fff
     classDef human fill:#059669,stroke:#047857,color:#fff
 
     class Push human
     class Check,Test outer
     class Build inner
     class Release,Deploy infra
+
+    style Parallel fill:#f1f5f9,stroke:#94a3b8,color:#334155
 ```
