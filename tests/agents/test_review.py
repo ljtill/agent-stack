@@ -132,6 +132,24 @@ async def test_save_review_raises_after_max_retries(
         )
 
 
+async def test_save_review_invalid_insights_json(
+    review_agent: ReviewAgent, links_repo: AsyncMock
+) -> None:
+    """Verify save review returns error for malformed insights JSON."""
+    link = Link(id="link-1", url="https://example.com", edition_id="ed-1")
+    links_repo.get.return_value = link
+
+    result = json.loads(
+        await review_agent.save_review(
+            "link-1", "ed-1", "not valid json", "AI/ML", 8, "Good"
+        )
+    )
+
+    assert "error" in result
+    assert "JSON" in result["error"]
+    links_repo.update.assert_not_called()
+
+
 @pytest.mark.usefixtures("links_repo")
 async def test_save_review_resets_failures_on_run(review_agent: ReviewAgent) -> None:
     """Verify save review resets failures on run."""

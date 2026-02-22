@@ -88,12 +88,21 @@ class ReviewAgent:
         justification: Annotated[str, "Brief justification for the score"],
     ) -> str:
         """Persist the review output to the link document."""
+        try:
+            parsed_insights: list | str = (
+                json.loads(insights) if isinstance(insights, str) else insights
+            )
+        except (json.JSONDecodeError, TypeError) as exc:
+            logger.warning(
+                "save_review: invalid insights JSON for link %s: %s", link_id, exc
+            )
+            return json.dumps({"error": f"insights must be a valid JSON array: {exc}"})
         link = await self._links_repo.get(link_id, edition_id)
         if not link:
             logger.warning("save_review: link %s not found", link_id)
             return json.dumps({"error": "Link not found"})
         link.review = {
-            "insights": json.loads(insights) if isinstance(insights, str) else insights,
+            "insights": parsed_insights,
             "category": category,
             "relevance_score": relevance_score,
             "justification": justification,
