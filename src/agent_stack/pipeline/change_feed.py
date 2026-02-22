@@ -39,6 +39,9 @@ class ChangeFeedProcessor:
         self._running = False
         self._task: asyncio.Task | None = None
         self._handler_tasks: set[asyncio.Task] = set()
+        # Track etags per container to avoid re-dispatching unchanged items
+        # (the Cosmos DB emulator may not advance continuation tokens correctly)
+        self._seen_etags: dict[str, dict[str, str]] = {}
 
     @property
     def running(self) -> bool:
@@ -153,10 +156,16 @@ class ChangeFeedProcessor:
         response = container.query_items_change_feed(**query_kwargs)
         page_iterator = response.by_page()
 
+        seen = self._seen_etags.setdefault(container.id, {})
+
         try:
             async for page in page_iterator:
                 async for item in page:
                     item_id = item.get("id", "unknown")
+                    item_etag = item.get("_etag", "")
+                    if seen.get(item_id) == item_etag:
+                        continue
+                    seen[item_id] = item_etag
                     logger.debug(
                         "Change feed dispatching item=%s container=%s",
                         item_id,
@@ -172,7 +181,6 @@ class ChangeFeedProcessor:
             # for the change feed endpoint when there are no changes, causing aiohttp
             # to fail parsing. Treat as "no changes" and keep the current token.
             if "Expected HTTP/" in str(exc):
-                logger.debug("Change feed returned no changes (emulator HTTP response)")
                 return continuation_token
             raise
 
