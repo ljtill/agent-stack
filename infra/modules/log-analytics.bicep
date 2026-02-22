@@ -4,6 +4,9 @@ param name string
 @description('Location for the resource')
 param location string
 
+@description('Data retention in days')
+param retentionInDays int = 30
+
 resource workspace 'Microsoft.OperationalInsights/workspaces@2025-07-01' = {
   name: name
   location: location
@@ -11,7 +14,7 @@ resource workspace 'Microsoft.OperationalInsights/workspaces@2025-07-01' = {
     sku: {
       name: 'PerGB2018'
     }
-    retentionInDays: 30
+    retentionInDays: retentionInDays
   }
 }
 

@@ -88,6 +88,7 @@ module logAnalytics 'modules/log-analytics.bicep' = {
   params: {
     name: '${baseName}-${environment}-law'
     location: location
+    retentionInDays: environment == 'prod' ? 90 : 30
   }
 }
 
