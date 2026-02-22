@@ -36,6 +36,7 @@ class DraftAgent:
         """Initialize the draft agent with LLM client and repositories."""
         self._links_repo = links_repo
         self._editions_repo = editions_repo
+        self._draft_saved = False
         middleware = [
             TokenTrackingMiddleware(),
             *([] if rate_limiter is None else [rate_limiter]),
@@ -129,6 +130,7 @@ class DraftAgent:
             edition_id,
             link_id,
         )
+        self._draft_saved = True
         return json.dumps({"status": "drafted", "edition_id": edition_id})
 
     async def run(self, link: Link) -> dict:
@@ -137,12 +139,25 @@ class DraftAgent:
             "Draft agent started — link=%s edition=%s", link.id, link.edition_id
         )
         t0 = time.monotonic()
+        self._draft_saved = False
         message = (
             f"Draft newsletter content for this reviewed link.\n"
             f"Link ID: {link.id}\nEdition ID: {link.edition_id}"
         )
+        session = self._agent.create_session()
         try:
-            response = await self._agent.run(message)
+            response = await self._agent.run(message, session=session)
+            if not self._draft_saved:
+                logger.warning(
+                    "Draft agent did not call save_draft — retrying link=%s",
+                    link.id,
+                )
+                response = await self._agent.run(
+                    "You must call the save_draft tool now with the full edition "
+                    "content JSON to persist your work. Content in your text "
+                    "response is NOT saved to the database.",
+                    session=session,
+                )
         except Exception:
             elapsed_ms = (time.monotonic() - t0) * 1000
             logger.exception(

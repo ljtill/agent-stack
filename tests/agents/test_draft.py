@@ -109,3 +109,39 @@ async def test_save_draft_invalid_content_json(
     assert "error" in result
     assert "JSON" in result["error"]
     editions_repo.update.assert_not_called()
+
+
+_EXPECTED_RETRY_COUNT = 2
+
+
+async def test_run_retries_when_save_draft_not_called(
+    draft_agent: DraftAgent,
+) -> None:
+    """Verify run sends a follow-up message when save_draft is not called."""
+    mock_response = MagicMock()
+    mock_response.usage_details = None
+    mock_response.text = "Here is the draft content..."
+
+    call_count = 0
+
+    async def fake_run(  # noqa: ANN202
+        message: str,  # noqa: ARG001
+        *,
+        session: object = None,  # noqa: ARG001
+        **kwargs: object,  # noqa: ARG001
+    ):
+        nonlocal call_count
+        call_count += 1
+        if call_count == _EXPECTED_RETRY_COUNT:
+            # Simulate save_draft being called on retry
+            draft_agent._draft_saved = True  # noqa: SLF001
+        return mock_response
+
+    draft_agent.agent.run = fake_run
+    draft_agent.agent.create_session = MagicMock()
+    link = Link(id="link-1", url="https://example.com", edition_id="ed-1")
+
+    await draft_agent.run(link)
+
+    assert call_count == _EXPECTED_RETRY_COUNT
+    assert draft_agent._draft_saved is True  # noqa: SLF001
