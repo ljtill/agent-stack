@@ -592,6 +592,7 @@ dependencies = [
     { name = "azure-cosmos" },
     { name = "azure-identity" },
     { name = "azure-storage-blob" },
+    { name = "httpx" },
     { name = "jinja2" },
     { name = "python-dotenv" },
 ]
@@ -602,6 +603,7 @@ requires-dist = [
     { name = "azure-cosmos", specifier = ">=4.14.6" },
     { name = "azure-identity", specifier = ">=1.25.2" },
     { name = "azure-storage-blob", specifier = ">=12.28.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
 ]

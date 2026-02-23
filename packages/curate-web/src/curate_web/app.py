@@ -10,9 +10,7 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
-from urllib.parse import urlparse
 
-import httpx
 import uvicorn
 from azure.core.exceptions import HttpResponseError
 from azure.monitor.opentelemetry import configure_azure_monitor
@@ -25,6 +23,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from curate_common.config import Settings, load_settings
 from curate_common.database.repositories.editions import EditionRepository
+from curate_common.health import check_emulators
 from curate_common.logging import configure_logging
 from curate_web.routes.agent_runs import router as agent_runs_router
 from curate_web.routes.agents import router as agents_router
@@ -112,46 +111,6 @@ def _install_request_diagnostics_middleware(app: FastAPI, settings: Settings) ->
                 logger.warning(message, *args)
             else:
                 logger.debug(message, *args)
-
-
-async def _check_emulators(settings: Settings) -> bool:
-    """Verify local emulators are reachable. Return False if any are down."""
-    failures: list[str] = []
-    async with httpx.AsyncClient(timeout=3) as client:
-        cosmos_url = settings.cosmos.endpoint
-        if not cosmos_url:
-            failures.append(
-                "AZURE_COSMOS_ENDPOINT is not set — add it to .env (see .env.example)"
-            )
-        elif not cosmos_url.startswith("https://"):
-            try:
-                await client.get(f"{cosmos_url.rstrip('/')}/")
-            except httpx.ConnectError:
-                parsed = urlparse(cosmos_url)
-                failures.append(f"Cosmos DB emulator is not running at {parsed.netloc}")
-
-        storage_url = settings.storage.account_url
-        if not storage_url:
-            failures.append(
-                "AZURE_STORAGE_ACCOUNT_URL is not set — add it to .env "
-                "(see .env.example)"
-            )
-        elif not storage_url.startswith("https://"):
-            try:
-                parsed = urlparse(storage_url)
-                await client.get(f"{parsed.scheme}://{parsed.netloc}/")
-            except httpx.ConnectError:
-                parsed = urlparse(storage_url)
-                failures.append(
-                    f"Azurite storage emulator is not running at {parsed.netloc}"
-                )
-
-    if failures:
-        for failure in failures:
-            logger.error(failure)
-        logger.error("Start the emulators with: docker compose up -d")
-        return False
-    return True
 
 
 @asynccontextmanager
@@ -247,11 +206,22 @@ def main() -> None:
     settings = load_settings()
     _configure_logging(settings)
 
-    if settings.app.is_development and not asyncio.run(_check_emulators(settings)):
+    if settings.app.is_development and not asyncio.run(check_emulators(settings)):
         return
 
-    app = create_app()
-    uvicorn.run(app, host=_DEFAULT_HOST, port=8000, log_config=None)
+    if settings.app.is_development:
+        uvicorn.run(
+            "curate_web.app:create_app",
+            factory=True,
+            host=_DEFAULT_HOST,
+            port=8000,
+            reload=True,
+            reload_dirs=["packages"],
+            log_config=None,
+        )
+    else:
+        app = create_app()
+        uvicorn.run(app, host=_DEFAULT_HOST, port=8000, log_config=None)
 
 
 if __name__ == "__main__":

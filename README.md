@@ -83,7 +83,7 @@ docker compose up -d
 cp .env.example .env
 # Edit .env — set FOUNDRY_PROVIDER=local for fully local, or configure cloud credentials
 # Run the web dashboard
-uv run uvicorn curate_web.app:create_app --factory --reload --reload-dir packages
+uv run python -m curate_web.app
 # Run the worker (in a separate terminal)
 uv run python -m curate_worker.app
 ```

@@ -8,6 +8,7 @@ import signal
 
 from curate_common.config import load_settings
 from curate_common.database.repositories.editions import EditionRepository
+from curate_common.health import check_emulators
 from curate_common.logging import configure_logging
 from curate_worker.startup import (
     init_chat_client,
@@ -27,10 +28,10 @@ async def run() -> None:
 
     logger.info("Worker starting")
 
-    cosmos = await init_database(settings)
-    if cosmos is None:
-        logger.error("Cannot start worker without Cosmos DB")
+    if settings.app.is_development and not await check_emulators(settings):
         return
+
+    cosmos = await init_database(settings)
     chat_client = init_chat_client(settings)
     if chat_client is None:
         logger.error("Cannot start worker without a configured LLM provider")
