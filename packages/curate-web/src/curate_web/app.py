@@ -136,13 +136,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.memory_service = memory_components.service
 
     app.state.start_time = datetime.now(UTC)
-    logger.info("Web application started")
+    logger.info("Web running")
 
     yield
 
+    logger.info("Web shutting down")
     await storage_components.client.close()
     await cosmos.close()
-    logger.info("Web application shutdown")
+    logger.info("Web shutdown complete")
 
 
 def create_app() -> FastAPI:
@@ -205,6 +206,8 @@ def main() -> None:
     """Entry point for running the application."""
     settings = load_settings()
     _configure_logging(settings)
+
+    logger.info("Web starting")
 
     if settings.app.is_development and not asyncio.run(check_emulators(settings)):
         return

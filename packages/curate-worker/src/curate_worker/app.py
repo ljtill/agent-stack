@@ -57,7 +57,7 @@ async def run() -> None:
         context_providers=context_providers,
     )
 
-    logger.info("Worker running — change feed processor active")
+    logger.info("Worker running")
 
     # Wait until terminated
     stop_event = asyncio.Event()
