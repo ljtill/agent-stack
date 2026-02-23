@@ -15,6 +15,8 @@ from curate_web.routes.settings import (
 )
 from curate_web.services.health import ServiceHealth
 
+_MOCK_TOKEN_TOTALS = {"input_tokens": 100, "output_tokens": 50, "total_tokens": 150}
+
 
 def _make_settings_namespace() -> SimpleNamespace:
     """Create a minimal settings namespace for health check dependencies."""
@@ -70,17 +72,27 @@ class TestSettingsPage:
         """Verify rendering when no memory service configured."""
         request = _make_request()
         healthy = ServiceHealth(name="Cosmos DB", healthy=True, latency_ms=5.0)
-        with patch(
-            "curate_web.routes.settings.check_all",
-            new_callable=AsyncMock,
-            return_value=[healthy],
+        with (
+            patch(
+                "curate_web.routes.settings.check_all",
+                new_callable=AsyncMock,
+                return_value=[healthy],
+            ),
+            patch(
+                "curate_web.routes.settings.AgentRunRepository",
+            ) as mock_repo_cls,
         ):
+            mock_repo = mock_repo_cls.return_value
+            mock_repo.aggregate_token_usage = AsyncMock(return_value=_MOCK_TOKEN_TOTALS)
             await settings_page(request)
         request.app.state.templates.TemplateResponse.assert_called_once()
         call_args = request.app.state.templates.TemplateResponse.call_args
         assert call_args[0][0] == "settings.html"
         assert call_args[0][1]["memory_configured"] is False
         assert call_args[0][1]["memory_disabled_by_config"] is False
+        token_usage = call_args[0][1]["token_usage"]
+        assert token_usage.input_tokens == _MOCK_TOKEN_TOTALS["input_tokens"]
+        assert token_usage.total_tokens == _MOCK_TOKEN_TOTALS["total_tokens"]
 
     async def test_renders_with_memory_service(self) -> None:
         """Verify rendering with memory service present."""
@@ -93,16 +105,24 @@ class TestSettingsPage:
             user={"oid": "user-123"},
         )
         healthy = ServiceHealth(name="Cosmos DB", healthy=True, latency_ms=5.0)
-        with patch(
-            "curate_web.routes.settings.check_all",
-            new_callable=AsyncMock,
-            return_value=[healthy],
+        with (
+            patch(
+                "curate_web.routes.settings.check_all",
+                new_callable=AsyncMock,
+                return_value=[healthy],
+            ),
+            patch(
+                "curate_web.routes.settings.AgentRunRepository",
+            ) as mock_repo_cls,
         ):
+            mock_repo = mock_repo_cls.return_value
+            mock_repo.aggregate_token_usage = AsyncMock(return_value=_MOCK_TOKEN_TOTALS)
             await settings_page(request)
         call_args = request.app.state.templates.TemplateResponse.call_args
         assert call_args[0][1]["memory_configured"] is True
         assert call_args[0][1]["memory_disabled_by_config"] is False
         assert call_args[0][1]["memory_enabled"] is True
+        assert "token_usage" in call_args[0][1]
 
     async def test_renders_when_memory_disabled_by_config(self) -> None:
         """Verify rendering state when memory is disabled via environment config."""
@@ -110,11 +130,18 @@ class TestSettingsPage:
         settings.memory.enabled = False
         request = _make_request(settings=settings)
         healthy = ServiceHealth(name="Cosmos DB", healthy=True, latency_ms=5.0)
-        with patch(
-            "curate_web.routes.settings.check_all",
-            new_callable=AsyncMock,
-            return_value=[healthy],
+        with (
+            patch(
+                "curate_web.routes.settings.check_all",
+                new_callable=AsyncMock,
+                return_value=[healthy],
+            ),
+            patch(
+                "curate_web.routes.settings.AgentRunRepository",
+            ) as mock_repo_cls,
         ):
+            mock_repo = mock_repo_cls.return_value
+            mock_repo.aggregate_token_usage = AsyncMock(return_value=_MOCK_TOKEN_TOTALS)
             await settings_page(request)
         call_args = request.app.state.templates.TemplateResponse.call_args
         assert call_args[0][1]["memory_configured"] is False

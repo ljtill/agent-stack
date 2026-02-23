@@ -9,9 +9,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 
+from curate_common.database.repositories.agent_runs import AgentRunRepository
 from curate_web.auth.middleware import get_user, require_authenticated_user
 from curate_web.services.health import StorageHealthConfig, check_all
-from curate_web.services.status import AppInfo, _format_uptime
+from curate_web.services.status import AppInfo, TokenUsage, _format_uptime
 
 router = APIRouter(
     tags=["settings"], dependencies=[Depends(require_authenticated_user)]
@@ -51,7 +52,7 @@ async def settings_page(request: Request) -> HTMLResponse:
         if user_scope:
             personal_memories = await memory_service.list_memories(user_scope)
 
-    # Health checks and app info
+    # Token usage, health checks, and app info
     import platform  # noqa: PLC0415
     import sys  # noqa: PLC0415
 
@@ -60,6 +61,14 @@ async def settings_page(request: Request) -> HTMLResponse:
     cosmos = request.app.state.cosmos
     storage = request.app.state.storage
     start_time = request.app.state.start_time
+
+    runs_repo = AgentRunRepository(cosmos.database)
+    token_totals = await runs_repo.aggregate_token_usage()
+    token_usage = TokenUsage(
+        input_tokens=token_totals["input_tokens"],
+        output_tokens=token_totals["output_tokens"],
+        total_tokens=token_totals["total_tokens"],
+    )
 
     started_at = time.monotonic()
     health_checks = await check_all(
@@ -97,6 +106,7 @@ async def settings_page(request: Request) -> HTMLResponse:
             "personal_memory_count": len(personal_memories),
             "checks": health_checks,
             "app_info": app_info,
+            "token_usage": token_usage,
         },
     )
 

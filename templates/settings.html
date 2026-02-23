@@ -93,6 +93,27 @@
 </div>
 {% endif %}
 
+<h2 style="font-size: 1rem; color: var(--text-muted); margin-top: 2.5rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Token Usage</h2>
+<p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.85rem;">
+    Aggregate LLM token consumption across recent pipeline runs.
+</p>
+<div class="card">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1.25rem;">
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Input Tokens</div>
+            <span style="font-size: 1.25rem; font-weight: 600;">{{ "{:,}".format(token_usage.input_tokens) }}</span>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Output Tokens</div>
+            <span style="font-size: 1.25rem; font-weight: 600;">{{ "{:,}".format(token_usage.output_tokens) }}</span>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Total Tokens</div>
+            <span style="font-size: 1.25rem; font-weight: 600;">{{ "{:,}".format(token_usage.total_tokens) }}</span>
+        </div>
+    </div>
+</div>
+
 <h2 style="font-size: 1rem; color: var(--text-muted); margin-top: 2.5rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">System</h2>
 <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.85rem;">
     Application info and dependency health checks, probed on page load.
