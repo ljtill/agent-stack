@@ -54,6 +54,66 @@
     }
     .pipeline-feedback-row:last-child { border-bottom: none; }
     .workspace-right table { table-layout: fixed; }
+    .pipeline-link-row, .pipeline-feedback-row { cursor: pointer; }
+    .pipeline-link-row:hover, .pipeline-feedback-row:hover { background: var(--surface); }
+    .drill-flow { padding-left: 0.5rem; }
+    .drill-stage-card {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.75rem;
+        background: var(--bg);
+    }
+    .drill-stage-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .drill-stage-name {
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    .drill-stage-meta {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        margin-left: auto;
+    }
+    .drill-connector {
+        width: 2px;
+        height: 1.25rem;
+        background: var(--border);
+        margin: 0 auto;
+    }
+    .drill-detail {
+        margin-top: 0.5rem;
+    }
+    .drill-detail summary {
+        color: var(--accent-emphasis);
+        cursor: pointer;
+        font-size: 0.8125rem;
+        user-select: none;
+    }
+    .drill-detail summary:hover { color: var(--accent-emphasis-hover, var(--accent-emphasis)); }
+    .drill-detail-content {
+        margin-top: 0.375rem;
+        padding: 0.5rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .drill-summary {
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border);
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+    }
 </style>
 
 <div class="workspace">
@@ -229,6 +289,7 @@
                 {% set review_active = has_content and unresolved_count > 0 %}
                 {% set publish_active = edition.status == 'published' %}
 
+                <div id="pipeline-overview">
                 <div class="pipeline-phase {{ 'pipeline-phase-active' if content_active }}" id="phase-content">
                     <div class="pipeline-phase-header">
                         <span class="pipeline-phase-icon">{{ '●' if content_active else '○' }}</span>
@@ -240,7 +301,7 @@
                     </div>
                     <div class="pipeline-phase-body">
                         {% for link in links %}
-                        <div class="pipeline-link-row" id="pipeline-link-{{ link.id }}">
+                        <div class="pipeline-link-row" id="pipeline-link-{{ link.id }}" onclick="openDrillDown('{{ link.id }}')">
                             <div class="pipeline-link-url">{{ link.url | truncate(35) }}</div>
                             <div class="pipeline-link-steps" id="link-progress-{{ link.id }}">
                                 {{ render_link_progress(link_run_groups.get(link.id, [])) }}
@@ -263,7 +324,7 @@
                     </div>
                     <div class="pipeline-phase-body">
                         {% for fb in feedback %}
-                        <div class="pipeline-feedback-row">
+                        <div class="pipeline-feedback-row" onclick="openDrillDown('{{ fb.id }}')">
                             <span class="badge {% if fb.resolved %}badge-completed{% else %}badge-created{% endif %}">
                                 {{ 'resolved' if fb.resolved else 'open' }}
                             </span>
@@ -285,6 +346,119 @@
                             {% if edition.status == 'published' %}Published{% else %}Not started{% endif %}
                         </span>
                     </div>
+                </div>
+                </div>{# end pipeline-overview #}
+
+                <div id="drill-down-panel" style="display: none;">
+                    <button class="btn" onclick="closeDrillDown()" style="margin-bottom: 1rem;">
+                        &#8592; Back to Pipeline
+                    </button>
+
+                    {% for link in links %}
+                    {% set groups = link_run_groups.get(link.id, []) %}
+                    {% if groups %}
+                    <div class="drill-down-content" id="drill-content-{{ link.id }}" style="display: none;">
+                        <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: 0.25rem;">{{ link.url | truncate(50) }}</div>
+                        <div style="color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 1rem;">
+                            <span class="badge badge-{{ link.status }}">{{ link.status }}</span>
+                            {% if groups | length > 1 %} · {{ groups | length }} invocations{% endif %}
+                        </div>
+                        {% set latest = groups[-1] %}
+                        <div class="drill-flow">
+                            {% for run in latest %}
+                            <div class="drill-stage-card">
+                                <div class="drill-stage-header">
+                                    <span class="drill-stage-name">{{ run.stage | capitalize }}</span>
+                                    <span class="badge badge-{{ run.status }}">{{ run.status }}</span>
+                                    <span class="drill-stage-meta">
+                                        {% if run.started_at %}{{ run.started_at.strftime('%H:%M:%S') }}{% endif %}
+                                        {% if run.completed_at and run.started_at %}
+                                        · {{ ((run.completed_at - run.started_at).total_seconds()) | round(1) }}s
+                                        {% endif %}
+                                        {% if run.usage %}· {{ run.usage.get('total_tokens', 0) }} tokens{% endif %}
+                                    </span>
+                                </div>
+                                {% if run.input %}
+                                <details class="drill-detail">
+                                    <summary>LLM Input</summary>
+                                    <pre class="drill-detail-content">{{ run.input | tojson(indent=2) }}</pre>
+                                </details>
+                                {% endif %}
+                                {% if run.output %}
+                                <details class="drill-detail">
+                                    <summary>LLM Output</summary>
+                                    <pre class="drill-detail-content">{{ run.output | tojson(indent=2) }}</pre>
+                                </details>
+                                {% endif %}
+                                {% if run.status == 'failed' and run.output and run.output.get('error') %}
+                                <div class="activity-error" style="margin-top: 0.5rem;">{{ run.output.error }}</div>
+                                {% endif %}
+                            </div>
+                            {% if not loop.last %}
+                            <div class="drill-connector"></div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="drill-summary">
+                            Total: {{ latest | length }} stages
+                            {% if groups | length > 1 %} · {{ groups | length }} invocations{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% for fb in feedback %}
+                    {% set groups = feedback_run_groups.get(fb.id, []) %}
+                    {% if groups %}
+                    <div class="drill-down-content" id="drill-content-{{ fb.id }}" style="display: none;">
+                        <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: 0.25rem;">{{ fb.section }}</div>
+                        <div style="color: var(--text-muted); font-size: 0.8125rem; margin-bottom: 1rem;">
+                            {{ fb.comment | truncate(80) }}
+                            {% if groups | length > 1 %} · {{ groups | length }} invocations{% endif %}
+                        </div>
+                        {% set latest = groups[-1] %}
+                        <div class="drill-flow">
+                            {% for run in latest %}
+                            <div class="drill-stage-card">
+                                <div class="drill-stage-header">
+                                    <span class="drill-stage-name">{{ run.stage | capitalize }}</span>
+                                    <span class="badge badge-{{ run.status }}">{{ run.status }}</span>
+                                    <span class="drill-stage-meta">
+                                        {% if run.started_at %}{{ run.started_at.strftime('%H:%M:%S') }}{% endif %}
+                                        {% if run.completed_at and run.started_at %}
+                                        · {{ ((run.completed_at - run.started_at).total_seconds()) | round(1) }}s
+                                        {% endif %}
+                                        {% if run.usage %}· {{ run.usage.get('total_tokens', 0) }} tokens{% endif %}
+                                    </span>
+                                </div>
+                                {% if run.input %}
+                                <details class="drill-detail">
+                                    <summary>LLM Input</summary>
+                                    <pre class="drill-detail-content">{{ run.input | tojson(indent=2) }}</pre>
+                                </details>
+                                {% endif %}
+                                {% if run.output %}
+                                <details class="drill-detail">
+                                    <summary>LLM Output</summary>
+                                    <pre class="drill-detail-content">{{ run.output | tojson(indent=2) }}</pre>
+                                </details>
+                                {% endif %}
+                                {% if run.status == 'failed' and run.output and run.output.get('error') %}
+                                <div class="activity-error" style="margin-top: 0.5rem;">{{ run.output.error }}</div>
+                                {% endif %}
+                            </div>
+                            {% if not loop.last %}
+                            <div class="drill-connector"></div>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        <div class="drill-summary">
+                            Total: {{ latest | length }} stages
+                            {% if groups | length > 1 %} · {{ groups | length }} invocations{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
                 </div>
             </div>
 
@@ -329,6 +503,23 @@ function switchTab(event, tabName) {
     document.querySelectorAll('.tab-panel').forEach(function(panel) { panel.classList.remove('active'); });
     event.currentTarget.classList.add('active');
     document.querySelector('.tab-panel[data-tab="' + tabName + '"]').classList.add('active');
+    if (tabName !== 'pipeline') { closeDrillDown(); }
+}
+
+function openDrillDown(contentId) {
+    document.getElementById('pipeline-overview').style.display = 'none';
+    var panel = document.getElementById('drill-down-panel');
+    panel.style.display = 'block';
+    document.querySelectorAll('.drill-down-content').forEach(function(el) { el.style.display = 'none'; });
+    var content = document.getElementById('drill-content-' + contentId);
+    if (content) { content.style.display = 'block'; }
+}
+
+function closeDrillDown() {
+    var panel = document.getElementById('drill-down-panel');
+    if (panel) { panel.style.display = 'none'; }
+    var overview = document.getElementById('pipeline-overview');
+    if (overview) { overview.style.display = 'block'; }
 }
 </script>
 

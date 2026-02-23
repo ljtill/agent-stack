@@ -108,6 +108,13 @@ async def get_workspace_data(
         for link in links
     }
 
+    # Group agent runs triggered by feedback items
+    feedback_run_groups: dict[str, list[list[Any]]] = {}
+    for fb in feedback:
+        fb_runs = runs_by_trigger.get(fb.id, [])
+        if fb_runs:
+            feedback_run_groups[fb.id] = group_runs_by_invocation(fb_runs)
+
     unresolved_count = sum(1 for fb in feedback if not fb.resolved)
 
     logger.info(
@@ -130,6 +137,7 @@ async def get_workspace_data(
         "feedback": feedback,
         "links_by_id": links_by_id,
         "link_run_groups": link_run_groups,
+        "feedback_run_groups": feedback_run_groups,
         "unresolved_count": unresolved_count,
     }
 
