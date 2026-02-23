@@ -23,7 +23,7 @@ uv run ruff format packages/ tests/
 uv run ty check packages/
 
 # Run the web dashboard locally (requires docker compose up -d first)
-uv run uvicorn curate_web.app:create_app --factory --reload --reload-dir packages
+uv run python -m curate_web.app
 
 # Run the worker locally (in a separate terminal)
 uv run python -m curate_worker.app
