@@ -4,30 +4,12 @@ version = "0.1.0"
 description = "An event-driven, agent-powered editorial pipeline for The Agent Stack newsletter."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "fastapi>=0.129.0",
-    "uvicorn[standard]>=0.41.0",
-    "azure-cosmos>=4.14.6",
-    "agent-framework-core>=1.0.0rc1",
-    "msal>=1.34.0",
-    "jinja2>=3.1.6",
-    "httpx>=0.28.1",
-    "azure-identity>=1.25.2",
-    "azure-storage-blob>=12.28.0",
-    "azure-appconfiguration>=1.8.0",
-    "sse-starlette>=3.2.0",
-    "python-dotenv>=1.2.1",
-    "aiohttp>=3.13.3",
-    "azure-monitor-opentelemetry>=1.8.6",
-    "azure-ai-projects>=2.0.0b3",
-    "itsdangerous>=2.2.0",
-]
-
-[project.scripts]
-agent-stack = "agent_stack.app:main"
 
 [dependency-groups]
 dev = [
+    "agent-stack-common",
+    "agent-stack-web",
+    "agent-stack-worker",
     "foundry-local-sdk>=0.5.1",
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
@@ -36,15 +18,19 @@ dev = [
     "ty>=0.0.18",
 ]
 
-[build-system]
-requires = ["uv_build>=0.10.4,<0.11.0"]
-build-backend = "uv_build"
-
 [tool.uv]
 prerelease = "allow"
 
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+agent-stack-common = { workspace = true }
+agent-stack-web = { workspace = true }
+agent-stack-worker = { workspace = true }
+
 [tool.ruff]
-src = ["src"]
+src = ["packages/agent-stack-common/src", "packages/agent-stack-web/src", "packages/agent-stack-worker/src"]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -72,8 +58,8 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["agent_stack"]
-omit = ["src/agent_stack/app.py"]
+source = ["agent_stack_common", "agent_stack_web", "agent_stack_worker"]
+omit = ["packages/agent-stack-web/src/agent_stack_web/app.py"]
 
 [tool.coverage.report]
 show_missing = true

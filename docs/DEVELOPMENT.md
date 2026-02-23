@@ -16,18 +16,37 @@ This guide covers setting up the application for local development, including fu
 # Install dependencies
 uv sync --all-groups --prerelease=allow
 
-# Start the Cosmos DB and Azurite emulators
+# Start the emulators (Cosmos DB, Azurite, Service Bus)
+cp .env.emulators.example .env.emulators
+# Edit .env.emulators — set MSSQL_SA_PASSWORD for the Service Bus emulator's SQL Edge backend
 docker compose up -d
 
 # Configure environment
 cp .env.example .env
 # Edit .env with your credentials (see below for local vs cloud options)
 
-# Run the application (with hot reload)
-uv run uvicorn agent_stack.app:create_app --factory --reload --reload-dir src
+# Run the web dashboard (with hot reload)
+uv run uvicorn agent_stack_web.app:create_app --factory --reload --reload-dir packages
+
+# Run the worker (in a separate terminal)
+uv run python -m agent_stack_worker.app
 ```
 
+The web service runs the editorial dashboard (FastAPI + HTMX) and the worker runs the agent pipeline (change feed processor + orchestrator). Both connect to the same Cosmos DB and communicate via Azure Service Bus for real-time SSE updates.
+
 When `APP_ENV=development`, dashboard authentication is bypassed automatically for local use, so Microsoft Entra credentials are optional during local iteration.
+
+## Emulators
+
+The project uses three local emulators via Docker Compose:
+
+| Emulator | Image | Ports | Purpose |
+|----------|-------|-------|---------|
+| Cosmos DB | `mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview` | 8081, 1234 | NoSQL data store + change feed |
+| Azurite | `mcr.microsoft.com/azure-storage/azurite` | 10000–10002 | Blob storage for static site |
+| Service Bus | `mcr.microsoft.com/azure-messaging/servicebus-emulator` | 5672 | Event bridge between web and worker |
+
+The Service Bus emulator requires an Azure SQL Edge container as its backend. Both are configured in `docker-compose.yml` and use credentials from `.env.emulators`. The emulator is pre-configured with a `pipeline-events` topic and `web-consumer` subscription via `servicebus-config.json`.
 
 ## Fully Local Development (Foundry Local)
 
@@ -70,5 +89,5 @@ For intermittent UI lock-up diagnostics in local development, run with verbose t
 
 ```bash
 LOG_LEVEL=DEBUG APP_SLOW_REQUEST_MS=400 APP_SLOW_REPOSITORY_MS=150 \
-uv run uvicorn agent_stack.app:create_app --factory --reload --reload-dir src
+uv run uvicorn agent_stack_web.app:create_app --factory --reload --reload-dir packages
 ```

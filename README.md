@@ -41,27 +41,34 @@ flowchart LR
 ## Project Structure
 
 ```
-src/agent_stack/
-├── agents/          # Agent implementations, LLM client, middleware, prompt loader, registry
-├── auth/            # Microsoft Entra ID authentication (MSAL)
-├── database/
-│   ├── client.py    # Cosmos DB client
-│   └── repositories/  # Per-entity repository layer
-├── events/          # SSE event manager for real-time updates
-├── models/          # Pydantic data models
-├── pipeline/        # Orchestrator and change feed processor
-├── routes/          # FastAPI route handlers
-├── services/        # Domain services, health checks, and status utilities
-├── storage/         # Azure Blob Storage client and static site renderer
-├── app.py           # FastAPI application factory
-└── config.py        # Configuration from environment variables
-prompts/             # Agent system prompts (Markdown)
+packages/
+├── agent-stack-common/      # Shared library (config, models, database, storage)
+│   └── src/agent_stack_common/
+├── agent-stack-web/         # FastAPI editorial dashboard
+│   └── src/agent_stack_web/
+│       ├── auth/            # Microsoft Entra ID authentication (MSAL)
+│       ├── events/          # SSE event manager + Service Bus consumer
+│       ├── routes/          # FastAPI route handlers
+│       ├── services/        # Domain services, health checks, status
+│       ├── app.py           # FastAPI application factory
+│       └── startup.py       # Web initialization helpers
+└── agent-stack-worker/      # Agent pipeline worker
+    └── src/agent_stack_worker/
+        ├── agents/          # Agent implementations, LLM client, middleware, prompts
+        ├── pipeline/        # Orchestrator, change feed processor, run manager
+        ├── events.py        # Service Bus event publisher
+        ├── app.py           # Worker entry point
+        └── startup.py       # Worker initialization helpers
+prompts/                     # Agent system prompts (Markdown)
 templates/
-├── *.html           # Dashboard views (Jinja2 + HTMX)
-├── newsletter/      # Public newsletter templates (index + edition)
-└── partials/        # HTMX partial fragments (agent activity, run items, edition title, link progress)
-infra/               # Bicep infrastructure modules
-tests/               # Unit and integration tests
+├── *.html                   # Dashboard views (Jinja2 + HTMX)
+├── newsletter/              # Public newsletter templates
+└── partials/                # HTMX partial fragments
+infra/                       # Bicep infrastructure modules
+tests/
+├── common/                  # Tests for agent_stack_common
+├── web/                     # Tests for agent_stack_web
+└── worker/                  # Tests for agent_stack_worker
 ```
 
 ## Local Development
@@ -75,7 +82,10 @@ uv sync --all-groups --prerelease=allow
 docker compose up -d
 cp .env.example .env
 # Edit .env — set FOUNDRY_PROVIDER=local for fully local, or configure cloud credentials
-uv run uvicorn agent_stack.app:create_app --factory --reload --reload-dir src
+# Run the web dashboard
+uv run uvicorn agent_stack_web.app:create_app --factory --reload --reload-dir packages
+# Run the worker (in a separate terminal)
+uv run python -m agent_stack_worker.app
 ```
 
 ### Tests
@@ -87,9 +97,9 @@ uv run pytest tests/ -v
 ### Linting, Formatting & Type Checking
 
 ```bash
-uv run ruff check src/ tests/
-uv run ruff format src/ tests/
-uv run ty check src/
+uv run ruff check packages/ tests/
+uv run ruff format packages/ tests/
+uv run ty check packages/
 ```
 
 ## Pipelines

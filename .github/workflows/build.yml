@@ -34,10 +34,13 @@ jobs:
           path: infra/
 
   build:
-    name: Build & Push Container Image
+    name: Build & Push Container Images
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
     environment: production
+    strategy:
+      matrix:
+        service: [web, worker]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -53,5 +56,5 @@ jobs:
       - name: Build and push container image
         run: |
           az acr login --name ${{ env.ACR_NAME }}
-          docker build -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.event.workflow_run.head_sha }} .
-          docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.event.workflow_run.head_sha }}
+          docker build -f Dockerfile.${{ matrix.service }} -t ${{ env.ACR_NAME }}.azurecr.io/agent-stack-${{ matrix.service }}:${{ github.event.workflow_run.head_sha }} .
+          docker push ${{ env.ACR_NAME }}.azurecr.io/agent-stack-${{ matrix.service }}:${{ github.event.workflow_run.head_sha }}

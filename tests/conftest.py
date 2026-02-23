@@ -6,11 +6,16 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agent_stack.config import CosmosConfig, EntraConfig, FoundryConfig, StorageConfig
-from agent_stack.models.agent_run import AgentRun, AgentRunStatus, AgentStage
-from agent_stack.models.edition import Edition, EditionStatus
-from agent_stack.models.feedback import Feedback
-from agent_stack.models.link import Link, LinkStatus
+from agent_stack_common.config import (
+    CosmosConfig,
+    EntraConfig,
+    FoundryConfig,
+    StorageConfig,
+)
+from agent_stack_common.models.agent_run import AgentRun, AgentRunStatus, AgentStage
+from agent_stack_common.models.edition import Edition, EditionStatus
+from agent_stack_common.models.feedback import Feedback
+from agent_stack_common.models.link import Link, LinkStatus
 
 _TEST_CLIENT_SECRET = "test-secret"  # noqa: S105
 

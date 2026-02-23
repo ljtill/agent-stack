@@ -5,6 +5,14 @@ requires-python = ">=3.13"
 [options]
 prerelease-mode = "allow"
 
+[manifest]
+members = [
+    "agent-stack",
+    "agent-stack-common",
+    "agent-stack-web",
+    "agent-stack-worker",
+]
+
 [[package]]
 name = "agent-framework-core"
 version = "1.0.0rc1"
@@ -30,28 +38,13 @@ wheels = [
 [[package]]
 name = "agent-stack"
 version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "agent-framework-core" },
-    { name = "aiohttp" },
-    { name = "azure-ai-projects" },
-    { name = "azure-appconfiguration" },
-    { name = "azure-cosmos" },
-    { name = "azure-identity" },
-    { name = "azure-monitor-opentelemetry" },
-    { name = "azure-storage-blob" },
-    { name = "fastapi" },
-    { name = "httpx" },
-    { name = "itsdangerous" },
-    { name = "jinja2" },
-    { name = "msal" },
-    { name = "python-dotenv" },
-    { name = "sse-starlette" },
-    { name = "uvicorn", extra = ["standard"] },
-]
+source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
+    { name = "agent-stack-common" },
+    { name = "agent-stack-web" },
+    { name = "agent-stack-worker" },
     { name = "foundry-local-sdk" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -61,33 +54,95 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "agent-framework-core", specifier = ">=1.0.0rc1" },
-    { name = "aiohttp", specifier = ">=3.13.3" },
-    { name = "azure-ai-projects", specifier = ">=2.0.0b3" },
-    { name = "azure-appconfiguration", specifier = ">=1.8.0" },
-    { name = "azure-cosmos", specifier = ">=4.14.6" },
-    { name = "azure-identity", specifier = ">=1.25.2" },
-    { name = "azure-monitor-opentelemetry", specifier = ">=1.8.6" },
-    { name = "azure-storage-blob", specifier = ">=12.28.0" },
-    { name = "fastapi", specifier = ">=0.129.0" },
-    { name = "httpx", specifier = ">=0.28.1" },
-    { name = "itsdangerous", specifier = ">=2.2.0" },
-    { name = "jinja2", specifier = ">=3.1.6" },
-    { name = "msal", specifier = ">=1.34.0" },
-    { name = "python-dotenv", specifier = ">=1.2.1" },
-    { name = "sse-starlette", specifier = ">=3.2.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.41.0" },
-]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "agent-stack-common", editable = "packages/agent-stack-common" },
+    { name = "agent-stack-web", editable = "packages/agent-stack-web" },
+    { name = "agent-stack-worker", editable = "packages/agent-stack-worker" },
     { name = "foundry-local-sdk", specifier = ">=0.5.1" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-asyncio", specifier = ">=1.3.0" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
     { name = "ruff", specifier = ">=0.15.2" },
     { name = "ty", specifier = ">=0.0.18" },
+]
+
+[[package]]
+name = "agent-stack-common"
+version = "0.1.0"
+source = { editable = "packages/agent-stack-common" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "azure-cosmos" },
+    { name = "azure-identity" },
+    { name = "azure-storage-blob" },
+    { name = "jinja2" },
+    { name = "python-dotenv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiohttp", specifier = ">=3.11.0" },
+    { name = "azure-cosmos", specifier = ">=4.14.6" },
+    { name = "azure-identity", specifier = ">=1.25.2" },
+    { name = "azure-storage-blob", specifier = ">=12.28.0" },
+    { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
+]
+
+[[package]]
+name = "agent-stack-web"
+version = "0.1.0"
+source = { editable = "packages/agent-stack-web" }
+dependencies = [
+    { name = "agent-stack-common" },
+    { name = "azure-monitor-opentelemetry" },
+    { name = "azure-servicebus" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "itsdangerous" },
+    { name = "jinja2" },
+    { name = "msal" },
+    { name = "sse-starlette" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "agent-stack-common", editable = "packages/agent-stack-common" },
+    { name = "azure-monitor-opentelemetry", specifier = ">=1.8.6" },
+    { name = "azure-servicebus", specifier = ">=7.14.0" },
+    { name = "fastapi", specifier = ">=0.129.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "itsdangerous", specifier = ">=2.2.0" },
+    { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "msal", specifier = ">=1.34.0" },
+    { name = "sse-starlette", specifier = ">=3.2.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.41.0" },
+]
+
+[[package]]
+name = "agent-stack-worker"
+version = "0.1.0"
+source = { editable = "packages/agent-stack-worker" }
+dependencies = [
+    { name = "agent-framework-core" },
+    { name = "agent-stack-common" },
+    { name = "azure-ai-projects" },
+    { name = "azure-monitor-opentelemetry" },
+    { name = "azure-servicebus" },
+    { name = "httpx" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "agent-framework-core", specifier = ">=1.0.0rc1" },
+    { name = "agent-stack-common", editable = "packages/agent-stack-common" },
+    { name = "azure-ai-projects", specifier = ">=2.0.0b3" },
+    { name = "azure-monitor-opentelemetry", specifier = ">=1.8.6" },
+    { name = "azure-servicebus", specifier = ">=7.14.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
 ]
 
 [[package]]
@@ -244,20 +299,6 @@ wheels = [
 ]
 
 [[package]]
-name = "azure-appconfiguration"
-version = "1.8.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "azure-core" },
-    { name = "isodate" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0f/de/d75d8f35bc1dbf77ddf005f1b0d61ae43361fa2f654cbe98e0947684b9b2/azure_appconfiguration-1.8.0.tar.gz", hash = "sha256:168e7b01b350f5d806a2d935a8ec3694c59c6394d5a1c409eb05fef0b56b1aa0", size = 131718, upload-time = "2026-01-27T19:54:19.16Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0a/7a/a39fadd3ec377fe669dfa54e37faf27396e1f722cb6ae4adec6f81bec044/azure_appconfiguration-1.8.0-py3-none-any.whl", hash = "sha256:fcfcfaa51712a59067d2cf837004327e73c0649d63f2d298020e5db2c77f7821", size = 106898, upload-time = "2026-01-27T19:54:20.744Z" },
-]
-
-[[package]]
 name = "azure-core"
 version = "1.38.2"
 source = { registry = "https://pypi.org/simple" }
@@ -350,6 +391,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/19/82/16cfa33c4654345d78ad7cb3c85ca4cb9e06fb6da63d742a2a6718868b41/azure_monitor_opentelemetry_exporter-1.0.0b48.tar.gz", hash = "sha256:5773def013e508efffa55a17768409be4b2ba369724766a89775fdc0101cc4c1", size = 280538, upload-time = "2026-02-05T18:27:17.914Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/49/1a/9a8a3bf2f237ee53be01c72387ee439d712a596a0c5876d26993c15d165c/azure_monitor_opentelemetry_exporter-1.0.0b48-py2.py3-none-any.whl", hash = "sha256:da17ac143b84516e639ce06f2d7119b7a7af99214bb773c652137e620e868eb7", size = 201481, upload-time = "2026-02-05T18:27:19.6Z" },
+]
+
+[[package]]
+name = "azure-servicebus"
+version = "7.14.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "azure-core" },
+    { name = "isodate" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/d2/a5c11d4c955e2875de2383c1af8e43ce4899e8418b22e61d32d2bf103626/azure_servicebus-7.14.3.tar.gz", hash = "sha256:70a63384557aec0bee727740e7b25ded29e9e701b77611764577fd7402389402", size = 534786, upload-time = "2025-10-31T05:30:03.342Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/e9/d9fd0b2bef14d85b408c51802142b1c8b7bc3ab08514c89432547b1d87d3/azure_servicebus-7.14.3-py3-none-any.whl", hash = "sha256:386f8d32dae8881661ec8d791c38978eca2bbf7ea9f489d6cff8ad9cc6990234", size = 412522, upload-time = "2025-10-31T05:30:05.252Z" },
 ]
 
 [[package]]

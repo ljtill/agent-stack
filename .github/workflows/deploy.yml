@@ -17,10 +17,17 @@ env:
 
 jobs:
   deploy:
-    name: Deploy Container App
+    name: Deploy Container Apps
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
     environment: production
+    strategy:
+      matrix:
+        include:
+          - service: web
+            app_name: agentstack-prod-web
+          - service: worker
+            app_name: agentstack-prod-worker
     steps:
       - name: Azure login
         uses: azure/login@v2
@@ -32,6 +39,6 @@ jobs:
       - name: Deploy Container App
         run: |
           az containerapp update \
-            --name agentstack-prod-app \
+            --name ${{ matrix.app_name }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --image ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.event.workflow_run.head_sha }}
+            --image ${{ env.ACR_NAME }}.azurecr.io/agent-stack-${{ matrix.service }}:${{ github.event.workflow_run.head_sha }}

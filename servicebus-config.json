@@ -1,0 +1,29 @@
+{
+  "UserConfig": {
+    "Namespaces": [
+      {
+        "Name": "sbemulator",
+        "Topics": [
+          {
+            "Name": "pipeline-events",
+            "Properties": {
+              "DefaultMessageTimeToLive": "PT1H"
+            },
+            "Subscriptions": [
+              {
+                "Name": "web-consumer",
+                "Properties": {
+                  "LockDuration": "PT30S",
+                  "MaxDeliveryCount": 5
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "Logging": {
+      "Type": "File"
+    }
+  }
+}

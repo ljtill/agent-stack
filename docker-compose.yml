@@ -12,6 +12,10 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    networks:
+      emulators:
+        aliases:
+          - "cosmos"
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite
@@ -28,6 +32,41 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+    networks:
+      emulators:
+        aliases:
+          - "azurite"
+
+  sqledge:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    env_file: .env.emulators
+    environment:
+      ACCEPT_EULA: "Y"
+    networks:
+      emulators:
+        aliases:
+          - "sqledge"
+
+  servicebus:
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    depends_on:
+      - sqledge
+    ports:
+      - "5672:5672"
+      - "5300:5300"
+    volumes:
+      - ./servicebus-config.json:/ServiceBus_Emulator/ConfigFiles/Config.json
+    env_file: .env.emulators
+    environment:
+      ACCEPT_EULA: "Y"
+      SQL_SERVER: sqledge
+    networks:
+      emulators:
+        aliases:
+          - "servicebus"
+
+networks:
+  emulators:
 
 volumes:
   cosmos-data:

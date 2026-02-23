@@ -24,9 +24,10 @@
 - **Orchestration**: [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) `1.0.0rc1` ([PyPI](https://pypi.org/project/agent-framework/))
 - **LLM Provider**: [Microsoft Foundry](https://foundry.microsoft.com/)
 - **Hosting**: Microsoft Azure
-  - **Azure Container Apps** — editorial service (FastAPI)
+  - **Azure Container Apps** — web service (FastAPI dashboard) and worker service (agent pipeline), deployed as separate container apps
   - **Azure Container Registry** — container image storage
   - **Azure Cosmos DB** (NoSQL API) — data persistence, change feed as event source
+  - **Azure Service Bus** — event bridge between worker and web for real-time SSE updates
   - **Azure Storage Account** — generated newsletter static assets
   - **Azure Static Web Apps** — public newsletter site
   - **Azure App Configuration** — runtime configuration
@@ -38,9 +39,9 @@
 
 ## Architecture Decisions
 
-- **Package layout**: `src/agent_stack/` — standard `src/` layout for an application package.
-- **Process model**: Single process — the FastAPI application runs the Cosmos DB change feed processor as a background task within the same process via FastAPI's lifespan events.
-- **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible) and Azurite (Azure Storage emulator) via Docker for offline development. [Microsoft Foundry Local](https://github.com/microsoft/foundry-local) provides optional on-device LLM inference, eliminating the need for an Azure subscription during local development (`FOUNDRY_PROVIDER=local`).
+- **Package layout**: `packages/` — uv workspace monorepo with three packages: `agent-stack-common` (shared library), `agent-stack-web` (FastAPI dashboard), and `agent-stack-worker` (agent pipeline). Each package has its own `pyproject.toml` and `src/` layout.
+- **Process model**: Two-process split — the web service (FastAPI) handles the editorial dashboard and SSE, while the worker process runs the Cosmos DB change feed processor and agent pipeline. Azure Service Bus provides the event bridge between worker and web for real-time SSE updates.
+- **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible), Azurite (Azure Storage emulator), and Azure Service Bus emulator (with SQL Edge backend) via Docker for offline development. [Microsoft Foundry Local](https://github.com/microsoft/foundry-local) provides optional on-device LLM inference, eliminating the need for an Azure subscription during local development (`FOUNDRY_PROVIDER=local`).
 
 ---
 
@@ -65,7 +66,7 @@ uv add agent-framework-core --prerelease=allow
 | `ChatMiddleware`         | Request/response pipeline hooks — used for token usage tracking (`TokenTrackingMiddleware`) |
 | `FunctionMiddleware`     | Tool execution pipeline hooks — used for tool invocation logging (`ToolLoggingMiddleware`)                                            |
 
-**Agent registry:** An introspection layer (`agents/registry.py`) extracts metadata from live agent instances — registered tools, default options, middleware, and system prompt previews — for display on the Agents dashboard page.
+**Agent registry:** A data-driven registry (`agents/registry.py` in `agent-stack-common`) provides static metadata — agent names, descriptions, tools, and middleware — for display on the Agents dashboard page. The registry uses pre-defined metadata dicts rather than live introspection, allowing the web service to render the Agents page without access to agent instances.
 
 **References:**
 
@@ -83,7 +84,7 @@ Links are submitted through the Editorial Dashboard (Links view). Submitting a l
 
 ### 2. Agent Pipeline
 
-Event-driven and continuously iterating. Agents react to changes — new links, editor feedback — and refine the current edition. The pipeline is triggered via the Cosmos DB change feed, consumed by a dedicated change feed processor running within the Container App.
+Event-driven and continuously iterating. Agents react to changes — new links, editor feedback — and refine the current edition. The pipeline is triggered via the Cosmos DB change feed, consumed by a dedicated change feed processor running in the worker container app.
 
 **Orchestration layer:** An explicit `PipelineOrchestrator` handles agent-to-agent flow control. The change feed processor delegates incoming events to the orchestrator, which determines the appropriate agent stage based on document type and status, manages transitions between stages, and handles error/retry logic. Links are processed sequentially (one at a time) to avoid race conditions on the edition document.
 
@@ -107,7 +108,7 @@ Event-driven and continuously iterating. Agents react to changes — new links, 
 
 ### 3. Editorial Dashboard (Private)
 
-FastAPI + Jinja2 + HTMX server-rendered admin UI, authenticated via Microsoft Entra ID using the MSAL authorization code flow (single-tenant, team-level access — no granular per-user roles). Real-time status updates (link processing, edition lifecycle) are delivered via SSE (Server-Sent Events).
+FastAPI + Jinja2 + HTMX server-rendered admin UI, authenticated via Microsoft Entra ID using the MSAL authorization code flow (single-tenant, team-level access — no granular per-user roles). Real-time status updates (link processing, edition lifecycle) are delivered via SSE (Server-Sent Events), with pipeline events bridged from the worker via Azure Service Bus.
 
 **Views:**
 
@@ -116,7 +117,7 @@ FastAPI + Jinja2 + HTMX server-rendered admin UI, authenticated via Microsoft En
 - **Editions** — list of all editions with status (`created` → `drafting` → `in_review` → `published`).
 - **Edition Detail** — review agent-generated content, per-section structured feedback interface for comments back to agents (bidirectional), inline title editing, newsletter preview, publish and delete actions.
 - **Agents** — read-only view of the agent pipeline topology showing each stage's configuration, registered tools, middleware, system prompt preview, and recent run history.
-- **Status** — dependency health checks (Cosmos DB, Foundry, Storage, Change Feed Processor) with latency metrics, probed on page load.
+- **Status** — dependency health checks (Cosmos DB, Foundry, Storage) with latency metrics, probed on page load.
 
 **Edition model:** Single active edition — all submitted links feed into the current draft. The editor creates a new edition when ready to start the next one.
 
@@ -231,9 +232,9 @@ Execution logs, decisions, and state per pipeline stage.
 
 ## Infrastructure & DevOps
 
-- **Infrastructure as Code**: Bicep templates stored in the repository under `infra/`, with parameterized modules for each Azure resource (Container Apps, Container Registry, Cosmos DB, Storage Account, Static Web Apps, App Configuration, Application Insights, Log Analytics, Managed Identity). Separate parameter files for dev and prod environments.
-- **CI/CD**: GitHub Actions workflows for continuous integration (lint, type-check, test) and deployment (build container image, deploy infrastructure, deploy application).
-- **Local development**: Azure Cosmos DB emulator (`vnext-preview`, ARM-compatible) and Azurite (Azure Storage emulator) via Docker (Docker Compose configuration in the repository) for fully offline development. Local configuration via `.env` files; deployed environments use Azure App Configuration with managed identity.
+- **Infrastructure as Code**: Bicep templates stored in the repository under `infra/`, with parameterized modules for each Azure resource (Container Apps Web, Container Apps Worker, Container Registry, Cosmos DB, Service Bus, Storage Account, Static Web Apps, App Configuration, Application Insights, Log Analytics, Managed Identity). Separate parameter files for dev and prod environments.
+- **CI/CD**: GitHub Actions workflows for continuous integration (lint, type-check, test) and deployment (build two container images, deploy infrastructure, deploy both container apps).
+- **Local development**: Azure Cosmos DB emulator (`vnext-preview`, ARM-compatible), Azurite (Azure Storage emulator), and Azure Service Bus emulator (with SQL Edge backend) via Docker (Docker Compose configuration in the repository) for fully offline development. Local configuration via `.env` and `.env.emulators` files; deployed environments use Azure App Configuration with managed identity.
 
 ---
 

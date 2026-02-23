@@ -1,0 +1,27 @@
+FROM python:3.14-slim AS builder
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /app
+
+COPY pyproject.toml uv.lock README.md ./
+COPY packages/agent-stack-common/ packages/agent-stack-common/
+COPY packages/agent-stack-web/ packages/agent-stack-web/
+
+RUN uv sync --frozen --no-dev --package agent-stack-web
+
+COPY templates/ templates/
+
+FROM python:3.14-slim
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/packages /app/packages
+COPY --from=builder /app/templates /app/templates
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+EXPOSE 8000
+
+CMD ["python", "-m", "agent_stack_web.app"]

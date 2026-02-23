@@ -60,10 +60,10 @@ module acr 'modules/container-registry.bicep' = {
   }
 }
 
-module containerApps 'modules/container-apps.bicep' = {
-  name: 'container-apps'
+module containerApps 'modules/container-apps-web.bicep' = {
+  name: 'container-apps-web'
   params: {
-    name: '${baseName}-${environment}-app'
+    name: '${baseName}-${environment}-web'
     location: location
     identityId: identity.outputs.id
     acrLoginServer: acr.outputs.loginServer
@@ -71,6 +71,31 @@ module containerApps 'modules/container-apps.bicep' = {
     logAnalyticsCustomerId: logAnalytics.outputs.customerId
     logAnalyticsSharedKey: logAnalytics.outputs.sharedKey
     appInsightsConnectionString: appInsights.outputs.connectionString
+    serviceBusConnectionString: serviceBus.outputs.connectionString
+  }
+}
+
+module containerAppsWorker 'modules/container-apps-worker.bicep' = {
+  name: 'container-apps-worker'
+  params: {
+    name: '${baseName}-${environment}-worker'
+    location: location
+    identityId: identity.outputs.id
+    acrLoginServer: acr.outputs.loginServer
+    imageTag: imageTag
+    logAnalyticsCustomerId: logAnalytics.outputs.customerId
+    logAnalyticsSharedKey: logAnalytics.outputs.sharedKey
+    appInsightsConnectionString: appInsights.outputs.connectionString
+    serviceBusConnectionString: serviceBus.outputs.connectionString
+  }
+}
+
+module serviceBus 'modules/service-bus.bicep' = {
+  name: 'service-bus'
+  params: {
+    name: '${baseName}-${environment}-sb'
+    location: location
+    principalId: identity.outputs.principalId
   }
 }
 
@@ -104,4 +129,6 @@ output cosmosEndpoint string = cosmosDb.outputs.endpoint
 output storageAccountName string = storage.outputs.name
 output acrLoginServer string = acr.outputs.loginServer
 output containerAppUrl string = containerApps.outputs.url
+output workerAppName string = containerAppsWorker.outputs.name
+output serviceBusNamespace string = serviceBus.outputs.namespaceName
 output staticWebAppUrl string = staticWebApp.outputs.url
