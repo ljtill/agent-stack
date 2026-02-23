@@ -20,6 +20,10 @@ param storageAccountUrl string
 @secure()
 param appInsightsConnectionString string
 
+@description('Application secret key for session signing')
+@secure()
+param appSecretKey string
+
 resource appConfig 'Microsoft.AppConfiguration/configurationStores@2023-03-01' = {
   name: name
   location: location
@@ -67,6 +71,14 @@ resource appInsightsConnectionKv 'Microsoft.AppConfiguration/configurationStores
   name: 'AZURE_APPLICATIONINSIGHTS_CONNECTION_STRING'
   properties: {
     value: appInsightsConnectionString
+  }
+}
+
+resource appSecretKeyKv 'Microsoft.AppConfiguration/configurationStores/keyValues@2023-03-01' = {
+  parent: appConfig
+  name: 'APP_SECRET_KEY'
+  properties: {
+    value: appSecretKey
   }
 }
 

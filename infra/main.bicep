@@ -38,6 +38,10 @@ module storage 'modules/storage-account.bicep' = {
   }
 }
 
+@description('Application secret key for session signing')
+@secure()
+param appSecretKey string
+
 module appConfig 'modules/app-configuration.bicep' = {
   name: 'app-configuration'
   params: {
@@ -48,6 +52,7 @@ module appConfig 'modules/app-configuration.bicep' = {
     cosmosDatabase: cosmosDb.outputs.databaseName
     storageAccountUrl: storage.outputs.accountUrl
     appInsightsConnectionString: appInsights.outputs.connectionString
+    appSecretKey: appSecretKey
   }
 }
 
