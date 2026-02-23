@@ -28,6 +28,9 @@ async def run() -> None:
     logger.info("Worker starting")
 
     cosmos = await init_database(settings)
+    if cosmos is None:
+        logger.error("Cannot start worker without Cosmos DB")
+        return
     chat_client = init_chat_client(settings)
     if chat_client is None:
         logger.error("Cannot start worker without a configured LLM provider")

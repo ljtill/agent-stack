@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from azure.core.exceptions import ServiceRequestError
+
 from curate_common.database.client import CosmosClient
 from curate_common.database.repositories.agent_runs import AgentRunRepository
 from curate_common.database.repositories.feedback import FeedbackRepository
@@ -28,11 +30,20 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-async def init_database(settings: Settings) -> CosmosClient:
+async def init_database(settings: Settings) -> CosmosClient | None:
     """Initialize and return the Cosmos DB client."""
     cosmos = CosmosClient(settings.cosmos)
-    await cosmos.initialize()
-    return cosmos
+    try:
+        await cosmos.initialize()
+    except ServiceRequestError:
+        logger.error(  # noqa: TRY400
+            "Cosmos DB unreachable at %s — is the emulator running?",
+            settings.cosmos.endpoint,
+        )
+        await cosmos.close()
+        return None
+    else:
+        return cosmos
 
 
 def init_chat_client(settings: Settings) -> BaseChatClient | None:
