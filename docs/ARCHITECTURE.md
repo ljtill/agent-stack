@@ -64,7 +64,7 @@ graph TB
 
 ## Agent Pipeline
 
-The pipeline is orchestrated by a central `PipelineOrchestrator` — itself an Agent Framework agent — that coordinates five specialised sub-agents via tool calls. When a link is submitted, it flows sequentially through Fetch (extract content), Review (evaluate relevance), and Draft (compose newsletter copy). The Edit stage runs when an editor provides feedback on an edition, and Publish renders the final HTML and uploads it to storage. Each sub-agent has its own system prompt, registered tools, and middleware (token tracking).
+The pipeline is orchestrated by a central `PipelineOrchestrator` — itself an Agent Framework agent — that coordinates five specialised sub-agents via tool calls. When a link is submitted, the worker first claims it durably using Cosmos DB optimistic concurrency (`_etag` + `processing_claimed_at`) to prevent duplicate processing, then runs Fetch (extract content), Review (evaluate relevance), and Draft (compose newsletter copy). The Edit stage runs when an editor provides feedback on an edition, and Publish renders the final HTML and uploads it to storage. Each sub-agent has its own system prompt, registered tools, and middleware (token tracking).
 
 ```mermaid
 graph LR
@@ -108,7 +108,7 @@ graph LR
 
 ## Event-Driven Data Flow
 
-The system is event-driven with two communication channels. Cosmos DB's change feed is the primary event source — when a document is created or updated, the change feed processor (in the worker) picks it up and delegates to the orchestrator. Azure Service Bus is used bidirectionally: the web service publishes `publish-request` commands for the worker, and the worker publishes pipeline progress events for the web. The web service consumes those progress events and pushes them to connected dashboard clients via SSE.
+The system is event-driven with two communication channels. Cosmos DB's change feed is the primary event source — when a document is created or updated, the change feed processor (in the worker) picks it up and delegates to the orchestrator. Azure Service Bus is used bidirectionally with dedicated topics: the web service publishes `publish-request` commands to `pipeline-commands` (worker subscription `worker-consumer`), and the worker publishes pipeline progress events to `pipeline-events` (web subscription `web-consumer`). The web service consumes those progress events and pushes them to connected dashboard clients via SSE.
 
 ```mermaid
 sequenceDiagram

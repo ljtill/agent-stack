@@ -39,9 +39,9 @@
 ## Architecture Decisions
 
 - **Package layout**: `packages/` — uv workspace monorepo with three packages: `curate-common` (shared library), `curate-web` (FastAPI dashboard), and `curate-worker` (agent pipeline). Each package has its own `pyproject.toml` and `src/` layout.
-- **Process model**: Two-process split — the web service (FastAPI) handles the editorial dashboard and SSE, while the worker process runs the Cosmos DB change feed processor and agent pipeline. Azure Service Bus provides the event bridge in both directions: web publishes `publish-request` commands for the worker, and worker publishes pipeline events for web SSE.
-- **Web dependency wiring**: The web lifespan initializes shared runtime dependencies once and stores them in a typed runtime container (`app.state.runtime`), which route handlers read from to avoid ad hoc dependency contracts.
-- **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible), Azurite (Azure Storage emulator), and Azure Service Bus emulator (with SQL Edge backend) via Docker for offline development. [Microsoft Foundry Local](https://foundrylocal.ai/) provides optional on-device LLM inference, eliminating the need for an Azure subscription during local development (`FOUNDRY_PROVIDER=local`).
+- **Process model**: Two-process split — the web service (FastAPI) handles the editorial dashboard and SSE, while the worker process runs the Cosmos DB change feed processor and agent pipeline. Azure Service Bus provides the event bridge in both directions using dedicated topics: web publishes `publish-request` commands to `pipeline-commands` (consumed by `worker-consumer`), and worker publishes pipeline events to `pipeline-events` (consumed by `web-consumer` for SSE).
+- **Web dependency wiring**: The web lifespan initializes shared runtime dependencies once and stores them in a typed runtime container (`app.state.runtime`). Route handlers use centralized providers in `curate_web.dependencies` to construct repositories consistently instead of ad hoc per-route wiring.
+- **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible), Azurite (Azure Storage emulator), and Azure Service Bus emulator (with SQL Edge backend) via Docker for offline development. The local Service Bus config seeds `pipeline-commands` and `pipeline-events` topics with `worker-consumer` and `web-consumer` subscriptions. [Microsoft Foundry Local](https://foundrylocal.ai/) provides optional on-device LLM inference, eliminating the need for an Azure subscription during local development (`FOUNDRY_PROVIDER=local`).
 - **Agent memory**: [Microsoft Foundry Memory](https://learn.microsoft.com/en-us/azure/ai-foundry/) provides long-term memory for agents via project-level and personal memory stores. Context providers inject relevant memories into Draft and Edit agents. Memory is toggled and managed through the Settings view in the editorial dashboard.
 
 ---
@@ -88,7 +88,7 @@ Links are submitted to the global Store (independent of any edition). From the E
 
 Event-driven and continuously iterating. Agents react to changes — new links, editor feedback — and refine the current edition. The pipeline is triggered via the Cosmos DB change feed, consumed by a dedicated change feed processor running in the worker container app.
 
-**Orchestration layer:** An explicit `PipelineOrchestrator` handles agent-to-agent flow control. The change feed processor delegates incoming events to the orchestrator, which determines the appropriate agent stage based on document type and status, manages transitions between stages, and handles error/retry logic. Links are processed sequentially (one at a time) to avoid race conditions on the edition document.
+**Orchestration layer:** An explicit `PipelineOrchestrator` handles agent-to-agent flow control. The change feed processor delegates incoming events to the orchestrator, which determines the appropriate agent stage based on document type and status, manages transitions between stages, and handles error/retry logic. For link events, the worker first performs a durable `claim_submitted` step that uses Cosmos DB `_etag` optimistic concurrency and writes `processing_claimed_at`; if the claim fails (already claimed, stale status, or precondition conflict), that event is skipped.
 
 **Agent design:** Each pipeline stage is implemented as a separate Agent class using the Microsoft Agent Framework. Agent prompts and system messages are stored as Markdown files in a `prompts/` directory, loaded at runtime. LLM calls to Microsoft Foundry are authenticated via managed identity in Azure.
 
@@ -164,6 +164,7 @@ Submitted URLs with metadata, agent processing status, and extracted content. Li
 | `content`          | Extracted/parsed content (populated by Fetch agent)      |
 | `review`           | Agent review output — relevance, insights, category      |
 | `edition_id`       | Associated edition (optional — null when unattached)     |
+| `processing_claimed_at` | Durable claim timestamp set by orchestrator pre-processing to prevent duplicate submitted-link runs |
 | `created_at`       | Creation timestamp                                       |
 | `updated_at`       | Last update timestamp                                    |
 | `deleted_at`       | Soft-delete timestamp (absent if active)                 |
