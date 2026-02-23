@@ -41,7 +41,7 @@ async def test_save_fetched_content_updates_link(
     assert link.title == "My Title"
     assert link.content == "Page content"
     assert link.status == LinkStatus.FETCHING
-    links_repo.update.assert_called_once_with(link, "ed-1")
+    links_repo.update.assert_called_once_with(link, "link-1")
 
 
 async def test_save_fetched_content_link_not_found(
@@ -131,7 +131,7 @@ async def test_mark_link_failed_updates_status(
     assert result["link_id"] == "link-1"
     assert result["reason"] == "URL is unreachable"
     assert link.status == LinkStatus.FAILED
-    links_repo.update.assert_called_once_with(link, "ed-1")
+    links_repo.update.assert_called_once_with(link, "link-1")
 
 
 async def test_mark_link_failed_link_not_found(

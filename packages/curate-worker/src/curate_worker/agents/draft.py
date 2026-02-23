@@ -61,10 +61,10 @@ class DraftAgent:
     async def get_reviewed_link(
         self,
         link_id: Annotated[str, "The link document ID"],
-        edition_id: Annotated[str, "The edition partition key"],
+        edition_id: Annotated[str, "The edition partition key"],  # noqa: ARG002
     ) -> str:
         """Read the reviewed link with its review output."""
-        link = await self._links_repo.get(link_id, edition_id)
+        link = await self._links_repo.get(link_id, link_id)
         if not link:
             logger.warning("get_reviewed_link: link %s not found", link_id)
             return json.dumps({"error": "Link not found"})
@@ -121,10 +121,10 @@ class DraftAgent:
             edition.link_ids.append(link_id)
         await self._editions_repo.update(edition, edition_id)
 
-        link = await self._links_repo.get(link_id, edition_id)
+        link = await self._links_repo.get(link_id, link_id)
         if link:
             link.status = LinkStatus.DRAFTED
-            await self._links_repo.update(link, edition_id)
+            await self._links_repo.update(link, link_id)
 
         logger.debug(
             "Draft saved — edition=%s link=%s status=drafted",

@@ -38,10 +38,10 @@ class OrchestratorToolsMixin:
     async def get_link_status(
         self,
         link_id: Annotated[str, "The link document ID"],
-        edition_id: Annotated[str, "The edition partition key"],
+        edition_id: Annotated[str, "The edition partition key"],  # noqa: ARG002
     ) -> str:
         """Get the current status and metadata of a link."""
-        link = await self._links_repo.get(link_id, edition_id)
+        link = await self._links_repo.get(link_id, link_id)
         if not link:
             return json.dumps({"error": "Link not found"})
         return json.dumps(
@@ -79,10 +79,12 @@ class OrchestratorToolsMixin:
         self,
         stage: Annotated[str, "Pipeline stage: fetch, review, draft, edit, or publish"],
         trigger_id: Annotated[str, "ID of the document that triggered this run"],
+        edition_id: Annotated[str, "ID of the edition this run belongs to"],
     ) -> str:
         """Record the start of a pipeline stage. Call before invoking a sub-agent."""
         run = AgentRun(
             stage=AgentStage(stage),
+            edition_id=edition_id,
             trigger_id=trigger_id,
             input={"stage": stage},
             started_at=datetime.now(UTC),
@@ -94,6 +96,7 @@ class OrchestratorToolsMixin:
                 "id": run.id,
                 "stage": run.stage,
                 "trigger_id": run.trigger_id,
+                "edition_id": run.edition_id,
                 "status": run.status,
                 "started_at": run.started_at.isoformat() if run.started_at else None,
             },
@@ -105,6 +108,7 @@ class OrchestratorToolsMixin:
         self,
         run_id: Annotated[str, "The run ID returned by record_stage_start"],
         trigger_id: Annotated[str, "ID of the document that triggered this run"],
+        edition_id: Annotated[str, "ID of the edition this run belongs to"],
         status: Annotated[str, "Completion status: completed or failed"],
         error: Annotated[str, "Error message if failed, empty if completed"] = "",
         input_tokens: Annotated[int, "Input tokens consumed by this stage"] = 0,
@@ -112,7 +116,7 @@ class OrchestratorToolsMixin:
         total_tokens: Annotated[int, "Total tokens consumed by this stage"] = 0,
     ) -> str:
         """Record the completion of a pipeline stage."""
-        run = await self._agent_runs_repo.get(run_id, trigger_id)
+        run = await self._agent_runs_repo.get(run_id, edition_id)
         if not run:
             return json.dumps({"error": "Run not found"})
         run.status = (
@@ -127,13 +131,14 @@ class OrchestratorToolsMixin:
                 "output_tokens": output_tokens,
                 "total_tokens": total_tokens or input_tokens + output_tokens,
             }
-        await self._agent_runs_repo.update(run, trigger_id)
+        await self._agent_runs_repo.update(run, edition_id)
         await self._events.publish(
             "agent-run-complete",
             {
                 "id": run.id,
                 "stage": run.stage,
                 "trigger_id": run.trigger_id,
+                "edition_id": run.edition_id,
                 "status": run.status,
                 "output": run.output,
                 "started_at": run.started_at.isoformat() if run.started_at else None,
@@ -143,7 +148,7 @@ class OrchestratorToolsMixin:
             },
         )
 
-        link = await self._links_repo.get(trigger_id, "")
+        link = await self._links_repo.get(trigger_id, trigger_id)
         if link:
             runs = await self._agent_runs_repo.get_by_trigger(trigger_id)
             await self._events.publish("link-update", render_link_row(link, runs))

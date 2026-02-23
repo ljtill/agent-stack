@@ -32,7 +32,7 @@ from curate_web.routes.dashboard import router as dashboard_router
 from curate_web.routes.editions import router as editions_router
 from curate_web.routes.events import router as events_router
 from curate_web.routes.feedback import router as feedback_router
-from curate_web.routes.links import router as links_router
+from curate_web.routes.links import router as store_router
 from curate_web.routes.settings import router as settings_router
 from curate_web.routes.status import router as status_router
 from curate_web.startup import (
@@ -204,7 +204,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth_router)
     app.include_router(dashboard_router)
-    app.include_router(links_router)
+    app.include_router(store_router)
     app.include_router(editions_router)
     app.include_router(feedback_router)
     app.include_router(events_router)

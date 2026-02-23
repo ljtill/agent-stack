@@ -79,7 +79,7 @@ async def test_handle_link_change_submitted(
         }
     )
 
-    links.get.assert_called_with("link-1", "ed-1")
+    links.get.assert_called_with("link-1", "link-1")
     orchestrator.agent.run.assert_called_once()
     call_args = orchestrator.agent.run.call_args[0][0]
     assert "link-1" in call_args

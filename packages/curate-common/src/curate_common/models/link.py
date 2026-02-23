@@ -27,4 +27,7 @@ class Link(DocumentBase):
     status: LinkStatus = LinkStatus.SUBMITTED
     content: str | None = None
     review: dict | None = None
-    edition_id: str = Field(..., description="Associated edition (partition key)")
+    edition_id: str | None = Field(
+        default=None,
+        description="Associated edition (set when link is added to an edition)",
+    )

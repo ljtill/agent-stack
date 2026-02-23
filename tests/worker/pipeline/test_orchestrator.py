@@ -164,6 +164,7 @@ class TestRecordStageCompleteUsage:
             await orchestrator.record_stage_complete(
                 run_id="run-1",
                 trigger_id="l-1",
+                edition_id="ed-1",
                 status="completed",
                 input_tokens=500,
                 output_tokens=120,
@@ -190,6 +191,7 @@ class TestRecordStageCompleteUsage:
         await orchestrator.record_stage_complete(
             run_id="run-2",
             trigger_id="l-1",
+            edition_id="ed-1",
             status="completed",
         )
 
@@ -210,6 +212,7 @@ class TestRecordStageCompleteUsage:
         await orchestrator.record_stage_complete(
             run_id="run-3",
             trigger_id="l-1",
+            edition_id="ed-1",
             status="completed",
             input_tokens=300,
             output_tokens=100,
@@ -230,7 +233,7 @@ class TestClaimLink:
         """Return None when the link is already being processed."""
         orchestrator._processing_links.add("l-1")  # noqa: SLF001
 
-        result = await orchestrator._claim_link("l-1", "ed-1", "submitted")  # noqa: SLF001
+        result = await orchestrator._claim_link("l-1", "submitted")  # noqa: SLF001
         assert result is None
 
     async def test_returns_none_when_link_is_failed(
@@ -243,7 +246,7 @@ class TestClaimLink:
         links, *_ = mock_repos
         links.get.return_value = make_link(id="l-1", status=LinkStatus.FAILED)
 
-        result = await orchestrator._claim_link("l-1", "ed-1", "submitted")  # noqa: SLF001
+        result = await orchestrator._claim_link("l-1", "submitted")  # noqa: SLF001
         assert result is None
 
     async def test_returns_none_when_status_not_submitted(
@@ -256,7 +259,7 @@ class TestClaimLink:
         links, *_ = mock_repos
         links.get.return_value = make_link(id="l-1", status=LinkStatus.REVIEWED)
 
-        result = await orchestrator._claim_link("l-1", "ed-1", "reviewed")  # noqa: SLF001
+        result = await orchestrator._claim_link("l-1", "reviewed")  # noqa: SLF001
         assert result is None
 
     async def test_returns_none_when_link_status_mismatches_event(
@@ -269,7 +272,7 @@ class TestClaimLink:
         links, *_ = mock_repos
         links.get.return_value = make_link(id="l-1", status=LinkStatus.DRAFTED)
 
-        result = await orchestrator._claim_link("l-1", "ed-1", "submitted")  # noqa: SLF001
+        result = await orchestrator._claim_link("l-1", "submitted")  # noqa: SLF001
         assert result is None
 
 

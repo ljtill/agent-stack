@@ -58,10 +58,10 @@ class ReviewAgent:
     async def get_link_content(
         self,
         link_id: Annotated[str, "The link document ID"],
-        edition_id: Annotated[str, "The edition partition key"],
+        edition_id: Annotated[str, "The edition partition key"],  # noqa: ARG002
     ) -> str:
         """Read the fetched content for a link."""
-        link = await self._links_repo.get(link_id, edition_id)
+        link = await self._links_repo.get(link_id, link_id)
         if not link:
             logger.warning("get_link_content: link %s not found", link_id)
             return json.dumps({"error": "Link not found"})
@@ -78,7 +78,7 @@ class ReviewAgent:
     async def save_review(
         self,
         link_id: Annotated[str, "The link document ID"],
-        edition_id: Annotated[str, "The edition partition key"],
+        edition_id: Annotated[str, "The edition partition key"],  # noqa: ARG002
         insights: Annotated[list[str], "Key insights extracted from the content"],
         category: Annotated[str, "Content category"],
         relevance_score: Annotated[int, "Relevance score 1-10"],
@@ -86,7 +86,7 @@ class ReviewAgent:
     ) -> str:
         """Persist the review output to the link document."""
         parsed_insights = insights
-        link = await self._links_repo.get(link_id, edition_id)
+        link = await self._links_repo.get(link_id, link_id)
         if not link:
             logger.warning("save_review: link %s not found", link_id)
             return json.dumps({"error": "Link not found"})
@@ -98,7 +98,7 @@ class ReviewAgent:
         }
         link.status = LinkStatus.REVIEWED
         try:
-            await self._links_repo.update(link, edition_id)
+            await self._links_repo.update(link, link_id)
         except Exception as exc:
             self.save_failures += 1
             logger.warning(

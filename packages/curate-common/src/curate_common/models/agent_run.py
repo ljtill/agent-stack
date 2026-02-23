@@ -31,6 +31,7 @@ class AgentRun(DocumentBase):
     """Execution log for a single agent pipeline stage."""
 
     stage: AgentStage
+    edition_id: str
     trigger_id: str
     status: AgentRunStatus = AgentRunStatus.RUNNING
     input: dict | None = None

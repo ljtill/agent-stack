@@ -74,7 +74,7 @@ def test_feedback_model() -> None:
 
 def test_agent_run_model() -> None:
     """Verify agent run model."""
-    run = AgentRun(stage=AgentStage.FETCH, trigger_id="link-1")
+    run = AgentRun(stage=AgentStage.FETCH, edition_id="ed-1", trigger_id="link-1")
     assert run.status == AgentRunStatus.RUNNING
     assert run.completed_at is None
 

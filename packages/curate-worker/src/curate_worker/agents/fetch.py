@@ -99,19 +99,19 @@ class FetchAgent:
     async def save_fetched_content(
         self,
         link_id: Annotated[str, "The link document ID"],
-        edition_id: Annotated[str, "The edition partition key"],
+        edition_id: Annotated[str, "The edition partition key"],  # noqa: ARG002
         title: Annotated[str, "Extracted page title"],
         content: Annotated[str, "Extracted main text content"],
     ) -> str:
         """Persist extracted title and content to the link document."""
-        link = await self._links_repo.get(link_id, edition_id)
+        link = await self._links_repo.get(link_id, link_id)
         if not link:
             logger.warning("save_fetched_content: link %s not found", link_id)
             return json.dumps({"error": "Link not found"})
         link.title = title
         link.content = content
         link.status = LinkStatus.FETCHING
-        await self._links_repo.update(link, edition_id)
+        await self._links_repo.update(link, link_id)
         logger.debug(
             "Fetched content saved — link=%s title=%s status=%s",
             link_id,
@@ -124,16 +124,16 @@ class FetchAgent:
     async def mark_link_failed(
         self,
         link_id: Annotated[str, "The link document ID"],
-        edition_id: Annotated[str, "The edition partition key"],
+        edition_id: Annotated[str, "The edition partition key"],  # noqa: ARG002
         reason: Annotated[str, "Why the link failed (e.g. unreachable, timeout)"],
     ) -> str:
         """Mark a link as failed when the URL is unreachable or cannot be processed."""
-        link = await self._links_repo.get(link_id, edition_id)
+        link = await self._links_repo.get(link_id, link_id)
         if not link:
             logger.warning("mark_link_failed: link %s not found", link_id)
             return json.dumps({"error": "Link not found"})
         link.status = LinkStatus.FAILED
-        await self._links_repo.update(link, edition_id)
+        await self._links_repo.update(link, link_id)
         logger.warning("Link marked failed — link=%s reason=%s", link_id, reason)
         return json.dumps({"status": "failed", "link_id": link_id, "reason": reason})
 

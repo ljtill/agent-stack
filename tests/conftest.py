@@ -98,6 +98,7 @@ def make_agent_run() -> Callable[..., AgentRun]:
     def _make(**kwargs: Any) -> AgentRun:
         defaults = {
             "stage": AgentStage.FETCH,
+            "edition_id": "ed-1",
             "trigger_id": "link-1",
             "status": AgentRunStatus.RUNNING,
         }

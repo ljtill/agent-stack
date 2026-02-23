@@ -25,7 +25,10 @@ class TestAgentRunRepository:
     async def test_get_by_trigger(self, repo: AgentRunRepository) -> None:
         """Verify get by trigger."""
         run = AgentRun(
-            stage=AgentStage.FETCH, trigger_id="link-1", status=AgentRunStatus.COMPLETED
+            stage=AgentStage.FETCH,
+            edition_id="ed-1",
+            trigger_id="link-1",
+            status=AgentRunStatus.COMPLETED,
         )
         repo.query = AsyncMock(return_value=[run])
 
@@ -56,12 +59,14 @@ class TestAgentRunRepository:
         """Verify get by triggers merges results."""
         run1 = AgentRun(
             stage=AgentStage.FETCH,
+            edition_id="ed-1",
             trigger_id="link-1",
             status=AgentRunStatus.COMPLETED,
             started_at=datetime(2025, 1, 1, tzinfo=UTC),
         )
         run2 = AgentRun(
             stage=AgentStage.REVIEW,
+            edition_id="ed-1",
             trigger_id="link-2",
             status=AgentRunStatus.COMPLETED,
             started_at=datetime(2025, 1, 2, tzinfo=UTC),
@@ -103,6 +108,7 @@ class TestAgentRunRepository:
         orphan = AgentRun(
             id="run-orphan",
             stage=AgentStage.FETCH,
+            edition_id="ed-1",
             trigger_id="link-1",
             status=AgentRunStatus.RUNNING,
         )
@@ -115,4 +121,4 @@ class TestAgentRunRepository:
         assert orphan.status == AgentRunStatus.FAILED
         assert orphan.completed_at is not None
         assert orphan.output == {"error": "Recovered after process restart"}
-        repo.update.assert_called_once_with(orphan, "link-1")
+        repo.update.assert_called_once_with(orphan, "ed-1")

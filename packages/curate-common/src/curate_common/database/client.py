@@ -35,9 +35,9 @@ class CosmosClient:
 
     _CONTAINERS: ClassVar[list[tuple[str, str]]] = [
         ("editions", "/id"),
-        ("links", "/edition_id"),
+        ("links", "/id"),
         ("feedback", "/edition_id"),
-        ("agent_runs", "/trigger_id"),
+        ("agent_runs", "/edition_id"),
         ("metadata", "/id"),
     ]
 

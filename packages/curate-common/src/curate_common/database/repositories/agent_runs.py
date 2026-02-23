@@ -1,4 +1,4 @@
-"""Repository for the agent_runs container (partitioned by /trigger_id)."""
+"""Repository for the agent_runs container (partitioned by /edition_id)."""
 
 from __future__ import annotations
 
@@ -13,6 +13,15 @@ class AgentRunRepository(BaseRepository[AgentRun]):
 
     container_name = "agent_runs"
     model_class = AgentRun
+
+    async def list_by_edition(self, edition_id: str) -> list[AgentRun]:
+        """Fetch all runs for a specific edition."""
+        runs = await self.query(
+            "SELECT * FROM c WHERE c.edition_id = @edition_id"
+            " AND NOT IS_DEFINED(c.deleted_at)",
+            [{"name": "@edition_id", "value": edition_id}],
+        )
+        return sorted(runs, key=lambda r: r.started_at or r.created_at, reverse=True)
 
     async def get_by_trigger(self, trigger_id: str) -> list[AgentRun]:
         """Fetch all runs triggered by a specific document."""
@@ -112,7 +121,7 @@ class AgentRunRepository(BaseRepository[AgentRun]):
             run.status = AgentRunStatus.FAILED
             run.completed_at = datetime.now(UTC)
             run.output = {"error": "Recovered after process restart"}
-            await self.update(run, run.trigger_id)
+            await self.update(run, run.edition_id)
         return len(orphaned)
 
     async def list_recent_failures(self, limit: int = 5) -> list[AgentRun]:

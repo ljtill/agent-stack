@@ -25,11 +25,12 @@ class RunManager:
         self._events = events
 
     async def create_orchestrator_run(
-        self, trigger_id: str, input_data: dict
+        self, edition_id: str, trigger_id: str, input_data: dict
     ) -> AgentRun:
         """Create an agent run record for the orchestrator itself."""
         run = AgentRun(
             stage=AgentStage.ORCHESTRATOR,
+            edition_id=edition_id,
             trigger_id=trigger_id,
             input=input_data,
             started_at=datetime.now(UTC),

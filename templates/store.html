@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Store{% endblock %}
+
+{% block content %}
+<h1>Store</h1>
+
+<div class="card">
+    <form method="post" action="/store/" style="display: flex; gap: 0.5rem; align-items: flex-end;">
+        <div style="flex: 1;">
+            <input type="url" name="url" placeholder="https://example.com/article" required style="margin-bottom: 0;">
+        </div>
+        <button type="submit" class="btn btn-primary">Add Link</button>
+    </form>
+</div>
+
+{% if links %}
+<div class="card" style="padding: 0;">
+    <table>
+        <thead>
+            <tr>
+                <th>URL</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Edition</th>
+                <th>Added</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for link in links %}
+            <tr id="link-{{ link.id }}">
+                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <a href="{{ link.url }}" target="_blank" rel="noopener" style="color: var(--accent-emphasis); text-decoration: none;">{{ link.url }}</a>
+                </td>
+                <td>{{ link.title or '—' }}</td>
+                <td><span class="badge badge-{{ link.status.value }}">{{ link.status.value }}</span></td>
+                <td>
+                    {% if link.edition_id %}
+                    <a href="/editions/{{ link.edition_id }}" style="color: var(--accent-emphasis); text-decoration: none; font-size: 0.8125rem;">{{ link.edition_id[:8] }}…</a>
+                    {% else %}
+                    <span style="color: var(--text-muted);">Unattached</span>
+                    {% endif %}
+                </td>
+                <td style="color: var(--text-muted); font-size: 0.8125rem;">{{ link.created_at.strftime('%b %d, %H:%M') }}</td>
+                <td style="text-align: right;">
+                    {% if link.status.value == 'failed' %}
+                    <form method="post" action="/store/{{ link.id }}/retry" style="display: inline;">
+                        <button type="submit" class="btn" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Retry</button>
+                    </form>
+                    {% endif %}
+                    <form method="post" action="/store/{{ link.id }}/delete" style="display: inline;">
+                        <button type="submit" class="btn btn-danger" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;" onclick="return confirm('Delete this link?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <p style="color: var(--text-muted);">No links in the store yet. Submit a URL above to get started.</p>
+</div>
+{% endif %}
+{% endblock %}

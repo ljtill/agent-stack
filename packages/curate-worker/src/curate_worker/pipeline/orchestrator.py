@@ -158,34 +158,24 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
                 self._edition_locks[edition_id] = asyncio.Lock()
             return self._edition_locks[edition_id]
 
-    async def _claim_link(
-        self, link_id: str, edition_id: str, status: str
-    ) -> Link | None:
+    async def _claim_link(self, link_id: str, status: str) -> Link | None:
         """Attempt to claim a link for processing. Returns the link or None."""
         async with self._link_lock:
             if link_id in self._processing_links:
                 logger.debug("Link %s already being processed, skipping", link_id)
                 return None
-            link = await self._links_repo.get(link_id, edition_id)
-            if not link:
-                logger.warning("Link %s not found, skipping", link_id)
+            link = await self._links_repo.get(link_id, link_id)
+            if not link or not link.edition_id:
+                logger.debug("Link %s not found or not associated, skipping", link_id)
                 return None
             if link.status == LinkStatus.FAILED:
                 logger.debug("Link %s is failed, skipping (use Retry)", link_id)
                 return None
-            if status != LinkStatus.SUBMITTED:
+            if status != LinkStatus.SUBMITTED or link.status != status:
                 logger.debug(
                     "Link %s status %s not actionable, skipping",
                     link_id,
-                    status,
-                )
-                return None
-            if link.status != status:
-                logger.debug(
-                    "Link %s already at %s, skipping stale event (%s)",
-                    link_id,
                     link.status,
-                    status,
                 )
                 return None
             self._processing_links.add(link_id)
@@ -194,15 +184,20 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
     async def handle_link_change(self, document: dict[str, Any]) -> None:
         """Process a link document change by invoking the orchestrator agent."""
         link_id = document.get("id", "")
-        edition_id = document.get("edition_id", "")
+        edition_id = document.get("edition_id")
         status = document.get("status", "")
 
-        link = await self._claim_link(link_id, edition_id, status)
+        if not edition_id:
+            return
+
+        link = await self._claim_link(link_id, status)
         if link is None:
             return
 
         logger.info("Orchestrator processing link=%s status=%s", link_id, status)
-        run = await self._runs.create_orchestrator_run(link_id, {"status": status})
+        run = await self._runs.create_orchestrator_run(
+            edition_id, link_id, {"status": status}
+        )
         pipeline_run_id = run.id
         t0 = time.monotonic()
         last_error: Exception | None = None
@@ -256,7 +251,7 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
             }
 
         run.completed_at = datetime.now(UTC)
-        await self._agent_runs_repo.update(run, link_id)
+        await self._agent_runs_repo.update(run, edition_id)
         await self._runs.publish_run_event(run)
         async with self._link_lock:
             self._processing_links.discard(link_id)
@@ -268,10 +263,10 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
             pipeline_run_id,
         )
 
-        updated_link = await self._links_repo.get(link_id, edition_id)
+        updated_link = await self._links_repo.get(link_id, link_id)
         if updated_link and updated_link.status == status:
             updated_link.status = LinkStatus.FAILED
-            await self._links_repo.update(updated_link, edition_id)
+            await self._links_repo.update(updated_link, link_id)
             runs = await self._agent_runs_repo.get_by_trigger(link_id)
             await self._events.publish(
                 "link-update",
@@ -295,7 +290,7 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
                 edition_id,
             )
             run = await self._runs.create_orchestrator_run(
-                feedback_id, {"edition_id": edition_id}
+                edition_id, feedback_id, {"edition_id": edition_id}
             )
             pipeline_run_id = run.id
             t0 = time.monotonic()
@@ -328,7 +323,7 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
                 run.output = {"error": "Orchestrator failed"}
             finally:
                 run.completed_at = datetime.now(UTC)
-                await self._agent_runs_repo.update(run, feedback_id)
+                await self._agent_runs_repo.update(run, edition_id)
                 await self._runs.publish_run_event(run)
                 elapsed_ms = (time.monotonic() - t0) * 1000
                 logger.info(
@@ -343,7 +338,7 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
         """Process a publish approval by invoking the orchestrator agent."""
         logger.info("Orchestrator processing publish for edition=%s", edition_id)
         run = await self._runs.create_orchestrator_run(
-            edition_id, {"edition_id": edition_id}
+            edition_id, edition_id, {"edition_id": edition_id}
         )
         pipeline_run_id = run.id
         t0 = time.monotonic()

@@ -1,4 +1,4 @@
-"""Repository for the links container (partitioned by /edition_id)."""
+"""Repository for the links container (partitioned by /id)."""
 
 from __future__ import annotations
 
@@ -13,6 +13,21 @@ class LinkRepository(BaseRepository[Link]):
 
     container_name = "links"
     model_class = Link
+
+    async def list_all(self) -> list[Link]:
+        """Fetch all active links across all editions."""
+        return await self.query(
+            "SELECT * FROM c WHERE NOT IS_DEFINED(c.deleted_at)"
+            " ORDER BY c.created_at DESC",
+        )
+
+    async def list_unattached(self) -> list[Link]:
+        """Fetch links not yet associated with any edition."""
+        return await self.query(
+            "SELECT * FROM c WHERE NOT IS_DEFINED(c.edition_id)"
+            " AND NOT IS_DEFINED(c.deleted_at)"
+            " ORDER BY c.created_at DESC",
+        )
 
     async def get_by_edition(self, edition_id: str) -> list[Link]:
         """Fetch all active links for a given edition."""
@@ -33,6 +48,21 @@ class LinkRepository(BaseRepository[Link]):
                 {"name": "@status", "value": status.value},
             ],
         )
+
+    async def associate(self, link: Link, edition_id: str) -> Link:
+        """Associate a link with an edition."""
+        link.edition_id = edition_id
+        link.status = LinkStatus.SUBMITTED
+        return await self.update(link, link.id)
+
+    async def disassociate(self, link: Link) -> Link:
+        """Remove a link's association with an edition."""
+        link.edition_id = None
+        link.status = LinkStatus.SUBMITTED
+        link.title = None
+        link.content = None
+        link.review = None
+        return await self.update(link, link.id)
 
     async def count_all(self) -> int:
         """Return the total number of active links across all editions."""
