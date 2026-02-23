@@ -25,6 +25,8 @@ def _settings(*, servicebus_connection_string: str) -> SimpleNamespace:
         servicebus=SimpleNamespace(
             connection_string=servicebus_connection_string,
             topic_name="pipeline-events",
+            command_topic_name="pipeline-commands",
+            event_topic_name="pipeline-events",
             subscription_name="web-consumer",
             worker_subscription_name="worker-consumer",
         ),
@@ -61,8 +63,12 @@ def test_lifespan_wires_event_bridge_when_servicebus_configured() -> None:
         patch(
             "curate_web.app.init_memory", new=AsyncMock(return_value=memory_components)
         ),
-        patch("curate_web.app.ServiceBusConsumer", return_value=consumer),
-        patch("curate_web.app.ServiceBusPublisher", return_value=publisher),
+        patch(
+            "curate_web.app.ServiceBusConsumer", return_value=consumer
+        ) as consumer_cls,
+        patch(
+            "curate_web.app.ServiceBusPublisher", return_value=publisher
+        ) as publisher_cls,
     ):
         app = create_app()
         with TestClient(app):
@@ -70,6 +76,11 @@ def test_lifespan_wires_event_bridge_when_servicebus_configured() -> None:
             assert app.state.event_publisher is publisher
             assert app.state.event_consumer is consumer
 
+    publisher_cls.assert_called_once_with(
+        settings.servicebus,
+        topic_name=settings.servicebus.command_topic_name,
+    )
+    consumer_cls.assert_called_once()
     consumer.start.assert_awaited_once()
     consumer.stop.assert_awaited_once()
     publisher.close.assert_awaited_once()

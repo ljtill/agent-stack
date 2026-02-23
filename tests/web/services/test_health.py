@@ -187,6 +187,8 @@ async def test_check_all_with_foundry_unconfigured() -> None:
 _servicebus_config = ServiceBusConfig(
     connection_string="Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=key;SharedAccessKey=abc",
     topic_name="pipeline-events",
+    command_topic_name="pipeline-commands",
+    event_topic_name="pipeline-events",
     subscription_name="web-consumer",
     worker_subscription_name="worker-consumer",
 )
@@ -197,6 +199,8 @@ async def test_check_servicebus_not_configured() -> None:
     config = ServiceBusConfig(
         connection_string="",
         topic_name="t",
+        command_topic_name="commands",
+        event_topic_name="events",
         subscription_name="s",
     )
 
@@ -227,7 +231,7 @@ async def test_check_servicebus_healthy() -> None:
     assert result.name == "Service Bus"
     assert result.latency_ms is not None
     assert (
-        result.detail == "Topic: pipeline-events · "
+        result.detail == "Topics: commands=pipeline-commands, events=pipeline-events · "
         "Subscriptions: web=web-consumer, worker=worker-consumer"
     )
 
@@ -261,6 +265,8 @@ async def test_check_all_with_servicebus() -> None:
     sb_config = ServiceBusConfig(
         connection_string="",
         topic_name="t",
+        command_topic_name="commands",
+        event_topic_name="events",
         subscription_name="s",
     )
 

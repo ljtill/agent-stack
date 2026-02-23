@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import json
 import logging
+import secrets
 from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
@@ -19,6 +20,19 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 _MAX_DEDUPE_IDS = 10_000
+_BASE_RECONNECT_DELAY_SECONDS = 1.0
+_MAX_RECONNECT_DELAY_SECONDS = 30.0
+_JITTER_SCALE = 1000
+
+
+def _compute_reconnect_delay_seconds(attempt: int) -> float:
+    """Return bounded exponential backoff delay with jitter."""
+    base_delay = _BASE_RECONNECT_DELAY_SECONDS * (2 ** min(attempt, 10))
+    jitter_ratio = secrets.randbelow(_JITTER_SCALE) / _JITTER_SCALE
+    return min(
+        _MAX_RECONNECT_DELAY_SECONDS,
+        base_delay + (base_delay * jitter_ratio),
+    )
 
 
 class ServiceBusCommandConsumer:
@@ -50,7 +64,7 @@ class ServiceBusCommandConsumer:
         self._task = asyncio.create_task(self._consume())
         logger.info(
             "Service Bus command consumer started — topic=%s subscription=%s",
-            self._config.topic_name,
+            self._config.command_topic_name,
             self._config.worker_subscription_name,
         )
 
@@ -100,69 +114,88 @@ class ServiceBusCommandConsumer:
         return True
 
     async def _consume(self) -> None:
-        """Consume worker commands from Service Bus subscription."""
-        from azure.servicebus.aio import ServiceBusClient  # noqa: PLC0415
+        """Consume worker commands from Service Bus subscription with reconnect."""
         from azure.servicebus.exceptions import (  # noqa: PLC0415
             ServiceBusConnectionError,
         )
 
-        try:
-            client = ServiceBusClient.from_connection_string(
-                self._config.connection_string
-            )
-            async with client:
-                receiver = client.get_subscription_receiver(
-                    topic_name=self._config.topic_name,
-                    subscription_name=self._config.worker_subscription_name,
+        attempt = 0
+        while self._running:
+            try:
+                await self._consume_once()
+                attempt = 0
+            except asyncio.CancelledError:
+                raise
+            except ServiceBusConnectionError as exc:
+                if not self._running:
+                    break
+                delay = _compute_reconnect_delay_seconds(attempt)
+                attempt += 1
+                logger.warning(
+                    "Service Bus command consumer connection failed — %s; "
+                    "retrying in %.1fs",
+                    exc,
+                    delay,
                 )
-                async with receiver:
-                    while self._running:
-                        messages = await receiver.receive_messages(
-                            max_message_count=10,
-                            max_wait_time=5,
-                        )
-                        for message in messages:
-                            try:
-                                envelope = EventEnvelope.from_message_body(str(message))
-                                handled = await self._handle_event(
-                                    envelope,
-                                    message_id=str(message.message_id)
-                                    if message.message_id
-                                    else None,
-                                )
-                                await receiver.complete_message(message)
-                                if not handled:
-                                    logger.debug(
-                                        "Ignored non-command event from worker "
-                                        "subscription: %s",
-                                        envelope.event,
-                                    )
-                            except asyncio.CancelledError:
-                                raise
-                            except json.JSONDecodeError:
-                                logger.warning(
-                                    "Invalid Service Bus message payload, "
-                                    "abandoning message",
-                                )
-                                await receiver.abandon_message(message)
-                            except Exception:  # noqa: BLE001
-                                logger.warning(
-                                    "Failed to process Service Bus command message",
-                                    exc_info=True,
-                                )
-                                await receiver.abandon_message(message)
-        except asyncio.CancelledError:
-            raise
-        except ServiceBusConnectionError as exc:
-            logger.warning(
-                "Service Bus command consumer connection failed — %s",
-                exc,
+                await asyncio.sleep(delay)
+            except Exception:  # noqa: BLE001
+                if not self._running:
+                    break
+                delay = _compute_reconnect_delay_seconds(attempt)
+                attempt += 1
+                logger.warning(
+                    "Service Bus command consumer error; retrying in %.1fs",
+                    delay,
+                    exc_info=True,
+                )
+                await asyncio.sleep(delay)
+
+    async def _consume_once(self) -> None:
+        """Run a single Service Bus receive session for command messages."""
+        from azure.servicebus.aio import ServiceBusClient  # noqa: PLC0415
+
+        client = ServiceBusClient.from_connection_string(self._config.connection_string)
+        async with client:
+            receiver = client.get_subscription_receiver(
+                topic_name=self._config.command_topic_name,
+                subscription_name=self._config.worker_subscription_name,
             )
-        except Exception:  # noqa: BLE001
-            logger.warning(
-                "Service Bus command consumer error, will not reconnect",
-                exc_info=True,
-            )
+            async with receiver:
+                while self._running:
+                    messages = await receiver.receive_messages(
+                        max_message_count=10,
+                        max_wait_time=5,
+                    )
+                    for message in messages:
+                        try:
+                            envelope = EventEnvelope.from_message_body(str(message))
+                            handled = await self._handle_event(
+                                envelope,
+                                message_id=str(message.message_id)
+                                if message.message_id
+                                else None,
+                            )
+                            await receiver.complete_message(message)
+                            if not handled:
+                                logger.debug(
+                                    "Ignored non-command event from worker "
+                                    "subscription: %s",
+                                    envelope.event,
+                                )
+                        except asyncio.CancelledError:
+                            raise
+                        except json.JSONDecodeError:
+                            logger.warning(
+                                "Invalid Service Bus message payload, "
+                                "abandoning message",
+                            )
+                            await receiver.abandon_message(message)
+                        except Exception:  # noqa: BLE001
+                            logger.warning(
+                                "Failed to process Service Bus command message",
+                                exc_info=True,
+                            )
+                            await receiver.abandon_message(message)
 
 
 __all__ = ["ServiceBusCommandConsumer", "ServiceBusPublisher"]

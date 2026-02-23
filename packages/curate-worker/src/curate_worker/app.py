@@ -59,7 +59,10 @@ async def run() -> None:
     storage, renderer = await init_storage(settings, editions_repo)
     context_providers = await init_memory(settings)
 
-    event_publisher = ServiceBusPublisher(settings.servicebus)
+    event_publisher = ServiceBusPublisher(
+        settings.servicebus,
+        topic_name=settings.servicebus.event_topic_name,
+    )
 
     processor = await init_pipeline(
         chat_client,

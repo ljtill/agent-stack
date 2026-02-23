@@ -161,7 +161,9 @@ async def check_storage(
 async def check_servicebus(config: ServiceBusConfig) -> ServiceHealth:
     """Probe Service Bus with a lightweight management operation."""
     detail = (
-        f"Topic: {config.topic_name} · "
+        "Topics: "
+        f"commands={config.command_topic_name}, "
+        f"events={config.event_topic_name} · "
         f"Subscriptions: web={config.subscription_name}, "
         f"worker={config.worker_subscription_name}"
     )
@@ -181,7 +183,7 @@ async def check_servicebus(config: ServiceBusConfig) -> ServiceHealth:
             config.connection_string
         ) as client:
             receiver = client.get_subscription_receiver(
-                topic_name=config.topic_name,
+                topic_name=config.event_topic_name,
                 subscription_name=config.subscription_name,
                 max_wait_time=1,
             )

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from pydantic import ValidationError
 
-from curate_common.events import EventEnvelope, PublishRequest
+from curate_common.config import ServiceBusConfig
+from curate_common.events import EventEnvelope, PublishRequest, ServiceBusPublisher
 
 
 def test_event_envelope_parses_object_data() -> None:
@@ -36,3 +39,26 @@ def test_publish_request_requires_edition_id() -> None:
     """Publish requests must include an edition identifier."""
     with pytest.raises(ValidationError):
         PublishRequest.model_validate({})
+
+
+async def test_servicebus_publisher_uses_explicit_topic() -> None:
+    """Publisher sends messages to an explicitly configured topic."""
+    config = ServiceBusConfig(
+        connection_string="Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=key;SharedAccessKey=abc",
+        topic_name="legacy-topic",
+        command_topic_name="pipeline-commands",
+        event_topic_name="pipeline-events",
+    )
+    sender = MagicMock()
+    sender.send_messages = AsyncMock()
+    client = MagicMock()
+    client.get_topic_sender.return_value = sender
+    publisher = ServiceBusPublisher(config, topic_name=config.command_topic_name)
+
+    with patch("curate_common.events.servicebus.ServiceBusClient") as servicebus_cls:
+        servicebus_cls.from_connection_string.return_value = client
+        await publisher.publish("publish-request", {"edition_id": "ed-1"})
+
+    client.get_topic_sender.assert_called_once_with(
+        topic_name=config.command_topic_name,
+    )

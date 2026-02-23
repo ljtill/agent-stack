@@ -148,7 +148,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.event_consumer = None
     app.state.realtime_enabled = False
     if settings.servicebus.connection_string:
-        app.state.event_publisher = ServiceBusPublisher(settings.servicebus)
+        app.state.event_publisher = ServiceBusPublisher(
+            settings.servicebus,
+            topic_name=settings.servicebus.command_topic_name,
+        )
         consumer = ServiceBusConsumer(settings.servicebus, app.state.event_manager)
         try:
             await consumer.start()

@@ -5,6 +5,21 @@
         "Name": "sbemulator",
         "Topics": [
           {
+            "Name": "pipeline-commands",
+            "Properties": {
+              "DefaultMessageTimeToLive": "PT1H"
+            },
+            "Subscriptions": [
+              {
+                "Name": "worker-consumer",
+                "Properties": {
+                  "LockDuration": "PT30S",
+                  "MaxDeliveryCount": 5
+                }
+              }
+            ]
+          },
+          {
             "Name": "pipeline-events",
             "Properties": {
               "DefaultMessageTimeToLive": "PT1H"
@@ -12,13 +27,6 @@
             "Subscriptions": [
               {
                 "Name": "web-consumer",
-                "Properties": {
-                  "LockDuration": "PT30S",
-                  "MaxDeliveryCount": 5
-                }
-              },
-              {
-                "Name": "worker-consumer",
                 "Properties": {
                   "LockDuration": "PT30S",
                   "MaxDeliveryCount": 5

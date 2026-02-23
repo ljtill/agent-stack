@@ -18,9 +18,15 @@ logger = logging.getLogger(__name__)
 class ServiceBusPublisher:
     """Publish pipeline events to an Azure Service Bus topic."""
 
-    def __init__(self, config: ServiceBusConfig) -> None:
+    def __init__(
+        self,
+        config: ServiceBusConfig,
+        *,
+        topic_name: str | None = None,
+    ) -> None:
         """Initialize with Service Bus configuration."""
         self._config = config
+        self._topic_name = topic_name or config.topic_name
         self._client: ServiceBusClient | None = None
         self._sender: ServiceBusSender | None = None
         self._disabled = not config.connection_string
@@ -36,9 +42,7 @@ class ServiceBusPublisher:
             self._client = ServiceBusClient.from_connection_string(
                 self._config.connection_string
             )
-            self._sender = self._client.get_topic_sender(
-                topic_name=self._config.topic_name
-            )
+            self._sender = self._client.get_topic_sender(topic_name=self._topic_name)
         return self._sender
 
     async def publish(self, event_type: str, data: dict[str, Any] | str) -> None:
