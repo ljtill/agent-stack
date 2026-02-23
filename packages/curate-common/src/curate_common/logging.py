@@ -109,6 +109,9 @@ def configure_logging(
         uv_logger.handlers.clear()
         uv_logger.propagate = True
 
+    # Suppress noisy per-request access logs
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+
     # Suppress noisy Cosmos DB change feed messages
     if not any(isinstance(f, _FeedRangeFilter) for f in root_logger.filters):
         root_logger.addFilter(_FeedRangeFilter())
