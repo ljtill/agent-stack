@@ -38,6 +38,7 @@ class CosmosClient:
         ("links", "/id"),
         ("feedback", "/edition_id"),
         ("agent_runs", "/edition_id"),
+        ("revisions", "/edition_id"),
         ("metadata", "/id"),
     ]
 

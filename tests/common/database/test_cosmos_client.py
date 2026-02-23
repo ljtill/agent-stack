@@ -8,7 +8,7 @@ from azure.core.exceptions import ServiceRequestError
 from curate_common.config import CosmosConfig
 from curate_common.database.client import CosmosClient
 
-_EXPECTED_CONTAINER_COUNT = 5
+_EXPECTED_CONTAINER_COUNT = 6
 
 
 class TestCosmosClient:

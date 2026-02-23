@@ -4,6 +4,7 @@ from curate_common.models.agent_run import AgentRun, AgentRunStatus, AgentStage
 from curate_common.models.edition import Edition, EditionStatus
 from curate_common.models.feedback import Feedback
 from curate_common.models.link import Link, LinkStatus
+from curate_common.models.revision import Revision, RevisionSource
 
 __all__ = [
     "AgentRun",
@@ -14,4 +15,6 @@ __all__ = [
     "Feedback",
     "Link",
     "LinkStatus",
+    "Revision",
+    "RevisionSource",
 ]

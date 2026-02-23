@@ -16,6 +16,7 @@ from curate_common.models.agent_run import AgentRun, AgentRunStatus, AgentStage
 from curate_common.models.edition import Edition, EditionStatus
 from curate_common.models.feedback import Feedback
 from curate_common.models.link import Link, LinkStatus
+from curate_common.models.revision import Revision, RevisionSource
 
 _TEST_CLIENT_SECRET = "test-secret"  # noqa: S105
 
@@ -41,6 +42,12 @@ def mock_feedback_repo() -> AsyncMock:
 @pytest.fixture
 def mock_agent_runs_repo() -> AsyncMock:
     """Create a mock agent runs repo for testing."""
+    return AsyncMock()
+
+
+@pytest.fixture
+def mock_revisions_repo() -> AsyncMock:
+    """Create a mock revisions repo for testing."""
     return AsyncMock()
 
 
@@ -104,6 +111,23 @@ def make_agent_run() -> Callable[..., AgentRun]:
         }
         defaults.update(kwargs)
         return AgentRun(**defaults)
+
+    return _make
+
+
+@pytest.fixture
+def make_revision() -> Callable[..., Revision]:
+    """Create a Revision instance with sensible defaults."""
+
+    def _make(**kwargs: Any) -> Revision:
+        defaults = {
+            "edition_id": "ed-1",
+            "sequence": 1,
+            "source": RevisionSource.DRAFT,
+            "content": {},
+        }
+        defaults.update(kwargs)
+        return Revision(**defaults)
 
     return _make
 
