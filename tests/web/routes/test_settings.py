@@ -37,6 +37,7 @@ def _make_settings_namespace() -> SimpleNamespace:
             topic="events",
             subscription="web",
         ),
+        monitor=SimpleNamespace(connection_string=""),
     )
 
 

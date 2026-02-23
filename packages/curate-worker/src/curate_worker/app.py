@@ -6,6 +6,9 @@ import asyncio
 import logging
 import signal
 
+from agent_framework.observability import create_resource, enable_instrumentation
+from azure.monitor.opentelemetry import configure_azure_monitor
+
 from curate_common.config import load_settings
 from curate_common.database.repositories.editions import EditionRepository
 from curate_common.health import check_emulators
@@ -27,6 +30,14 @@ async def run() -> None:
     configure_logging(settings.app.log_level, log_file="worker.log")
 
     logger.info("Worker starting")
+
+    if settings.monitor.connection_string:
+        configure_azure_monitor(
+            connection_string=settings.monitor.connection_string,
+            resource=create_resource(service_name="curate-worker"),
+        )
+        enable_instrumentation()
+        logger.info("Azure Monitor OpenTelemetry configured with agent instrumentation")
 
     if settings.app.is_development and not await check_emulators(settings):
         return

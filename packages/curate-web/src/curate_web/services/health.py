@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from curate_common.config import (
         CosmosConfig,
         FoundryConfig,
+        MonitorConfig,
         ServiceBusConfig,
         StorageConfig,
     )
@@ -170,6 +171,21 @@ async def check_servicebus(config: ServiceBusConfig) -> ServiceHealth:
         )
 
 
+def _check_monitor_config(config: MonitorConfig | None) -> ServiceHealth:
+    """Report Application Insights configuration status."""
+    if not config or not config.connection_string:
+        return ServiceHealth(
+            name="Application Insights",
+            healthy=False,
+            error="AZURE_APPLICATIONINSIGHTS_CONNECTION_STRING is not set",
+        )
+    return ServiceHealth(
+        name="Application Insights",
+        healthy=True,
+        detail="Connected",
+    )
+
+
 @dataclass
 class StorageHealthConfig:
     """Optional storage health check configuration."""
@@ -184,6 +200,7 @@ async def check_all(
     foundry_config: FoundryConfig,
     storage_health: StorageHealthConfig | None = None,
     servicebus_config: ServiceBusConfig | None = None,
+    monitor_config: MonitorConfig | None = None,
 ) -> list[ServiceHealth]:
     """Run all health probes and return results."""
     coros: list = [check_cosmos(database, cosmos_config)]
@@ -194,5 +211,6 @@ async def check_all(
     network_results = await asyncio.gather(*coros, return_exceptions=False)
 
     foundry_result = _check_foundry_config(foundry_config)
+    monitor_result = _check_monitor_config(monitor_config)
 
-    return [*network_results, foundry_result]
+    return [*network_results, foundry_result, monitor_result]
