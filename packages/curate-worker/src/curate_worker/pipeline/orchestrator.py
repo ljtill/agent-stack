@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from curate_common.database.repositories.editions import EditionRepository
     from curate_common.database.repositories.feedback import FeedbackRepository
     from curate_common.database.repositories.links import LinkRepository
+    from curate_common.database.repositories.revisions import RevisionRepository
     from curate_common.events import EventPublisher
     from curate_common.models.edition import Edition
     from curate_common.models.link import Link
@@ -59,6 +60,7 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
         render_fn: Callable[[Edition], Awaitable[str]] | None = None,
         upload_fn: Callable[[str, str], Awaitable[None]] | None = None,
         context_providers: list | None = None,
+        revisions_repo: RevisionRepository | None = None,
     ) -> None:
         """Initialize the orchestrator with LLM client and all repositories."""
         self._client = client
@@ -69,6 +71,7 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
 
         self._events = event_publisher
         self._runs = RunManager(agent_runs_repo, self._events)
+        self._last_stage_usage = None
 
         self._processing_links: set[str] = set()
         self._link_lock = asyncio.Lock()
@@ -81,12 +84,14 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
             client,
             links_repo,
             editions_repo,
+            revisions_repo=revisions_repo,
             context_providers=context_providers,
         )
         self.edit = EditAgent(
             client,
             editions_repo,
             feedback_repo,
+            revisions_repo=revisions_repo,
             context_providers=context_providers,
         )
         self.publish = PublishAgent(
@@ -94,6 +99,7 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
             editions_repo,
             render_fn=render_fn,
             upload_fn=upload_fn,
+            revisions_repo=revisions_repo,
         )
 
         self._agent = Agent(
@@ -106,35 +112,11 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
                 "and gated publishing."
             ),
             tools=[
-                self.fetch.agent.as_tool(
-                    name="fetch",
-                    description="Fetch and extract content from a submitted URL",
-                    arg_name="task",
-                    arg_description=(
-                        "Instructions including the URL, link ID, and edition ID"
-                    ),
-                ),
-                self.review.agent.as_tool(
-                    name="review",
-                    description=(
-                        "Evaluate relevance, extract insights, categorize content"
-                    ),
-                    arg_name="task",
-                    arg_description="Instructions including the link ID and edition ID",
-                ),
+                self._fetch_tool,
+                self._review_tool,
                 self._draft_tool,
-                self.edit.agent.as_tool(
-                    name="edit",
-                    description="Refine edition content and address editor feedback",
-                    arg_name="task",
-                    arg_description="Instructions including the edition ID",
-                ),
-                self.publish.agent.as_tool(
-                    name="publish",
-                    description="Render HTML and upload to storage",
-                    arg_name="task",
-                    arg_description="Instructions including the edition ID",
-                ),
+                self._edit_tool,
+                self._publish_tool,
                 self.get_link_status,
                 self.get_edition_status,
                 self.record_stage_start,

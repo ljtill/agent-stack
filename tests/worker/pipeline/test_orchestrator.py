@@ -197,6 +197,35 @@ class TestRecordStageCompleteUsage:
 
         assert run.usage is None
 
+    async def test_usage_auto_populated_from_last_stage(
+        self,
+        orchestrator: PipelineOrchestrator,
+        mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
+        make_agent_run: Callable[..., AgentRun],
+    ) -> None:
+        """Usage is auto-populated from sub-agent when no explicit tokens passed."""
+        links, _editions, _feedback, runs = mock_repos
+        run = make_agent_run(id="run-auto", trigger_id="l-1")
+        runs.get.return_value = run
+        links.get.return_value = None
+
+        orchestrator._last_stage_usage = {  # noqa: SLF001
+            "input_tokens": 150,
+            "output_tokens": 60,
+            "total_tokens": 210,
+        }
+
+        await orchestrator.record_stage_complete(
+            run_id="run-auto",
+            trigger_id="l-1",
+            edition_id="ed-1",
+            status="completed",
+        )
+
+        expected = {"input_tokens": 150, "output_tokens": 60, "total_tokens": 210}
+        assert run.usage == expected
+        assert orchestrator._last_stage_usage is None  # noqa: SLF001
+
     async def test_total_tokens_computed_when_omitted(
         self,
         orchestrator: PipelineOrchestrator,
@@ -398,3 +427,61 @@ class TestHandlePublishFailure:
         saved_run = runs.update.call_args[0][0]
         assert saved_run.status == "failed"
         assert saved_run.output == {"error": "Orchestrator failed"}
+
+
+class TestSubAgentUsageCapture:
+    """Verify custom tool wrappers capture sub-agent token usage."""
+
+    async def test_fetch_tool_captures_usage(
+        self,
+        orchestrator: PipelineOrchestrator,
+    ) -> None:
+        """The _fetch_tool wrapper captures usage from the sub-agent response."""
+        response = MagicMock()
+        response.text = "fetched content"
+        response.usage_details = {
+            "input_token_count": 100,
+            "output_token_count": 40,
+            "total_token_count": 140,
+        }
+        orchestrator.fetch.agent.run = AsyncMock(return_value=response)
+
+        result = await orchestrator._fetch_tool(task="fetch this url")  # noqa: SLF001
+
+        assert result == "fetched content"
+        expected = {"input_tokens": 100, "output_tokens": 40, "total_tokens": 140}
+        assert orchestrator._last_stage_usage == expected  # noqa: SLF001
+
+    async def test_review_tool_captures_usage(
+        self,
+        orchestrator: PipelineOrchestrator,
+    ) -> None:
+        """The _review_tool wrapper captures usage from the sub-agent response."""
+        response = MagicMock()
+        response.text = "reviewed"
+        response.usage_details = {
+            "input_token_count": 200,
+            "output_token_count": 80,
+            "total_token_count": 280,
+        }
+        orchestrator.review.agent.run = AsyncMock(return_value=response)
+
+        result = await orchestrator._review_tool(task="review this")  # noqa: SLF001
+
+        assert result == "reviewed"
+        expected = {"input_tokens": 200, "output_tokens": 80, "total_tokens": 280}
+        assert orchestrator._last_stage_usage == expected  # noqa: SLF001
+
+    async def test_tool_sets_none_when_no_usage(
+        self,
+        orchestrator: PipelineOrchestrator,
+    ) -> None:
+        """Usage is None when the sub-agent response has no usage_details."""
+        response = MagicMock()
+        response.text = "done"
+        response.usage_details = None
+        orchestrator.fetch.agent.run = AsyncMock(return_value=response)
+
+        await orchestrator._fetch_tool(task="fetch this")  # noqa: SLF001
+
+        assert orchestrator._last_stage_usage is None  # noqa: SLF001

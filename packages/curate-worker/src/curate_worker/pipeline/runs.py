@@ -58,6 +58,7 @@ class RunManager:
                 "trigger_id": run.trigger_id,
                 "status": run.status,
                 "output": run.output,
+                "usage": run.usage,
                 "started_at": (run.started_at.isoformat() if run.started_at else None),
                 "completed_at": (
                     run.completed_at.isoformat() if run.completed_at else None
