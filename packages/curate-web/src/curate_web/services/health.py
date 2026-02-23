@@ -56,7 +56,7 @@ class ServiceHealth:
 
 async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> ServiceHealth:
     """Probe Cosmos DB with a lightweight read."""
-    detail = f"{config.endpoint} · {config.database}"
+    detail = f"Endpoint: {config.endpoint} · Database: {config.database}"
     source = "Emulator" if _is_emulator_url(config.endpoint) else "Cloud"
     start = time.monotonic()
     try:
@@ -84,21 +84,23 @@ async def check_cosmos(database: DatabaseProxy, config: CosmosConfig) -> Service
 
 def _check_foundry_config(config: FoundryConfig) -> ServiceHealth:
     """Report Foundry configuration status (web cannot probe LLM directly)."""
-    detail = (
-        f"{config.project_endpoint or 'not configured'}"
-        f" · {config.model or 'not configured'}"
-    )
     if config.is_local:
         return ServiceHealth(
             name="Foundry",
             healthy=True,
-            detail=f"Foundry Local · {config.local_model}",
+            detail=f"Model: {config.local_model}",
+            source="Local",
         )
+    detail = (
+        f"Endpoint: {config.project_endpoint or 'not configured'}"
+        f" · Model: {config.model or 'not configured'}"
+    )
     if config.project_endpoint and config.model:
         return ServiceHealth(
             name="Foundry",
             healthy=True,
             detail=detail,
+            source="Cloud",
         )
     return ServiceHealth(
         name="Foundry",
@@ -130,7 +132,7 @@ async def check_storage(
 ) -> ServiceHealth:
     """Probe Microsoft Azure Storage with a lightweight container existence check."""
     account = _storage_account_name(config.account_url)
-    detail = f"{account} · {config.container}"
+    detail = f"Account: {account} · Container: {config.container}"
     source = "Emulator" if _is_emulator_url(config.account_url) else "Cloud"
     start = time.monotonic()
     try:
@@ -158,7 +160,7 @@ async def check_storage(
 
 async def check_servicebus(config: ServiceBusConfig) -> ServiceHealth:
     """Probe Service Bus with a lightweight management operation."""
-    detail = f"{config.topic_name} · {config.subscription_name}"
+    detail = f"Topic: {config.topic_name} · Subscription: {config.subscription_name}"
     if not config.connection_string:
         return ServiceHealth(
             name="Service Bus",
@@ -212,7 +214,7 @@ def _check_monitor_config(config: MonitorConfig | None) -> ServiceHealth:
     return ServiceHealth(
         name="Application Insights",
         healthy=True,
-        detail="Connected",
+        detail="Telemetry export enabled",
     )
 
 

@@ -33,7 +33,7 @@ async def test_check_cosmos_healthy() -> None:
     assert result.name == "Cosmos DB"
     assert result.latency_ms is not None
     assert result.error is None
-    assert result.detail == "https://localhost:8081 · curate"
+    assert result.detail == "Endpoint: https://localhost:8081 · Database: curate"
 
 
 async def test_check_cosmos_unhealthy() -> None:
@@ -80,7 +80,9 @@ def test_check_foundry_config_local() -> None:
     result = _check_foundry_config(config)
 
     assert result.healthy is True
-    assert "Foundry Local" in result.detail
+    assert "Foundry Local" not in (result.detail or "")
+    assert "phi-4-mini" in result.detail
+    assert result.source == "Local"
 
 
 _storage_config = StorageConfig(
@@ -101,7 +103,7 @@ async def test_check_storage_healthy() -> None:
     assert result.name == "Storage"
     assert result.latency_ms is not None
     assert result.error is None
-    assert result.detail == "myaccount · $web"
+    assert result.detail == "Account: myaccount · Container: $web"
 
 
 async def test_check_storage_unhealthy() -> None:
@@ -223,7 +225,7 @@ async def test_check_servicebus_healthy() -> None:
     assert result.healthy is True
     assert result.name == "Service Bus"
     assert result.latency_ms is not None
-    assert result.detail == "pipeline-events · web-consumer"
+    assert result.detail == "Topic: pipeline-events · Subscription: web-consumer"
 
 
 async def test_check_servicebus_unhealthy() -> None:
