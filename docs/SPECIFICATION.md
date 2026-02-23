@@ -40,7 +40,7 @@
 
 - **Package layout**: `packages/` — uv workspace monorepo with three packages: `curate-common` (shared library), `curate-web` (FastAPI dashboard), and `curate-worker` (agent pipeline). Each package has its own `pyproject.toml` and `src/` layout.
 - **Process model**: Two-process split — the web service (FastAPI) handles the editorial dashboard and SSE, while the worker process runs the Cosmos DB change feed processor and agent pipeline. Azure Service Bus provides the event bridge between worker and web for real-time SSE updates.
-- **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible), Azurite (Azure Storage emulator), and Azure Service Bus emulator (with SQL Edge backend) via Docker for offline development. [Microsoft Foundry Local](https://github.com/microsoft/foundry-local) provides optional on-device LLM inference, eliminating the need for an Azure subscription during local development (`FOUNDRY_PROVIDER=local`).
+- **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible), Azurite (Azure Storage emulator), and Azure Service Bus emulator (with SQL Edge backend) via Docker for offline development. [Microsoft Foundry Local](https://foundrylocal.ai/) provides optional on-device LLM inference, eliminating the need for an Azure subscription during local development (`FOUNDRY_PROVIDER=local`).
 - **Agent memory**: [Microsoft Foundry Memory](https://learn.microsoft.com/en-us/azure/ai-foundry/) provides long-term memory for agents via project-level and personal memory stores. Context providers inject relevant memories into Draft and Edit agents. Memory is toggled and managed through the Settings view in the editorial dashboard.
 
 ---

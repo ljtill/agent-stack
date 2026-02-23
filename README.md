@@ -73,4 +73,4 @@ tests/
 
 ## Local Development
 
-See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for detailed setup instructions, including fully local development with [Foundry Local](https://github.com/microsoft/foundry-local) (no Azure subscription required) and cloud-connected options.
+See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for detailed setup instructions, including fully local development with [Foundry Local](https://foundrylocal.ai/) (no Azure subscription required) and cloud-connected options.

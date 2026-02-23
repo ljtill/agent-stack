@@ -8,7 +8,7 @@ This guide covers setting up the application for local development, including fu
 - [uv](https://docs.astral.sh/uv/)
 - [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) (for cloud Foundry authentication)
 - Docker
-- [Microsoft Foundry Local](https://github.com/microsoft/foundry-local) (optional — for fully local development without Azure)
+- [Microsoft Foundry Local](https://foundrylocal.ai/) (optional — for fully local development without Azure)
 
 ## Setup
 
@@ -48,7 +48,7 @@ The Service Bus emulator requires an Azure SQL Edge container as its backend. Bo
 
 ## Fully Local Development (Foundry Local)
 
-To run entirely locally without an Azure subscription, install [Foundry Local](https://github.com/microsoft/foundry-local) and set `FOUNDRY_PROVIDER=local` in your `.env`:
+To run entirely locally without an Azure subscription, install [Foundry Local](https://foundrylocal.ai/) and set `FOUNDRY_PROVIDER=local` in your `.env`:
 
 ```bash
 # macOS
