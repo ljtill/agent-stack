@@ -11,8 +11,10 @@ from azure.monitor.opentelemetry import configure_azure_monitor
 
 from curate_common.config import load_settings
 from curate_common.database.repositories.editions import EditionRepository
+from curate_common.events import ServiceBusPublisher
 from curate_common.health import check_emulators
 from curate_common.logging import configure_logging
+from curate_worker.events import ServiceBusCommandConsumer
 from curate_worker.startup import (
     init_chat_client,
     init_database,
@@ -57,9 +59,6 @@ async def run() -> None:
     storage, renderer = await init_storage(settings, editions_repo)
     context_providers = await init_memory(settings)
 
-    # Import here to allow the event bridge to be swapped
-    from curate_worker.events import ServiceBusPublisher  # noqa: PLC0415
-
     event_publisher = ServiceBusPublisher(settings.servicebus)
 
     processor = await init_pipeline(
@@ -71,6 +70,11 @@ async def run() -> None:
         upload_fn=storage.upload_html,
         context_providers=context_providers,
     )
+    command_consumer = ServiceBusCommandConsumer(
+        settings.servicebus,
+        on_publish=processor.orchestrator.handle_publish,
+    )
+    await command_consumer.start()
 
     logger.info("Worker running")
 
@@ -83,7 +87,9 @@ async def run() -> None:
     await stop_event.wait()
 
     logger.info("Worker shutting down")
+    await command_consumer.stop()
     await processor.stop()
+    await event_publisher.close()
     await storage.close()
     await cosmos.close()
     logger.info("Worker shutdown complete")

@@ -5,7 +5,9 @@ from __future__ import annotations
 import logging
 import time
 from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
+from curate_common.events import PublishRequest
 from curate_common.models.edition import Edition
 from curate_web.services.agent_runs import group_runs_by_invocation
 from curate_web.services.revisions import compute_diffs
@@ -161,7 +163,8 @@ async def publish_edition(
     event_publisher: EventPublisher,
 ) -> None:
     """Request edition publish via Service Bus command."""
-    await event_publisher.publish("publish-request", {"edition_id": edition_id})
+    command = PublishRequest(edition_id=edition_id, request_id=uuid4().hex)
+    await event_publisher.publish("publish-request", command.model_dump())
 
 
 async def delete_edition(edition_id: str, editions_repo: EditionRepository) -> None:

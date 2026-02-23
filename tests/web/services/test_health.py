@@ -188,6 +188,7 @@ _servicebus_config = ServiceBusConfig(
     connection_string="Endpoint=sb://test.servicebus.windows.net/;SharedAccessKeyName=key;SharedAccessKey=abc",
     topic_name="pipeline-events",
     subscription_name="web-consumer",
+    worker_subscription_name="worker-consumer",
 )
 
 
@@ -225,7 +226,10 @@ async def test_check_servicebus_healthy() -> None:
     assert result.healthy is True
     assert result.name == "Service Bus"
     assert result.latency_ms is not None
-    assert result.detail == "Topic: pipeline-events · Subscription: web-consumer"
+    assert (
+        result.detail == "Topic: pipeline-events · "
+        "Subscriptions: web=web-consumer, worker=worker-consumer"
+    )
 
 
 async def test_check_servicebus_unhealthy() -> None:

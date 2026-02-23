@@ -23,8 +23,11 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from curate_common.config import Settings, load_settings
 from curate_common.database.repositories.editions import EditionRepository
+from curate_common.events import ServiceBusPublisher
 from curate_common.health import check_emulators
 from curate_common.logging import configure_logging
+from curate_web.events import EventManager
+from curate_web.events.consumer import ServiceBusConsumer
 from curate_web.routes.agent_runs import router as agent_runs_router
 from curate_web.routes.auth import router as auth_router
 from curate_web.routes.dashboard import router as dashboard_router
@@ -34,6 +37,7 @@ from curate_web.routes.feedback import router as feedback_router
 from curate_web.routes.links import router as store_router
 from curate_web.routes.profile import router as profile_router
 from curate_web.routes.settings import router as settings_router
+from curate_web.runtime import WebRuntime
 from curate_web.startup import (
     init_database,
     init_memory,
@@ -139,12 +143,54 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     memory_components = await init_memory(settings)
     app.state.memory_service = memory_components.service
 
+    app.state.event_manager = EventManager()
+    app.state.event_publisher = None
+    app.state.event_consumer = None
+    app.state.realtime_enabled = False
+    if settings.servicebus.connection_string:
+        app.state.event_publisher = ServiceBusPublisher(settings.servicebus)
+        consumer = ServiceBusConsumer(settings.servicebus, app.state.event_manager)
+        try:
+            await consumer.start()
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "Service Bus consumer initialization failed; "
+                "SSE bridge disabled for this process",
+                exc_info=True,
+            )
+        else:
+            app.state.event_consumer = consumer
+            app.state.realtime_enabled = True
+    else:
+        logger.warning(
+            "AZURE_SERVICEBUS_CONNECTION_STRING is not set — "
+            "publish requests and live updates are disabled"
+        )
+
     app.state.start_time = datetime.now(UTC)
+    app.state.runtime = WebRuntime(
+        cosmos=cosmos,
+        settings=settings,
+        templates=app.state.templates,
+        storage=storage_components.client,
+        memory_service=memory_components.service,
+        start_time=app.state.start_time,
+        event_manager=app.state.event_manager,
+        event_publisher=app.state.event_publisher,
+        event_consumer=app.state.event_consumer,
+        realtime_enabled=app.state.realtime_enabled,
+    )
     logger.info("Web running")
 
     yield
 
     logger.info("Web shutting down")
+    event_consumer = getattr(app.state, "event_consumer", None)
+    if event_consumer:
+        await event_consumer.stop()
+    event_publisher = getattr(app.state, "event_publisher", None)
+    if event_publisher:
+        await event_publisher.close()
     await storage_components.client.close()
     await cosmos.close()
     logger.info("Web shutdown complete")

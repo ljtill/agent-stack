@@ -16,6 +16,13 @@
                   "LockDuration": "PT30S",
                   "MaxDeliveryCount": 5
                 }
+              },
+              {
+                "Name": "worker-consumer",
+                "Properties": {
+                  "LockDuration": "PT30S",
+                  "MaxDeliveryCount": 5
+                }
               }
             ]
           }

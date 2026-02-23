@@ -115,6 +115,11 @@ class ServiceBusConfig:
             "AZURE_SERVICEBUS_SUBSCRIPTION_NAME", "web-consumer"
         )
     )
+    worker_subscription_name: str = field(
+        default_factory=lambda: _env(
+            "AZURE_SERVICEBUS_WORKER_SUBSCRIPTION_NAME", "worker-consumer"
+        )
+    )
 
 
 @dataclass(frozen=True)

@@ -39,7 +39,8 @@
 ## Architecture Decisions
 
 - **Package layout**: `packages/` — uv workspace monorepo with three packages: `curate-common` (shared library), `curate-web` (FastAPI dashboard), and `curate-worker` (agent pipeline). Each package has its own `pyproject.toml` and `src/` layout.
-- **Process model**: Two-process split — the web service (FastAPI) handles the editorial dashboard and SSE, while the worker process runs the Cosmos DB change feed processor and agent pipeline. Azure Service Bus provides the event bridge between worker and web for real-time SSE updates.
+- **Process model**: Two-process split — the web service (FastAPI) handles the editorial dashboard and SSE, while the worker process runs the Cosmos DB change feed processor and agent pipeline. Azure Service Bus provides the event bridge in both directions: web publishes `publish-request` commands for the worker, and worker publishes pipeline events for web SSE.
+- **Web dependency wiring**: The web lifespan initializes shared runtime dependencies once and stores them in a typed runtime container (`app.state.runtime`), which route handlers read from to avoid ad hoc dependency contracts.
 - **Local development**: Azure Cosmos DB emulator (`vnext-preview` image, ARM-compatible), Azurite (Azure Storage emulator), and Azure Service Bus emulator (with SQL Edge backend) via Docker for offline development. [Microsoft Foundry Local](https://foundrylocal.ai/) provides optional on-device LLM inference, eliminating the need for an Azure subscription during local development (`FOUNDRY_PROVIDER=local`).
 - **Agent memory**: [Microsoft Foundry Memory](https://learn.microsoft.com/en-us/azure/ai-foundry/) provides long-term memory for agents via project-level and personal memory stores. Context providers inject relevant memories into Draft and Edit agents. Memory is toggled and managed through the Settings view in the editorial dashboard.
 
@@ -246,4 +247,3 @@ Execution logs, decisions, and state per pipeline stage. Partitioned by edition 
 - **Infrastructure as Code**: Bicep templates stored in the repository under `infra/`, with parameterized modules for each Azure resource (Container Apps Web, Container Apps Worker, Container Registry, Cosmos DB, Service Bus, Storage Account, Static Web Apps, App Configuration, Application Insights, Log Analytics, Managed Identity). Separate parameter files for dev and prod environments.
 - **CI/CD**: GitHub Actions workflows for continuous integration (lint, type-check, test) and deployment (build two container images, deploy infrastructure, deploy both container apps).
 - **Local development**: Azure Cosmos DB emulator (`vnext-preview`, ARM-compatible), Azurite (Azure Storage emulator), and Azure Service Bus emulator (with SQL Edge backend) via Docker (Docker Compose configuration in the repository) for fully offline development. Local configuration via `.env` files; deployed environments use Azure App Configuration with managed identity.
-

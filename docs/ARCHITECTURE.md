@@ -108,7 +108,7 @@ graph LR
 
 ## Event-Driven Data Flow
 
-The system is event-driven with two communication channels. Cosmos DB's change feed is the primary event source — when a document is created or updated, the change feed processor (in the worker) picks it up and delegates to the orchestrator. As agents progress, they update documents in Cosmos DB and publish SSE events via Azure Service Bus. The web service consumes these Service Bus messages and pushes them to connected dashboard clients via SSE.
+The system is event-driven with two communication channels. Cosmos DB's change feed is the primary event source — when a document is created or updated, the change feed processor (in the worker) picks it up and delegates to the orchestrator. Azure Service Bus is used bidirectionally: the web service publishes `publish-request` commands for the worker, and the worker publishes pipeline progress events for the web. The web service consumes those progress events and pushes them to connected dashboard clients via SSE.
 
 ```mermaid
 sequenceDiagram

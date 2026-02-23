@@ -8,6 +8,8 @@ import json
 import logging
 from typing import TYPE_CHECKING
 
+from curate_common.events import EventEnvelope
+
 if TYPE_CHECKING:
     from curate_common.config import ServiceBusConfig
     from curate_web.events import EventManager
@@ -60,12 +62,18 @@ class ServiceBusConsumer:
                         )
                         for message in messages:
                             try:
-                                body = str(message)
-                                payload = json.loads(body)
-                                event_type = payload.get("event", "unknown")
-                                data = payload.get("data", "")
-                                await self._event_manager.publish(event_type, data)
+                                envelope = EventEnvelope.from_message_body(str(message))
+                                await self._event_manager.publish(
+                                    envelope.event,
+                                    envelope.data,
+                                )
                                 await receiver.complete_message(message)
+                            except json.JSONDecodeError:
+                                logger.warning(
+                                    "Invalid Service Bus message payload",
+                                    exc_info=True,
+                                )
+                                await receiver.abandon_message(message)
                             except Exception:  # noqa: BLE001
                                 logger.warning(
                                     "Failed to process Service Bus message",

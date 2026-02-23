@@ -47,16 +47,17 @@ packages/
 ├── curate-web/         # FastAPI editorial dashboard
 │   └── src/curate_web/
 │       ├── auth/            # Microsoft Entra ID authentication (MSAL)
-│       ├── events/          # SSE event manager + Service Bus consumer
+│       ├── events/          # SSE event manager + Service Bus bridge adapters
 │       ├── routes/          # FastAPI route handlers
 │       ├── services/        # Domain services, health checks, status
 │       ├── app.py           # FastAPI application factory
+│       ├── runtime.py       # Typed runtime dependency container for routes
 │       └── startup.py       # Web initialization helpers
 └── curate-worker/      # Agent pipeline worker
     └── src/curate_worker/
         ├── agents/          # Agent implementations, LLM client, middleware, prompts
         ├── pipeline/        # Orchestrator, change feed processor, run manager
-        ├── events.py        # Service Bus event publisher
+        ├── events.py        # Service Bus publisher + publish-command consumer
         ├── app.py           # Worker entry point
         └── startup.py       # Worker initialization helpers
 prompts/                     # Agent system prompts (Markdown)

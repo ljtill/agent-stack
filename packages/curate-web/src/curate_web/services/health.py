@@ -160,7 +160,11 @@ async def check_storage(
 
 async def check_servicebus(config: ServiceBusConfig) -> ServiceHealth:
     """Probe Service Bus with a lightweight management operation."""
-    detail = f"Topic: {config.topic_name} · Subscription: {config.subscription_name}"
+    detail = (
+        f"Topic: {config.topic_name} · "
+        f"Subscriptions: web={config.subscription_name}, "
+        f"worker={config.worker_subscription_name}"
+    )
     if not config.connection_string:
         return ServiceHealth(
             name="Service Bus",
