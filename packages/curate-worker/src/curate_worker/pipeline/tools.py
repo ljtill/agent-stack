@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import contextvars
 import json
 import logging
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Any
 
 from agent_framework import tool
 
@@ -25,6 +26,14 @@ if TYPE_CHECKING:
     from curate_worker.agents.review import ReviewAgent
 
 logger = logging.getLogger(__name__)
+
+# Carries feedback metadata from handle_feedback_change to _edit_tool so the
+# memory provider on the edit agent can access the skip flag and original
+# feedback content.  ContextVar is per-asyncio-task, so concurrent edition
+# processing is safe.
+feedback_ctx: contextvars.ContextVar[dict[str, Any] | None] = contextvars.ContextVar(
+    "feedback_ctx", default=None
+)
 
 
 class OrchestratorToolsMixin:
@@ -94,7 +103,19 @@ class OrchestratorToolsMixin:
         task: Annotated[str, "Instructions including the edition ID"],
     ) -> str:
         """Refine edition content and address editor feedback."""
-        response = await self.edit.agent.run(task)
+        ctx = feedback_ctx.get()
+        session = self.edit.agent.create_session()
+        if ctx:
+            if ctx.get("skip_memory_capture"):
+                session.state["skip_memory_capture"] = True
+            elif ctx.get("comment"):
+                # Include feedback content so the memory provider captures it
+                task += (
+                    f"\n\nEditor's original feedback:"
+                    f"\nSection: {ctx['section']}"
+                    f"\nComment: {ctx['comment']}"
+                )
+        response = await self.edit.agent.run(task, session=session)
         return self._capture_usage(response)
 
     @tool(name="publish")

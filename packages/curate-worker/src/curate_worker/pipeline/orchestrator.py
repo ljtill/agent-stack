@@ -24,7 +24,7 @@ from curate_worker.agents.publish import PublishAgent
 from curate_worker.agents.review import ReviewAgent
 from curate_worker.pipeline.rendering import render_link_row
 from curate_worker.pipeline.runs import RunManager
-from curate_worker.pipeline.tools import OrchestratorToolsMixin
+from curate_worker.pipeline.tools import OrchestratorToolsMixin, feedback_ctx
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -260,6 +260,8 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
         edition_id = document.get("edition_id", "")
         feedback_id = document.get("id", "")
         learn_from_feedback = document.get("learn_from_feedback", True)
+        section = document.get("section", "")
+        comment = document.get("comment", "")
 
         if document.get("resolved", False):
             return
@@ -276,11 +278,22 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
             )
             pipeline_run_id = run.id
             t0 = time.monotonic()
+
+            # Bridge feedback metadata to _edit_tool via contextvar
+            ctx_token = feedback_ctx.set(
+                {
+                    "skip_memory_capture": not learn_from_feedback,
+                    "section": section,
+                    "comment": comment,
+                }
+            )
             try:
                 message = (
                     f"Editor feedback has been submitted and needs processing.\n"
                     f"Edition ID: {edition_id}\n"
                     f"Feedback ID: {feedback_id}\n"
+                    f"Section: {section}\n"
+                    f"Feedback: {comment}\n"
                     f"Run the edit stage to address the feedback."
                 )
                 # When "Learn from this feedback" is unchecked, skip memory capture
@@ -304,6 +317,7 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
                 run.status = AgentRunStatus.FAILED
                 run.output = {"error": "Orchestrator failed"}
             finally:
+                feedback_ctx.reset(ctx_token)
                 run.completed_at = datetime.now(UTC)
                 await self._agent_runs_repo.update(run, edition_id)
                 await self._runs.publish_run_event(run)

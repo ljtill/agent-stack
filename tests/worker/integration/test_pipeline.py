@@ -138,6 +138,8 @@ async def test_handle_feedback_change_triggers_agent(
         {
             "id": "fb-1",
             "edition_id": "ed-1",
+            "section": "deep_dive",
+            "comment": "Use more examples",
             "resolved": False,
         }
     )
@@ -146,6 +148,8 @@ async def test_handle_feedback_change_triggers_agent(
     call_args = orchestrator.agent.run.call_args[0][0]
     assert "ed-1" in call_args
     assert "fb-1" in call_args
+    assert "deep_dive" in call_args
+    assert "Use more examples" in call_args
 
 
 async def test_handle_feedback_change_resolved_is_noop(
