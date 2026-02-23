@@ -74,16 +74,3 @@ tests/
 ## Local Development
 
 See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for detailed setup instructions, including fully local development with [Foundry Local](https://github.com/microsoft/foundry-local) (no Azure subscription required) and cloud-connected options.
-
-### Quick Start
-
-```bash
-uv sync --all-groups --prerelease=allow
-docker compose up -d
-cp .env.example .env
-# Edit .env — set FOUNDRY_PROVIDER=local for fully local, or configure cloud credentials
-# Run the web dashboard
-uv run python -m curate_web.app
-# Run the worker (in a separate terminal)
-uv run python -m curate_worker.app
-```
