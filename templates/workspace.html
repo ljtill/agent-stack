@@ -4,9 +4,10 @@
 {% block content %}
 {% if edition %}
 <style>
-    .workspace { display: flex; gap: 1.5rem; align-items: flex-start; }
-    .workspace-left { flex: 0 0 60%; min-width: 0; }
-    .workspace-right { flex: 0 0 calc(40% - 1.5rem); min-width: 0; }
+    .workspace { display: flex; gap: 1.5rem; align-items: stretch; }
+    .workspace-left { flex: 3; min-width: 0; }
+    .workspace-right { flex: 2; min-width: 0; }
+    .workspace-right > .card { height: 100%; }
     .tab-bar { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
     .tab-btn {
         background: none; border: none; border-bottom: 2px solid transparent;
@@ -20,37 +21,17 @@
     @media (max-width: 900px) {
         .workspace { flex-direction: column; }
         .workspace-left, .workspace-right { flex: 1 1 100%; }
+        .workspace-right > .card { height: auto; }
     }
 </style>
-
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-    {% include "partials/edition_title.html" %}
-    <div style="display: flex; gap: 0.5rem; align-items: center;">
-        <span class="badge badge-{{ edition.status }}">{{ edition.status }}</span>
-        {% if edition.status != 'published' %}
-        <a href="/editions/{{ edition.id }}/preview" target="_blank" class="btn">Preview</a>
-        <form method="post" action="/editions/{{ edition.id }}/publish" style="display: inline;">
-            <button type="submit" class="btn">Approve &amp; Publish</button>
-        </form>
-        {% endif %}
-        <span class="delete-inline">
-            <button type="button" class="btn btn-danger"
-                    onclick="this.style.display='none'; this.nextElementSibling.style.display='inline';">Delete</button>
-            <span style="display: none;">
-                <span style="color: var(--text-muted); margin-right: 0.25rem;">Delete this edition?</span>
-                <form method="post" action="/editions/{{ edition.id }}/delete" style="display: inline;">
-                    <button type="submit" class="btn btn-danger">Confirm</button>
-                </form>
-                <button type="button" class="btn" style="margin-left: 0.15rem;"
-                        onclick="this.parentElement.style.display='none'; this.parentElement.previousElementSibling.style.display='inline';">Cancel</button>
-            </span>
-        </span>
-    </div>
-</div>
 
 <div class="workspace">
     <!-- Left panel: Content preview -->
     <div class="workspace-left">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            {% include "partials/edition_title.html" %}
+            <span class="badge badge-{{ edition.status }}">{{ edition.status }}</span>
+        </div>
         <div class="card">
             <h2 style="font-size: 1rem; margin-bottom: 0.75rem;">Content</h2>
             {% set has_content = edition.content.get('editors_note') or edition.content.get('signals') or edition.content.get('deep_dive') or edition.content.get('toolkit') or edition.content.get('one_more_thing') %}
@@ -108,6 +89,25 @@
                 <p style="color: var(--text-muted);">No content yet. Submit links and let the agents draft content.</p>
             {% endif %}
         </div>
+        {% if edition.status != 'published' %}
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+            <a href="/editions/{{ edition.id }}/preview" target="_blank" class="btn">Preview</a>
+            <form method="post" action="/editions/{{ edition.id }}/publish" style="display: inline;">
+                <button type="submit" class="btn btn-primary">Approve &amp; Publish</button>
+            </form>
+            <span style="margin-left: auto;">
+                <button type="button" class="btn btn-danger"
+                        onclick="this.style.display='none'; this.nextElementSibling.style.display='inline';">Delete</button>
+                <span style="display: none;">
+                    <form method="post" action="/editions/{{ edition.id }}/delete" style="display: inline;">
+                        <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                    </form>
+                    <button type="button" class="btn" style="margin-left: 0.25rem;"
+                            onclick="this.parentElement.style.display='none'; this.parentElement.previousElementSibling.style.display='inline';">Cancel</button>
+                </span>
+            </span>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Right panel: Tabbed interface -->
@@ -125,15 +125,22 @@
                 {% if links %}
                 <table>
                     <thead>
-                        <tr><th>URL</th><th>Title</th><th>Status</th><th></th></tr>
+                        <tr>
+                            <th>URL</th>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th style="width: 5rem;"></th>
+                        </tr>
                     </thead>
                     <tbody>
                         {% for link in links %}
                         <tr id="link-{{ link.id }}">
-                            <td><a href="{{ link.url }}" target="_blank" style="color: var(--accent-emphasis);">{{ link.url | truncate(30) }}</a></td>
+                            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <a href="{{ link.url }}" target="_blank" style="color: var(--accent-emphasis); text-decoration: none;">{{ link.url | truncate(30) }}</a>
+                            </td>
                             <td>{{ link.title or '—' }}</td>
                             <td><span class="badge badge-{{ link.status }}">{{ link.status }}</span></td>
-                            <td style="text-align: right;">
+                            <td style="text-align: right; white-space: nowrap;">
                                 {% if edition.status != 'published' %}
                                 <form method="post" action="/store/{{ link.id }}/disassociate" style="display: inline;">
                                     <input type="hidden" name="next" value="/editions/{{ edition.id }}">
@@ -153,13 +160,18 @@
                 <h3 style="font-size: 0.875rem; margin: 1.25rem 0 0.75rem; padding-top: 1rem; border-top: 1px solid var(--border);">Available in Store</h3>
                 <table>
                     <thead>
-                        <tr><th>URL</th><th></th></tr>
+                        <tr>
+                            <th>URL</th>
+                            <th style="width: 5rem;"></th>
+                        </tr>
                     </thead>
                     <tbody>
                         {% for link in unattached_links %}
                         <tr>
-                            <td><a href="{{ link.url }}" target="_blank" style="color: var(--accent-emphasis);">{{ link.url | truncate(40) }}</a></td>
-                            <td style="text-align: right;">
+                            <td style="max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <a href="{{ link.url }}" target="_blank" style="color: var(--accent-emphasis); text-decoration: none;">{{ link.url | truncate(40) }}</a>
+                            </td>
+                            <td style="text-align: right; white-space: nowrap;">
                                 <form method="post" action="/store/{{ link.id }}/associate" style="display: inline;">
                                     <input type="hidden" name="edition_id" value="{{ edition.id }}">
                                     <input type="hidden" name="next" value="/editions/{{ edition.id }}">
