@@ -138,7 +138,7 @@
                     </tbody>
                 </table>
                 {% else %}
-                <p style="color: var(--text-muted); font-size: 0.875rem;">No links attached yet.</p>
+                <p style="color: var(--text-muted); font-size: 0.875rem;">No links attached yet. Browse the <a href="/store" style="color: var(--accent-emphasis);">store</a> to add links.</p>
                 {% endif %}
 
                 {% if unattached_links %}
@@ -162,7 +162,11 @@
             <!-- Agents tab -->
             <div class="tab-panel" data-tab="agents" style="padding: 1rem;">
                 <h3 style="font-size: 0.875rem; margin-bottom: 0.75rem;">Agent Activity</h3>
+                {% if agent_runs %}
                 {{ render_activity_list(agent_runs, links_by_id) }}
+                {% else %}
+                <p style="color: var(--text-muted); font-size: 0.875rem;">No agent activity yet. Add links to start the pipeline.</p>
+                {% endif %}
             </div>
 
             <!-- Feedback tab -->
@@ -180,7 +184,7 @@
                     </div>
                 </form>
 
-                {% if feedback %}
+                {% if feedback is defined and feedback %}
                 <h3 style="font-size: 0.875rem; margin: 1.25rem 0 0.75rem; padding-top: 1rem; border-top: 1px solid var(--border);">Feedback History</h3>
                 {% for fb in feedback %}
                 <div style="margin-bottom: 0.75rem; padding: 0.5rem 0.75rem; background: var(--surface); border-radius: 6px;">
@@ -192,6 +196,8 @@
                     <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.25rem;">{{ fb.created_at.strftime('%Y-%m-%d %H:%M') if fb.created_at else '' }}</div>
                 </div>
                 {% endfor %}
+                {% else %}
+                <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 1rem;">No feedback submitted yet.</p>
                 {% endif %}
             </div>
         </div>

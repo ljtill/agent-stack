@@ -1,7 +1,7 @@
 """Tests for the settings routes."""
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -13,6 +13,26 @@ from curate_web.routes.settings import (
     settings_page,
     toggle_memory,
 )
+from curate_web.services.health import ServiceHealth
+
+
+def _make_settings_namespace() -> SimpleNamespace:
+    """Create a minimal settings namespace for health check dependencies."""
+    return SimpleNamespace(
+        app=SimpleNamespace(env="development"),
+        foundry=SimpleNamespace(
+            project_endpoint="https://test.services.ai.azure.com",
+            model="gpt-4o",
+            is_local=False,
+            local_model=None,
+        ),
+        cosmos=SimpleNamespace(endpoint="https://localhost:8081", database="curate"),
+        storage=SimpleNamespace(
+            account_url="https://127.0.0.1:10000/devstoreaccount1",
+            container="content",
+        ),
+        memory=SimpleNamespace(enabled=True),
+    )
 
 
 def _make_request(
@@ -25,8 +45,10 @@ def _make_request(
     request = MagicMock()
     request.app.state.memory_service = memory_service
     request.app.state.templates = MagicMock()
-    if settings is not None:
-        request.app.state.settings = settings
+    request.app.state.settings = settings or _make_settings_namespace()
+    request.app.state.cosmos = MagicMock()
+    request.app.state.storage = MagicMock()
+    request.app.state.start_time = MagicMock()
     if user is not None:
         request.session = {"user": user}
     else:
@@ -41,7 +63,13 @@ class TestSettingsPage:
     async def test_renders_without_memory_service(self) -> None:
         """Verify rendering when no memory service configured."""
         request = _make_request()
-        await settings_page(request)
+        healthy = ServiceHealth(name="Cosmos DB", healthy=True, latency_ms=5.0)
+        with patch(
+            "curate_web.routes.settings.check_all",
+            new_callable=AsyncMock,
+            return_value=[healthy],
+        ):
+            await settings_page(request)
         request.app.state.templates.TemplateResponse.assert_called_once()
         call_args = request.app.state.templates.TemplateResponse.call_args
         assert call_args[0][0] == "settings.html"
@@ -58,7 +86,13 @@ class TestSettingsPage:
             memory_service=service,
             user={"oid": "user-123"},
         )
-        await settings_page(request)
+        healthy = ServiceHealth(name="Cosmos DB", healthy=True, latency_ms=5.0)
+        with patch(
+            "curate_web.routes.settings.check_all",
+            new_callable=AsyncMock,
+            return_value=[healthy],
+        ):
+            await settings_page(request)
         call_args = request.app.state.templates.TemplateResponse.call_args
         assert call_args[0][1]["memory_configured"] is True
         assert call_args[0][1]["memory_disabled_by_config"] is False
@@ -66,15 +100,16 @@ class TestSettingsPage:
 
     async def test_renders_when_memory_disabled_by_config(self) -> None:
         """Verify rendering state when memory is disabled via environment config."""
-        request = _make_request(
-            settings=SimpleNamespace(
-                foundry=SimpleNamespace(
-                    project_endpoint="https://test.services.ai.azure.com"
-                ),
-                memory=SimpleNamespace(enabled=False),
-            )
-        )
-        await settings_page(request)
+        settings = _make_settings_namespace()
+        settings.memory.enabled = False
+        request = _make_request(settings=settings)
+        healthy = ServiceHealth(name="Cosmos DB", healthy=True, latency_ms=5.0)
+        with patch(
+            "curate_web.routes.settings.check_all",
+            new_callable=AsyncMock,
+            return_value=[healthy],
+        ):
+            await settings_page(request)
         call_args = request.app.state.templates.TemplateResponse.call_args
         assert call_args[0][1]["memory_configured"] is False
         assert call_args[0][1]["memory_disabled_by_config"] is True

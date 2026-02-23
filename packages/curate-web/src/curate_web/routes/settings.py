@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 
 from curate_web.auth.middleware import get_user, require_authenticated_user
+from curate_web.services.health import StorageHealthConfig, check_all
+from curate_web.services.status import AppInfo, _format_uptime
 
 router = APIRouter(
     tags=["settings"], dependencies=[Depends(require_authenticated_user)]
@@ -48,6 +51,36 @@ async def settings_page(request: Request) -> HTMLResponse:
         if user_scope:
             personal_memories = await memory_service.list_memories(user_scope)
 
+    # Health checks and app info
+    import platform  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+
+    from curate_common import __version__  # noqa: PLC0415
+
+    cosmos = request.app.state.cosmos
+    storage = request.app.state.storage
+    start_time = request.app.state.start_time
+
+    started_at = time.monotonic()
+    health_checks = await check_all(
+        cosmos.database,
+        cosmos_config=settings.cosmos,
+        foundry_config=settings.foundry,
+        storage_health=StorageHealthConfig(client=storage, config=settings.storage),
+    )
+    logger.debug(
+        "Settings health checks duration_ms=%.0f",
+        (time.monotonic() - started_at) * 1000,
+    )
+
+    app_info = AppInfo(
+        version=__version__,
+        environment=settings.app.env,
+        python_version=f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+        platform=platform.machine(),
+        uptime=_format_uptime(start_time),
+    )
+
     return templates.TemplateResponse(
         "settings.html",
         {
@@ -60,6 +93,8 @@ async def settings_page(request: Request) -> HTMLResponse:
             "personal_memories": personal_memories,
             "project_memory_count": len(project_memories),
             "personal_memory_count": len(personal_memories),
+            "checks": health_checks,
+            "app_info": app_info,
         },
     )
 

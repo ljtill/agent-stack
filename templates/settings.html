@@ -92,4 +92,66 @@
     {% include "partials/memory_list.html" %}
 </div>
 {% endif %}
+
+<h2 style="font-size: 1rem; color: var(--text-muted); margin-top: 2.5rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">System</h2>
+<p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.85rem;">
+    Application info and dependency health checks, probed on page load.
+</p>
+
+<div class="card">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1.25rem;">
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Version</div>
+            <span class="badge badge-drafted">v{{ app_info.version }}</span>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Environment</div>
+            <span style="font-size: 0.95rem;">{{ app_info.environment }}</span>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Python</div>
+            <span style="font-size: 0.95rem;">{{ app_info.python_version }} ({{ app_info.platform }})</span>
+        </div>
+        <div>
+            <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Uptime</div>
+            <span style="font-size: 0.95rem;">{{ app_info.uptime }}</span>
+        </div>
+    </div>
+</div>
+
+{% for check in checks %}
+<div class="card" style="display: flex; align-items: flex-start; gap: 1rem;">
+    <div style="
+        width: 2.5rem; height: 2.5rem; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1rem; flex-shrink: 0;
+        {% if check.healthy %}
+        background: var(--success-bg); color: var(--success);
+        {% else %}
+        background: var(--danger-bg); color: var(--danger);
+        {% endif %}
+    ">
+        {% if check.healthy %}✓{% else %}✗{% endif %}
+    </div>
+    <div style="flex: 1; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span style="font-weight: 600; font-size: 1rem;">{{ check.name }}</span>
+            {% if check.healthy %}
+            <span class="badge badge-completed">healthy</span>
+            {% else %}
+            <span class="badge badge-failed">unhealthy</span>
+            {% endif %}
+            {% if check.latency_ms is not none %}
+            <span style="color: var(--text-muted); font-size: 0.8rem;">{{ check.latency_ms }} ms</span>
+            {% endif %}
+        </div>
+        {% if check.detail %}
+        <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">{{ check.detail }}</div>
+        {% endif %}
+        {% if check.error %}
+        <div class="activity-error" style="margin-top: 0.5rem;">{{ check.error }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
 {% endblock %}
