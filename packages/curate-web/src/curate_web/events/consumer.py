@@ -45,6 +45,9 @@ class ServiceBusConsumer:
     async def _consume(self) -> None:
         """Consume messages from Service Bus subscription."""
         from azure.servicebus.aio import ServiceBusClient  # noqa: PLC0415
+        from azure.servicebus.exceptions import (  # noqa: PLC0415
+            ServiceBusConnectionError,
+        )
 
         try:
             client = ServiceBusClient.from_connection_string(
@@ -82,6 +85,11 @@ class ServiceBusConsumer:
                                 await receiver.abandon_message(message)
         except asyncio.CancelledError:
             raise
+        except ServiceBusConnectionError as exc:
+            logger.warning(
+                "Service Bus consumer connection failed — %s",
+                exc,
+            )
         except Exception:  # noqa: BLE001
             logger.warning(
                 "Service Bus consumer error, will not reconnect",
