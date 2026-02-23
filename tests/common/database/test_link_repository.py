@@ -1,8 +1,11 @@
 """Tests for LinkRepository custom query methods."""
 
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from azure.core import MatchConditions
+from azure.cosmos.exceptions import CosmosHttpResponseError
 
 from curate_common.database.repositories.links import LinkRepository
 from curate_common.models.link import Link, LinkStatus
@@ -66,3 +69,102 @@ class TestLinkRepository:
         result = await repo.get_by_status("ed-1", LinkStatus.SUBMITTED)
 
         assert result == []
+
+    async def test_claim_submitted_uses_etag_match(self, repo: LinkRepository) -> None:
+        """Verify submitted-link claims use optimistic concurrency."""
+        repo._container.read_item.return_value = {  # noqa: SLF001
+            "id": "link-1",
+            "url": "https://example.com",
+            "edition_id": "ed-1",
+            "status": "submitted",
+            "_etag": "etag-1",
+            "created_at": "2026-01-01T00:00:00+00:00",
+            "updated_at": "2026-01-01T00:00:00+00:00",
+        }
+
+        claimed = await repo.claim_submitted("link-1")
+
+        assert claimed is not None
+        assert claimed.id == "link-1"
+        kwargs = repo._container.replace_item.call_args.kwargs  # noqa: SLF001
+        assert kwargs["etag"] == "etag-1"
+        assert kwargs["match_condition"] is MatchConditions.IfNotModified
+        assert kwargs["body"]["processing_claimed_at"]
+
+    async def test_claim_submitted_returns_none_on_status_mismatch(
+        self, repo: LinkRepository
+    ) -> None:
+        """Verify non-submitted links are not claimed."""
+        repo._container.read_item.return_value = {  # noqa: SLF001
+            "id": "link-1",
+            "url": "https://example.com",
+            "edition_id": "ed-1",
+            "status": "reviewed",
+            "_etag": "etag-1",
+        }
+
+        claimed = await repo.claim_submitted("link-1")
+
+        assert claimed is None
+        repo._container.replace_item.assert_not_called()  # noqa: SLF001
+
+    async def test_claim_submitted_returns_none_when_already_claimed(
+        self, repo: LinkRepository
+    ) -> None:
+        """Verify claim attempts skip links that already have a durable claim."""
+        repo._container.read_item.return_value = {  # noqa: SLF001
+            "id": "link-1",
+            "url": "https://example.com",
+            "edition_id": "ed-1",
+            "status": "submitted",
+            "_etag": "etag-1",
+            "processing_claimed_at": datetime.now(UTC).isoformat(),
+        }
+
+        claimed = await repo.claim_submitted("link-1")
+
+        assert claimed is None
+        repo._container.replace_item.assert_not_called()  # noqa: SLF001
+
+    async def test_claim_submitted_reclaims_stale_claim(
+        self, repo: LinkRepository
+    ) -> None:
+        """Verify stale claim markers can be reclaimed after TTL."""
+        stale_claim = (datetime.now(UTC) - timedelta(minutes=20)).isoformat()
+        repo._container.read_item.return_value = {  # noqa: SLF001
+            "id": "link-1",
+            "url": "https://example.com",
+            "edition_id": "ed-1",
+            "status": "submitted",
+            "_etag": "etag-1",
+            "processing_claimed_at": stale_claim,
+            "created_at": "2026-01-01T00:00:00+00:00",
+            "updated_at": "2026-01-01T00:00:00+00:00",
+        }
+
+        claimed = await repo.claim_submitted("link-1")
+
+        assert claimed is not None
+        repo._container.replace_item.assert_called_once()  # noqa: SLF001
+
+    async def test_claim_submitted_returns_none_on_conflict(
+        self, repo: LinkRepository
+    ) -> None:
+        """Verify etag conflicts are treated as claim misses."""
+        repo._container.read_item.return_value = {  # noqa: SLF001
+            "id": "link-1",
+            "url": "https://example.com",
+            "edition_id": "ed-1",
+            "status": "submitted",
+            "_etag": "etag-1",
+            "created_at": "2026-01-01T00:00:00+00:00",
+            "updated_at": "2026-01-01T00:00:00+00:00",
+        }
+        repo._container.replace_item.side_effect = CosmosHttpResponseError(  # noqa: SLF001
+            status_code=412,
+            message="Precondition failed",
+        )
+
+        claimed = await repo.claim_submitted("link-1")
+
+        assert claimed is None

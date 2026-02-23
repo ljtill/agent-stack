@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import logging
 import time
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, cast
 
-from agent_framework import Agent, tool
+from agent_framework import Agent, AgentResponse, tool
 
 from curate_common.models.link import Link, LinkStatus
 from curate_common.models.revision import Revision, RevisionSource
@@ -153,20 +153,31 @@ class DraftAgent:
         self._draft_saved = True
         return json.dumps({"status": "drafted", "edition_id": edition_id})
 
-    async def run_with_guardrail(self, task: str) -> str:
+    async def run_guardrailed(self, task: str) -> AgentResponse[None]:
         """Run the draft agent, retrying if save_draft is not called."""
         self._draft_saved = False
         session = self._agent.create_session()
-        response = await self._agent.run(task, session=session)
+        response = cast(
+            "AgentResponse[None]",
+            await self._agent.run(task, session=session),
+        )
         if not self._draft_saved:
             logger.warning("Draft agent did not call save_draft — retrying")
-            response = await self._agent.run(
-                "You must call the save_draft tool now with the full edition "
-                "content JSON to persist your work. Content in your text "
-                "response is NOT saved to the database.",
-                session=session,
+            response = cast(
+                "AgentResponse[None]",
+                await self._agent.run(
+                    "You must call the save_draft tool now with the full edition "
+                    "content JSON to persist your work. Content in your text "
+                    "response is NOT saved to the database.",
+                    session=session,
+                ),
             )
-        return response.text if response else ""
+        return response
+
+    async def run_with_guardrail(self, task: str) -> str:
+        """Run the draft agent with guardrails and return the response text."""
+        response = await self.run_guardrailed(task)
+        return response.text
 
     async def run(self, link: Link) -> dict:
         """Execute the draft agent for a reviewed link."""

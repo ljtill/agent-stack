@@ -1,5 +1,6 @@
 """Integration tests for the pipeline orchestrator routing and agent run logging."""
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -69,6 +70,7 @@ async def test_handle_link_change_submitted(
         edition_id="ed-1",
         status=LinkStatus.SUBMITTED,
     )
+    links.claim_submitted.return_value = link
     links.get.return_value = link
 
     await orchestrator.handle_link_change(
@@ -79,7 +81,7 @@ async def test_handle_link_change_submitted(
         }
     )
 
-    links.get.assert_called_with("link-1", "link-1")
+    links.claim_submitted.assert_called_with("link-1")
     orchestrator.agent.run.assert_called_once()
     call_args = orchestrator.agent.run.call_args[0][0]
     assert "link-1" in call_args
@@ -92,13 +94,6 @@ async def test_handle_link_change_drafted_is_noop(
 ) -> None:
     """Test that a drafted link does not trigger any agent."""
     links, _, _, _ = mock_repos
-    link = Link(
-        id="link-2",
-        url="https://example.com",
-        edition_id="ed-1",
-        status=LinkStatus.DRAFTED,
-    )
-    links.get.return_value = link
 
     await orchestrator.handle_link_change(
         {
@@ -109,6 +104,7 @@ async def test_handle_link_change_drafted_is_noop(
     )
 
     orchestrator.agent.run.assert_not_called()
+    links.claim_submitted.assert_not_called()
 
 
 async def test_handle_link_change_not_found(
@@ -116,7 +112,7 @@ async def test_handle_link_change_not_found(
 ) -> None:
     """Test that a missing link is handled gracefully."""
     links, _, _, _ = mock_repos
-    links.get.return_value = None
+    links.claim_submitted.return_value = None
 
     await orchestrator.handle_link_change(
         {
@@ -185,13 +181,7 @@ async def test_handle_link_change_stale_event_skipped(
 ) -> None:
     """Test that stale events are skipped when link has advanced."""
     links, _, _, _ = mock_repos
-    link = Link(
-        id="link-4",
-        url="https://example.com",
-        edition_id="ed-1",
-        status=LinkStatus.DRAFTED,
-    )
-    links.get.return_value = link
+    links.claim_submitted.return_value = None
 
     await orchestrator.handle_link_change(
         {
@@ -215,6 +205,7 @@ async def test_handle_link_change_dispatches_to_orchestrator_agent(
         edition_id="ed-1",
         status=LinkStatus.SUBMITTED,
     )
+    links.claim_submitted.return_value = link
     links.get.return_value = link
 
     response = MagicMock()
@@ -231,3 +222,36 @@ async def test_handle_link_change_dispatches_to_orchestrator_agent(
     runs.update.assert_called_once()
     saved_run = runs.update.call_args[0][0]
     assert saved_run.status == "completed"
+
+
+async def test_handle_link_change_concurrent_claim_conflict_runs_once(
+    orchestrator: PipelineOrchestrator, mock_repos: _MockRepos
+) -> None:
+    """Integration: concurrent submitted events only process once via durable claim."""
+    links, _, _, runs = mock_repos
+    link = Link(
+        id="link-race",
+        url="https://example.com/race",
+        edition_id="ed-1",
+        status=LinkStatus.SUBMITTED,
+    )
+    links.claim_submitted.side_effect = [link, None]
+    links.get.return_value = link
+
+    response = MagicMock()
+    response.text = "pipeline complete"
+    response.usage_details = None
+    orchestrator._agent.run = AsyncMock(return_value=response)  # noqa: SLF001
+
+    await asyncio.gather(
+        orchestrator.handle_link_change(
+            {"id": "link-race", "edition_id": "ed-1", "status": "submitted"}
+        ),
+        orchestrator.handle_link_change(
+            {"id": "link-race", "edition_id": "ed-1", "status": "submitted"}
+        ),
+    )
+
+    orchestrator._agent.run.assert_called_once()  # noqa: SLF001
+    orchestrator._runs.create_orchestrator_run.assert_called_once()  # noqa: SLF001
+    runs.update.assert_called_once()

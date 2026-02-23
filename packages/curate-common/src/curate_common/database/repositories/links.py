@@ -2,10 +2,31 @@
 
 from __future__ import annotations
 
-from typing import cast
+from datetime import UTC, datetime, timedelta
+from typing import Any, cast
+
+from azure.core import MatchConditions
+from azure.cosmos.exceptions import CosmosHttpResponseError
 
 from curate_common.database.repositories.base import BaseRepository
 from curate_common.models.link import Link, LinkStatus
+
+_CLAIM_FIELD = "processing_claimed_at"
+_HTTP_PRECONDITION_FAILED = 412
+_CLAIM_TTL = timedelta(minutes=15)
+
+
+def _is_active_claim(claimed_at_raw: object, *, now: datetime) -> bool:
+    """Return True when a durable claim marker is still active."""
+    if isinstance(claimed_at_raw, str):
+        try:
+            claimed_at = datetime.fromisoformat(claimed_at_raw)
+        except ValueError:
+            return False
+        if claimed_at.tzinfo is None:
+            claimed_at = claimed_at.replace(tzinfo=UTC)
+        return now - claimed_at < _CLAIM_TTL
+    return claimed_at_raw is not None
 
 
 class LinkRepository(BaseRepository[Link]):
@@ -48,6 +69,49 @@ class LinkRepository(BaseRepository[Link]):
                 {"name": "@status", "value": status.value},
             ],
         )
+
+    async def claim_submitted(self, link_id: str) -> Link | None:
+        """Atomically claim a submitted link for processing."""
+        try:
+            data = cast(
+                "dict[str, Any]",
+                await self._container.read_item(item=link_id, partition_key=link_id),
+            )
+        except CosmosHttpResponseError:
+            return None
+
+        now = datetime.now(UTC)
+
+        if (
+            data.get("deleted_at") is not None
+            or data.get("edition_id") is None
+            or data.get("status") != LinkStatus.SUBMITTED.value
+            or _is_active_claim(data.get(_CLAIM_FIELD), now=now)
+        ):
+            return None
+        etag = data.get("_etag")
+        if not isinstance(etag, str):
+            return None
+
+        link = self.model_class.model_validate(data)
+        body = {
+            **link.model_dump(mode="json", exclude_none=True),
+            _CLAIM_FIELD: now.isoformat(),
+        }
+
+        try:
+            await self._container.replace_item(
+                item=link.id,
+                body=body,
+                etag=etag,
+                match_condition=MatchConditions.IfNotModified,
+            )
+        except CosmosHttpResponseError as exc:
+            if exc.status_code == _HTTP_PRECONDITION_FAILED:
+                return None
+            raise
+
+        return link
 
     async def associate(self, link: Link, edition_id: str) -> Link:
         """Associate a link with an edition."""

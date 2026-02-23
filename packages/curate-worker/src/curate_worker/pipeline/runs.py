@@ -42,6 +42,7 @@ class RunManager:
                 "id": run.id,
                 "stage": run.stage,
                 "trigger_id": run.trigger_id,
+                "edition_id": run.edition_id,
                 "status": run.status,
                 "started_at": (run.started_at.isoformat() if run.started_at else None),
             },

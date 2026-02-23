@@ -58,6 +58,9 @@ def orchestrator(
         return orch
 
 
+_START_EVENT_KEYS = {"id", "stage", "trigger_id", "edition_id", "status", "started_at"}
+
+
 class TestNormalizeUsage:
     """Tests for RunManager.normalize_usage static helper."""
 
@@ -89,6 +92,50 @@ class TestNormalizeUsage:
         assert result["total_tokens"] == expected_total
 
 
+class TestStartEventPayloads:
+    """Verify start-event payload schema for all emitters."""
+
+    async def test_run_manager_includes_edition_id(self) -> None:
+        """RunManager start events include edition_id and the shared schema."""
+        runs_repo = AsyncMock()
+        events = MagicMock()
+        events.publish = AsyncMock()
+        manager = RunManager(runs_repo, events)
+
+        run = await manager.create_orchestrator_run(
+            "ed-1", "l-1", {"status": "submitted"}
+        )
+
+        event_name, payload = events.publish.call_args.args
+        assert event_name == "agent-run-start"
+        assert set(payload) == _START_EVENT_KEYS
+        assert payload["id"] == run.id
+        assert payload["stage"] == run.stage
+        assert payload["trigger_id"] == run.trigger_id
+        assert payload["edition_id"] == run.edition_id
+        assert payload["status"] == run.status
+
+    async def test_record_stage_start_emits_same_schema(
+        self,
+        orchestrator: PipelineOrchestrator,
+        mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
+    ) -> None:
+        """record_stage_start emits the same schema as RunManager start events."""
+        _links, _editions, _feedback, runs = mock_repos
+
+        await orchestrator.record_stage_start("fetch", "l-1", "ed-1")
+
+        created_run = runs.create.call_args.args[0]
+        event_name, payload = orchestrator._events.publish.call_args.args  # noqa: SLF001
+        assert event_name == "agent-run-start"
+        assert set(payload) == _START_EVENT_KEYS
+        assert payload["id"] == created_run.id
+        assert payload["stage"] == created_run.stage
+        assert payload["trigger_id"] == created_run.trigger_id
+        assert payload["edition_id"] == created_run.edition_id
+        assert payload["status"] == created_run.status
+
+
 class TestHandleLinkChangeUsage:
     """Verify handle_link_change persists token usage on the orchestrator run."""
 
@@ -101,6 +148,7 @@ class TestHandleLinkChangeUsage:
         """Orchestrator run stores normalized usage from the LLM response."""
         links, _editions, _feedback, runs = mock_repos
         link = make_link(id="l-1", status="submitted")
+        links.claim_submitted.return_value = link
         links.get.return_value = link
 
         response = MagicMock()
@@ -130,6 +178,7 @@ class TestHandleLinkChangeUsage:
         """Usage stays None when the LLM response has no usage_details."""
         links, _editions, _feedback, runs = mock_repos
         link = make_link(id="l-2", status="submitted")
+        links.claim_submitted.return_value = link
         links.get.return_value = link
 
         response = MagicMock()
@@ -255,54 +304,43 @@ class TestRecordStageCompleteUsage:
 class TestClaimLink:
     """Tests for _claim_link guard logic."""
 
-    async def test_returns_none_when_already_processing(
-        self,
-        orchestrator: PipelineOrchestrator,
-    ) -> None:
-        """Return None when the link is already being processed."""
-        orchestrator._processing_links.add("l-1")  # noqa: SLF001
-
-        result = await orchestrator._claim_link("l-1", "submitted")  # noqa: SLF001
-        assert result is None
-
-    async def test_returns_none_when_link_is_failed(
-        self,
-        orchestrator: PipelineOrchestrator,
-        mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
-        make_link: Callable[..., Link],
-    ) -> None:
-        """Return None when the link status is FAILED."""
-        links, *_ = mock_repos
-        links.get.return_value = make_link(id="l-1", status=LinkStatus.FAILED)
-
-        result = await orchestrator._claim_link("l-1", "submitted")  # noqa: SLF001
-        assert result is None
-
     async def test_returns_none_when_status_not_submitted(
         self,
         orchestrator: PipelineOrchestrator,
         mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
-        make_link: Callable[..., Link],
     ) -> None:
         """Return None when the event status is not SUBMITTED."""
         links, *_ = mock_repos
-        links.get.return_value = make_link(id="l-1", status=LinkStatus.REVIEWED)
 
         result = await orchestrator._claim_link("l-1", "reviewed")  # noqa: SLF001
         assert result is None
+        links.claim_submitted.assert_not_called()
 
-    async def test_returns_none_when_link_status_mismatches_event(
+    async def test_returns_none_when_claim_rejected(
+        self,
+        orchestrator: PipelineOrchestrator,
+        mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
+    ) -> None:
+        """Return None when the repository claim path rejects the link."""
+        links, *_ = mock_repos
+        links.claim_submitted.return_value = None
+
+        result = await orchestrator._claim_link("l-1", "submitted")  # noqa: SLF001
+        assert result is None
+
+    async def test_returns_claimed_link(
         self,
         orchestrator: PipelineOrchestrator,
         mock_repos: tuple[AsyncMock, AsyncMock, AsyncMock, AsyncMock],
         make_link: Callable[..., Link],
     ) -> None:
-        """Return None when the link has advanced past the event status."""
+        """Return the claimed link when durable claim succeeds."""
         links, *_ = mock_repos
-        links.get.return_value = make_link(id="l-1", status=LinkStatus.DRAFTED)
+        claimed_link = make_link(id="l-1", status=LinkStatus.SUBMITTED)
+        links.claim_submitted.return_value = claimed_link
 
         result = await orchestrator._claim_link("l-1", "submitted")  # noqa: SLF001
-        assert result is None
+        assert result == claimed_link
 
 
 class TestHandleLinkChangeRetry:
@@ -317,6 +355,7 @@ class TestHandleLinkChangeRetry:
         """Verify retry succeeds on second attempt after first failure."""
         links, _editions, _feedback, runs = mock_repos
         link = make_link(id="l-retry", status="submitted")
+        links.claim_submitted.return_value = link
         links.get.return_value = link
 
         response = MagicMock()
@@ -344,6 +383,7 @@ class TestHandleLinkChangeRetry:
         """Verify the run is marked FAILED after all retries are exhausted."""
         links, _editions, _feedback, runs = mock_repos
         link = make_link(id="l-fail", status="submitted")
+        links.claim_submitted.return_value = link
         links.get.return_value = link
 
         orchestrator._agent.run = AsyncMock(  # noqa: SLF001
@@ -471,6 +511,28 @@ class TestSubAgentUsageCapture:
         assert result == "reviewed"
         expected = {"input_tokens": 200, "output_tokens": 80, "total_tokens": 280}
         assert orchestrator._last_stage_usage == expected  # noqa: SLF001
+
+    async def test_draft_tool_uses_guardrailed_api(
+        self,
+        orchestrator: PipelineOrchestrator,
+    ) -> None:
+        """The _draft_tool wrapper delegates to DraftAgent's public guardrail API."""
+        response = MagicMock()
+        response.text = "drafted"
+        response.usage_details = {
+            "input_token_count": 120,
+            "output_token_count": 30,
+            "total_token_count": 150,
+        }
+        orchestrator.draft.run_guardrailed = AsyncMock(return_value=response)
+
+        result = await orchestrator._draft_tool(task="draft this")  # noqa: SLF001
+
+        assert result == "drafted"
+        expected = {"input_tokens": 120, "output_tokens": 30, "total_tokens": 150}
+        assert orchestrator._last_stage_usage == expected  # noqa: SLF001
+        orchestrator.draft.run_guardrailed.assert_called_once_with("draft this")
+        orchestrator.draft.agent.run.assert_not_called()
 
     async def test_tool_sets_none_when_no_usage(
         self,

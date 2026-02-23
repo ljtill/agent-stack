@@ -73,8 +73,6 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
         self._runs = RunManager(agent_runs_repo, self._events)
         self._last_stage_usage = None
 
-        self._processing_links: set[str] = set()
-        self._link_lock = asyncio.Lock()
         self._edition_locks: dict[str, asyncio.Lock] = {}
         self._edition_locks_guard = asyncio.Lock()
 
@@ -141,27 +139,19 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
             return self._edition_locks[edition_id]
 
     async def _claim_link(self, link_id: str, status: str) -> Link | None:
-        """Attempt to claim a link for processing. Returns the link or None."""
-        async with self._link_lock:
-            if link_id in self._processing_links:
-                logger.debug("Link %s already being processed, skipping", link_id)
-                return None
-            link = await self._links_repo.get(link_id, link_id)
-            if not link or not link.edition_id:
-                logger.debug("Link %s not found or not associated, skipping", link_id)
-                return None
-            if link.status == LinkStatus.FAILED:
-                logger.debug("Link %s is failed, skipping (use Retry)", link_id)
-                return None
-            if status != LinkStatus.SUBMITTED or link.status != status:
-                logger.debug(
-                    "Link %s status %s not actionable, skipping",
-                    link_id,
-                    link.status,
-                )
-                return None
-            self._processing_links.add(link_id)
-            return link
+        """Attempt to durably claim a submitted link for processing."""
+        if status != LinkStatus.SUBMITTED:
+            logger.debug(
+                "Link %s event status %s not actionable, skipping",
+                link_id,
+                status,
+            )
+            return None
+
+        link = await self._links_repo.claim_submitted(link_id)
+        if link is None:
+            logger.debug("Link %s claim rejected, skipping", link_id)
+        return link
 
     async def handle_link_change(self, document: dict[str, Any]) -> None:
         """Process a link document change by invoking the orchestrator agent."""
@@ -235,8 +225,6 @@ class PipelineOrchestrator(OrchestratorToolsMixin):
         run.completed_at = datetime.now(UTC)
         await self._agent_runs_repo.update(run, edition_id)
         await self._runs.publish_run_event(run)
-        async with self._link_lock:
-            self._processing_links.discard(link_id)
         elapsed_ms = (time.monotonic() - t0) * 1000
         logger.info(
             "Orchestrator completed link=%s duration_ms=%.0f pipeline_run_id=%s",

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import contextvars
 import json
-import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated, Any
 
@@ -24,8 +23,6 @@ if TYPE_CHECKING:
     from curate_worker.agents.fetch import FetchAgent
     from curate_worker.agents.publish import PublishAgent
     from curate_worker.agents.review import ReviewAgent
-
-logger = logging.getLogger(__name__)
 
 # Carries feedback metadata from handle_feedback_change to _edit_tool so the
 # memory provider on the edit agent can access the skip flag and original
@@ -84,17 +81,7 @@ class OrchestratorToolsMixin:
         task: Annotated[str, "Instructions including the link ID and edition ID"],
     ) -> str:
         """Compose newsletter content from reviewed material."""
-        self.draft._draft_saved = False  # noqa: SLF001
-        session = self.draft.agent.create_session()
-        response = await self.draft.agent.run(task, session=session)
-        if not self.draft._draft_saved:  # noqa: SLF001
-            logger.warning("Draft agent did not call save_draft — retrying")
-            response = await self.draft.agent.run(
-                "You must call the save_draft tool now with the full edition "
-                "content JSON to persist your work. Content in your text "
-                "response is NOT saved to the database.",
-                session=session,
-            )
+        response = await self.draft.run_guardrailed(task)
         return self._capture_usage(response)
 
     @tool(name="edit")
