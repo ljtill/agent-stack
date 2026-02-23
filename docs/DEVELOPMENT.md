@@ -26,7 +26,7 @@ cp .env.example .env
 # Edit .env with your credentials (see below for local vs cloud options)
 
 # Run the web dashboard (with hot reload)
-uv run uvicorn curate_web.app:create_app --factory --reload --reload-dir packages
+uv run python -m curate_web.app
 
 # Run the worker (in a separate terminal)
 uv run python -m curate_worker.app
@@ -89,5 +89,5 @@ For intermittent UI lock-up diagnostics in local development, run with verbose t
 
 ```bash
 LOG_LEVEL=DEBUG APP_SLOW_REQUEST_MS=400 APP_SLOW_REPOSITORY_MS=150 \
-uv run uvicorn curate_web.app:create_app --factory --reload --reload-dir packages
+uv run python -m curate_web.app
 ```
