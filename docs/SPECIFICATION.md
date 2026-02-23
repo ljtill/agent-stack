@@ -14,7 +14,6 @@
   - [Public Newsletter Site](#4-public-newsletter-site)
 - [Data Model](#data-model)
 - [Infrastructure \& DevOps](#infrastructure--devops)
-- [Future Scope](#future-scope)
 
 ---
 
@@ -243,12 +242,3 @@ Execution logs, decisions, and state per pipeline stage.
 - **CI/CD**: GitHub Actions workflows for continuous integration (lint, type-check, test) and deployment (build two container images, deploy infrastructure, deploy both container apps).
 - **Local development**: Azure Cosmos DB emulator (`vnext-preview`, ARM-compatible), Azurite (Azure Storage emulator), and Azure Service Bus emulator (with SQL Edge backend) via Docker (Docker Compose configuration in the repository) for fully offline development. Local configuration via `.env` files; deployed environments use Azure App Configuration with managed identity.
 
----
-
-## Future Scope
-
-- Email distribution and subscriber management
-- Multiple concurrent editions
-- Additional link ingestion methods (API endpoint, browser extension, email forwarding)
-- Manual link-to-edition curation
-- Publishing cadence and scheduling
